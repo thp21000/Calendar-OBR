@@ -9,9 +9,8 @@ import { t } from "../i18n/messages";
 
 export const MonthView = ({ project }: { project: CalendarProject }) => {
   const current = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
-  const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem);
-  const firstWeekday = getCurrentMonthFirstWeekdayIndex(project.currentTime, project.calendarSystem);
-  const monthDays = getCurrentMonthDays(project.currentTime, project.calendarSystem);
+  const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
+  const firstWeekday = getCurrentMonthFirstWeekdayIndex(project.currentTime, project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
 
   const leading = Array.from({ length: firstWeekday }, (_, i) => i);
 

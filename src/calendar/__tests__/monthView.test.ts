@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarSystem, InternalTime } from "../../domain/types";
-import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex } from "../monthView";
+import {
+  getCurrentMonthDays,
+  getCurrentMonthFirstWeekdayIndex,
+  getCurrentMonthWeekdayNames
+} from "../monthView";
 
 const baseSystem: CalendarSystem = {
   eraName: "AR",

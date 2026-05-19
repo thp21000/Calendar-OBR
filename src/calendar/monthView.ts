@@ -32,7 +32,21 @@ export const getCurrentMonthDays = (currentTime: InternalTime, calendarSystem: C
   });
 };
 
-export const getCurrentMonthFirstWeekdayIndex = (currentTime: InternalTime, calendarSystem: CalendarSystem): number => {
+const rotateWeekdays = (
+  weekdays: ReturnType<typeof sortedWeekdays>,
+  monthGridStartsOnWeekdayId?: string
+) => {
+  if (!monthGridStartsOnWeekdayId) return weekdays;
+  const idx = weekdays.findIndex((day) => day.id === monthGridStartsOnWeekdayId);
+  if (idx < 0) return weekdays;
+  return [...weekdays.slice(idx), ...weekdays.slice(0, idx)];
+};
+
+export const getCurrentMonthFirstWeekdayIndex = (
+  currentTime: InternalTime,
+  calendarSystem: CalendarSystem,
+  monthGridStartsOnWeekdayId?: string
+): number => {
   const weekdays = sortedWeekdays(calendarSystem);
   if (weekdays.length === 0) return 0;
 
@@ -41,11 +55,17 @@ export const getCurrentMonthFirstWeekdayIndex = (currentTime: InternalTime, cale
 
   const firstAbsoluteDay = monthDays[0].absoluteDay;
   const firstWeekdayOffset = calendarSystem.firstWeekdayOffset ?? 0;
-  return ((firstAbsoluteDay + firstWeekdayOffset) % weekdays.length + weekdays.length) % weekdays.length;
+  const actualWeekdayIndex = ((firstAbsoluteDay + firstWeekdayOffset) % weekdays.length + weekdays.length) % weekdays.length;
+
+  const displayWeekdays = rotateWeekdays(weekdays, monthGridStartsOnWeekdayId);
+  const actualWeekdayId = weekdays[actualWeekdayIndex]?.id;
+  return Math.max(0, displayWeekdays.findIndex((weekday) => weekday.id === actualWeekdayId));
 };
 
-export const getCurrentMonthWeekdayNames = (calendarSystem: CalendarSystem): string[] =>
-  sortedWeekdays(calendarSystem).map((day) => day.shortName ?? day.name);
+export const getCurrentMonthWeekdayNames = (
+  calendarSystem: CalendarSystem,
+  monthGridStartsOnWeekdayId?: string
+): string[] => rotateWeekdays(sortedWeekdays(calendarSystem), monthGridStartsOnWeekdayId).map((day) => day.shortName ?? day.name);
 
 export const getCurrentMonthMeta = (currentTime: InternalTime, calendarSystem: CalendarSystem) => {
   const current = absoluteDayToCalendarDate(currentTime, calendarSystem);

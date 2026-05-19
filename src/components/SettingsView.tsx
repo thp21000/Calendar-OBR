@@ -1,10 +1,12 @@
-import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
-import { formatDisplayDate } from "../calendar/formatDisplayDate";
-import { ensureValidCalendarSystem, updateCurrentTimeFromDate } from "../calendar/settingsLogic";
-import type { CalendarProject, LocaleCode } from "../domain/types";
+import { ensureValidCalendarSystem } from "../calendar/settingsLogic";
+import type { CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import type { StorageScope } from "../obr/roomScope";
 import { CollapsibleSection } from "./CollapsibleSection";
+import { CurrentTimeSettingsSection } from "./settings/CurrentTimeSettingsSection";
+import { DataSettingsSection } from "./settings/DataSettingsSection";
+import { DisplaySettingsSection } from "./settings/DisplaySettingsSection";
+import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
 
 export const SettingsView = ({
   project,
@@ -19,34 +21,22 @@ export const SettingsView = ({
   scope: StorageScope;
   onReset: () => void;
 }) => {
-  const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const months = [...project.calendarSystem.months].sort((a, b) => a.order - b.order);
   const weekdays = [...project.calendarSystem.weekdays].sort((a, b) => a.order - b.order);
 
-  const updateDate = (patch: Partial<typeof displayDate>) => {
-    const next = { ...displayDate, ...patch };
-    const nextTime = updateCurrentTimeFromDate(project, next);
-    onProjectUpdate({ ...project, currentTime: nextTime });
-  };
-  const updateSystem = (next: CalendarProject) => onProjectUpdate({ ...next, calendarSystem: ensureValidCalendarSystem(next.calendarSystem) });
+  const updateSystem = (next: CalendarProject) =>
+    onProjectUpdate({ ...next, calendarSystem: ensureValidCalendarSystem(next.calendarSystem) });
 
   return (
     <div style={{ maxHeight: 380, overflowY: "auto", overflowX: "hidden", paddingRight: 2 }}>
       {saveError ? <div style={{ color: "#fca5a5", marginBottom: 8 }}>{t(project.locale, "settings.saveError")}</div> : null}
 
       <CollapsibleSection title={t(project.locale, "settings.section.general")} defaultOpen>
-        <Field label={t(project.locale, "settings.calendarName")}><input value={project.name} onChange={(e) => onProjectUpdate({ ...project, name: e.target.value })} style={inputStyle} /></Field>
-        <Field label={t(project.locale, "settings.language")}><select value={project.locale} onChange={(e) => onProjectUpdate({ ...project, locale: e.target.value as LocaleCode })} style={inputStyle}><option value="fr">Français</option><option value="en">English</option></select></Field>
-        <Field label={t(project.locale, "settings.eraName")}><input value={project.calendarSystem.eraName} onChange={(e) => onProjectUpdate({ ...project, calendarSystem: { ...project.calendarSystem, eraName: e.target.value } })} style={inputStyle} /></Field>
+        <GeneralSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.currentTime")} defaultOpen>
-        <div style={{ marginBottom: 8 }}><strong>{t(project.locale, "settings.datePreview")}:</strong> {formatDisplayDate(displayDate, project.locale)}</div>
-        <Field label={t(project.locale, "settings.currentYear")}><input type="number" value={displayDate.year} onChange={(e) => updateDate({ year: Number(e.target.value) })} style={inputStyle} /></Field>
-        <Field label={t(project.locale, "settings.currentMonth")}><select value={displayDate.monthId} onChange={(e) => updateDate({ monthId: e.target.value })} style={inputStyle}>{months.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></Field>
-        <Field label={t(project.locale, "settings.currentDay")}><input type="number" value={displayDate.dayOfMonth} onChange={(e) => updateDate({ dayOfMonth: Number(e.target.value) })} style={inputStyle} /></Field>
-        <Field label={t(project.locale, "settings.currentHour")}><input type="number" value={displayDate.hour} onChange={(e) => updateDate({ hour: Number(e.target.value) })} style={inputStyle} /></Field>
-        <Field label={t(project.locale, "settings.currentMinute")}><input type="number" value={displayDate.minute} onChange={(e) => updateDate({ minute: Number(e.target.value) })} style={inputStyle} /></Field>
+        <CurrentTimeSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.calendarStructure")}>
@@ -94,22 +84,11 @@ export const SettingsView = ({
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.display")}>
-        <Field label={t(project.locale, "settings.firstDisplayedWeekday")}>
-          <select value={project.uiSettings.monthGridStartsOnWeekdayId ?? weekdays[0]?.id} onChange={(e)=>onProjectUpdate({ ...project, uiSettings:{...project.uiSettings, monthGridStartsOnWeekdayId:e.target.value} })} style={inputStyle}>
-            {weekdays.map((d)=><option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </Field>
-        <div style={{ color: "#9ca3af" }}>{t(project.locale, "settings.dateFormat")} — {t(project.locale, "common.comingSoon")}</div>
-        <div style={{ color: "#9ca3af" }}>{t(project.locale, "settings.timeFormat")} — 24h ({t(project.locale, "common.comingSoon")})</div>
+        <DisplaySettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.data")}>
-        <div>{t(project.locale, "settings.storageScope")}: {scope.type === "obr-room" ? t(project.locale, "settings.storageScopeRoom") : "Local"}</div>
-        <RowButtons>
-          <Action onClick={onReset}>{t(project.locale, "settings.resetCalendar")}</Action>
-          <Action disabled>{t(project.locale, "settings.exportJson")} ({t(project.locale, "common.comingSoon")})</Action>
-          <Action disabled>{t(project.locale, "settings.importJson")} ({t(project.locale, "common.comingSoon")})</Action>
-        </RowButtons>
+        <DataSettingsSection locale={project.locale} scope={scope} onReset={onReset} />
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.future")}>
