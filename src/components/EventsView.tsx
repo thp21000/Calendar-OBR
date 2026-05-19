@@ -1,57 +1,16 @@
 import { useMemo, useState } from "react";
-import { absoluteDayToCalendarDate, calendarDateToAbsoluteDay, getMonthById } from "../calendar/dateEngine";
+import { absoluteDayToCalendarDate, getMonthById } from "../calendar/dateEngine";
+import { formatEventDateTime, formatEventVisibility } from "../calendar/formatEvent";
 import {
   addCalendarEvent,
   compareCalendarDates,
   createCalendarEvent,
-  isEventAllDay,
   normalizeEventDateRange,
   sortEventsByDate
 } from "../calendar/eventsLogic";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import { EventIcon } from "./EventIcon";
-
-const pad2 = (value: number): string => String(value).padStart(2, "0");
-
-const dateLabel = (project: CalendarProject, date: CalendarDate, withTime: boolean): string => {
-  const month = getMonthById(project.calendarSystem, date.monthId);
-  const internal = calendarDateToAbsoluteDay(date, project.calendarSystem);
-  const withWeekday = absoluteDayToCalendarDate(internal, project.calendarSystem);
-  const base = withWeekday.weekdayName
-    ? `${withWeekday.weekdayName} ${date.dayOfMonth} ${month?.name ?? date.monthId} ${date.year}`
-    : `${date.dayOfMonth} ${month?.name ?? date.monthId} ${date.year}`;
-
-  return withTime ? `${base}, ${pad2(date.hour)}:${pad2(date.minute)}` : base;
-};
-
-const formatEventDateTime = (project: CalendarProject, event: CalendarEvent): string => {
-  const allDay = isEventAllDay(event);
-  if (!event.endDate) {
-    if (allDay) return `${dateLabel(project, event.date, false)} — ${t(project.locale, "events.allDay")}`;
-    return dateLabel(project, event.date, true);
-  }
-
-  const sameDay = compareCalendarDates(
-    { ...event.date, hour: 0, minute: 0 },
-    { ...event.endDate, hour: 0, minute: 0 },
-    project
-  ) === 0;
-
-  if (allDay) {
-    return `${dateLabel(project, event.date, false)} → ${dateLabel(project, event.endDate, false)} — ${t(project.locale, "events.allDay")}`;
-  }
-
-  if (sameDay) return `${dateLabel(project, event.date, true)} → ${pad2(event.endDate.hour)}:${pad2(event.endDate.minute)}`;
-
-  return `${dateLabel(project, event.date, true)} → ${dateLabel(project, event.endDate, true)}`;
-};
-
-const visibilityLabel = (project: CalendarProject, visibility: CalendarEvent["visibility"]): string => {
-  if (visibility === "players") return t(project.locale, "events.visibilityPlayers");
-  if (visibility === "revealOnTrigger") return t(project.locale, "events.visibilityRevealOnTrigger");
-  return t(project.locale, "events.visibilityGm");
-};
 
 type EventFormState = {
   name: string;
@@ -135,44 +94,20 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
         minute: clamp(form.endMinute, 0, 59)
       };
       endDate = normalizeEventDateRange(project, startDate, safeEndDate);
-      if (endDate && compareCalendarDates(endDate, safeEndDate, project) !== 0) {
-        setEndError(t(project.locale, "events.endBeforeStart"));
-      } else {
-        setEndError(null);
-      }
-    } else {
-      setEndError(null);
-    }
+      if (endDate && compareCalendarDates(endDate, safeEndDate, project) !== 0) setEndError(t(project.locale, "events.endBeforeStart"));
+      else setEndError(null);
+    } else setEndError(null);
 
     const baseEvent = createCalendarEvent({ name, date: startDate, icon: form.icon.trim() || undefined, allDay: form.allDay, endDate });
-    const event: CalendarEvent = {
-      ...baseEvent,
-      summary: form.summary,
-      visibility: form.visibility,
-      allDay: form.allDay,
-      endDate
-    };
+    onProjectUpdate(addCalendarEvent(project, { ...baseEvent, summary: form.summary, visibility: form.visibility, allDay: form.allDay, endDate }));
 
-    onProjectUpdate(addCalendarEvent(project, event));
     setNameError(null);
     const resetNow = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
     setForm({
-      name: "",
-      icon: "",
-      summary: "",
-      year: resetNow.year,
-      monthId: resetNow.monthId,
-      dayOfMonth: resetNow.dayOfMonth,
-      hour: resetNow.hour,
-      minute: resetNow.minute,
-      visibility: "gm",
-      allDay: false,
-      hasEndDate: false,
-      endYear: resetNow.year,
-      endMonthId: resetNow.monthId,
-      endDayOfMonth: resetNow.dayOfMonth,
-      endHour: clamp(resetNow.hour + 1, 0, 23),
-      endMinute: resetNow.minute
+      name: "", icon: "", summary: "", year: resetNow.year, monthId: resetNow.monthId, dayOfMonth: resetNow.dayOfMonth,
+      hour: resetNow.hour, minute: resetNow.minute, visibility: "gm", allDay: false, hasEndDate: false,
+      endYear: resetNow.year, endMonthId: resetNow.monthId, endDayOfMonth: resetNow.dayOfMonth,
+      endHour: clamp(resetNow.hour + 1, 0, 23), endMinute: resetNow.minute
     });
   };
   return (
@@ -183,70 +118,36 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
         <label>{t(project.locale, "events.name")}</label>
         <input value={form.name} onChange={(e) => updateForm("name", e.target.value)} style={inputStyle} />
         {nameError ? <div style={{ color: "#fca5a5", fontSize: 12, marginBottom: 6 }}>{nameError}</div> : null}
-
-        <label>{t(project.locale, "events.icon")}</label>
-        <input value={form.icon} onChange={(e) => updateForm("icon", e.target.value)} style={inputStyle} />
-
-        <label>{t(project.locale, "events.summary")}</label>
-        <input value={form.summary} onChange={(e) => updateForm("summary", e.target.value)} style={inputStyle} />
-        <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-          <input type="checkbox" checked={form.allDay} onChange={(e) => updateForm("allDay", e.target.checked)} />
-          {t(project.locale, "events.allDay")}
-        </label>
+        <label>{t(project.locale, "events.icon")}</label><input value={form.icon} onChange={(e) => updateForm("icon", e.target.value)} style={inputStyle} />
+        <label>{t(project.locale, "events.summary")}</label><input value={form.summary} onChange={(e) => updateForm("summary", e.target.value)} style={inputStyle} />
+        <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}><input type="checkbox" checked={form.allDay} onChange={(e) => updateForm("allDay", e.target.checked)} />{t(project.locale, "events.allDay")}</label>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
           <div><label>{t(project.locale, "events.year")}</label><input type="number" value={form.year} onChange={(e) => updateForm("year", Number(e.target.value))} style={inputStyle} /></div>
-          <div><label>{t(project.locale, "events.month")}</label><select value={form.monthId} onChange={(e) => updateForm("monthId", e.target.value)} style={inputStyle}>{sortedMonths.map((month) => <option key={month.id} value={month.id}>{month.name}</option>)}</select></div>
+          <div><label>{t(project.locale, "events.month")}</label><select value={form.monthId} onChange={(e) => updateForm("monthId", e.target.value)} style={inputStyle}>{sortedMonths.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
           <div><label>{t(project.locale, "events.day")}</label><input type="number" value={form.dayOfMonth} onChange={(e) => updateForm("dayOfMonth", Number(e.target.value))} style={inputStyle} /></div>
           {!form.allDay ? <><div><label>{t(project.locale, "events.hour")}</label><input type="number" min={0} max={23} value={form.hour} onChange={(e) => updateForm("hour", Number(e.target.value))} style={inputStyle} /></div><div><label>{t(project.locale, "events.minute")}</label><input type="number" min={0} max={59} value={form.minute} onChange={(e) => updateForm("minute", Number(e.target.value))} style={inputStyle} /></div></> : null}
           <div><label>{t(project.locale, "events.visibility")}</label><select value={form.visibility} onChange={(e) => updateForm("visibility", e.target.value as CalendarEvent["visibility"])} style={inputStyle}><option value="gm">{t(project.locale, "events.visibilityGm")}</option><option value="players">{t(project.locale, "events.visibilityPlayers")}</option><option value="revealOnTrigger">{t(project.locale, "events.visibilityRevealOnTrigger")}</option></select></div>
         </div>
-
-        <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-          <input
-            type="checkbox"
-            checked={form.hasEndDate}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              updateForm("hasEndDate", checked);
-              if (checked) {
-                updateForm("endYear", form.year);
-                updateForm("endMonthId", form.monthId);
-                updateForm("endDayOfMonth", form.dayOfMonth);
-                updateForm("endHour", clamp(form.hour + 1, 0, 23));
-                updateForm("endMinute", form.minute);
-              }
-            }}
-          />
-          {t(project.locale, "events.addEndDate")}
-        </label>
-
-        {form.hasEndDate ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-            <div><label>{t(project.locale, "events.endYear")}</label><input type="number" value={form.endYear} onChange={(e) => updateForm("endYear", Number(e.target.value))} style={inputStyle} /></div>
-            <div><label>{t(project.locale, "events.endMonth")}</label><select value={form.endMonthId} onChange={(e) => updateForm("endMonthId", e.target.value)} style={inputStyle}>{sortedMonths.map((month) => <option key={month.id} value={month.id}>{month.name}</option>)}</select></div>
-            <div><label>{t(project.locale, "events.endDay")}</label><input type="number" value={form.endDayOfMonth} onChange={(e) => updateForm("endDayOfMonth", Number(e.target.value))} style={inputStyle} /></div>
-            {!form.allDay ? <><div><label>{t(project.locale, "events.endHour")}</label><input type="number" min={0} max={23} value={form.endHour} onChange={(e) => updateForm("endHour", Number(e.target.value))} style={inputStyle} /></div><div><label>{t(project.locale, "events.endMinute")}</label><input type="number" min={0} max={59} value={form.endMinute} onChange={(e) => updateForm("endMinute", Number(e.target.value))} style={inputStyle} /></div></> : null}
-          </div>
-        ) : null}
+<label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}><input type="checkbox" checked={form.hasEndDate} onChange={(e) => { const checked = e.target.checked; updateForm("hasEndDate", checked); if (checked) { updateForm("endYear", form.year); updateForm("endMonthId", form.monthId); updateForm("endDayOfMonth", form.dayOfMonth); updateForm("endHour", clamp(form.hour + 1, 0, 23)); updateForm("endMinute", form.minute); } }} />{t(project.locale, "events.addEndDate")}</label>
+        {form.hasEndDate ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+          <div><label>{t(project.locale, "events.endYear")}</label><input type="number" value={form.endYear} onChange={(e) => updateForm("endYear", Number(e.target.value))} style={inputStyle} /></div>
+          <div><label>{t(project.locale, "events.endMonth")}</label><select value={form.endMonthId} onChange={(e) => updateForm("endMonthId", e.target.value)} style={inputStyle}>{sortedMonths.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+          <div><label>{t(project.locale, "events.endDay")}</label><input type="number" value={form.endDayOfMonth} onChange={(e) => updateForm("endDayOfMonth", Number(e.target.value))} style={inputStyle} /></div>
+          {!form.allDay ? <><div><label>{t(project.locale, "events.endHour")}</label><input type="number" min={0} max={23} value={form.endHour} onChange={(e) => updateForm("endHour", Number(e.target.value))} style={inputStyle} /></div><div><label>{t(project.locale, "events.endMinute")}</label><input type="number" min={0} max={59} value={form.endMinute} onChange={(e) => updateForm("endMinute", Number(e.target.value))} style={inputStyle} /></div></> : null}
+        </div> : null}
         {endError ? <div style={{ color: "#fca5a5", fontSize: 12, marginBottom: 6 }}>{endError}</div> : null}
         <button type="button" onClick={handleCreate} style={{ ...buttonStyle, marginTop: 6 }}>{t(project.locale, "events.save")}</button>
       </div>
-
-      {events.length === 0 ? <div style={{ color: "#9ca3af" }}>{t(project.locale, "events.noEvents")}</div> : (
-        <div style={{ display: "grid", gap: 8 }}>
-          {events.map((event) => (
-            <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, overflow: "hidden" }}>
-                <EventIcon icon={event.icon} locale={project.locale} />
-                <strong>{event.name}</strong>
-              </div>
-              <div style={{ fontSize: 12, marginBottom: 4 }}>{formatEventDateTime(project, event)}</div>
-              {event.summary ? <div style={{ fontSize: 12, marginBottom: 4, color: "#d1d5db" }}>{event.summary}</div> : null}
-              <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "events.visibility")}: {visibilityLabel(project, event.visibility)}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      {events.length === 0 ? <div style={{ color: "#9ca3af" }}>{t(project.locale, "events.noEvents")}</div> : <div style={{ display: "grid", gap: 8 }}>
+        {events.map((event) => (
+          <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, overflow: "hidden" }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
+            <div style={{ fontSize: 12, marginBottom: 4 }}>{formatEventDateTime(project, event)}</div>
+            {event.summary ? <div style={{ fontSize: 12, marginBottom: 4, color: "#d1d5db" }}>{event.summary}</div> : null}
+            <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</div>
+          </div>
+        ))}
+      </div>}
     </>
   );
 };
