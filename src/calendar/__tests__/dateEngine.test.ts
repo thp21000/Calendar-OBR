@@ -38,7 +38,10 @@ describe("dateEngine", () => {
     expect(addHours({ absoluteDay: 4, hour: 23, minute: 10 }, 2)).toEqual({ absoluteDay: 5, hour: 1, minute: 10 });
   });
     it("passes month end to next month", () => {
-    const endOfMonth = calendarDateToAbsoluteDay({ year: 1000, monthId: "m2", dayOfMonth: 20, hour: 23, minute: 59 }, system);
+    const endOfMonth = calendarDateToAbsoluteDay(
+      { year: 1000, monthId: "m2", dayOfMonth: 20, hour: 23, minute: 59 },
+      system
+    );
     const nextMinute = addMinutes(endOfMonth, 1);
     const display = absoluteDayToCalendarDate(nextMinute, system);
     expect(display.monthId).toBe("m1");

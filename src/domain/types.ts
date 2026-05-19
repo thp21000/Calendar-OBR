@@ -64,12 +64,7 @@ export type CalendarEvent = {
   id: string;
   name: string;
   icon?: string;
-  date: {
-    monthId: string;
-    day: number;
-    hour?: number | null;
-    minute?: number | null;
-  };
+  date: CalendarDate;
   recurrence: CalendarEventRecurrence;
   summary: string;
   gmDescription?: string;

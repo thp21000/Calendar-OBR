@@ -1,4 +1,5 @@
 import type { CalendarProject } from "../domain/types";
+import { sanitizeCalendarProject } from "../importExport/calendarImportExport";
 
 const STORAGE_KEY = "calendar-obr.project";
 
@@ -50,8 +51,10 @@ export const loadCalendarProject = (): CalendarProject => {
   try {
     const raw = storage.getItem(STORAGE_KEY);
     if (!raw) return createDefaultCalendarProject();
-    const parsed = JSON.parse(raw) as CalendarProject;
-    return parsed;
+    const parsed = JSON.parse(raw) as unknown;
+    const sanitized = sanitizeCalendarProject(parsed);
+    if (!sanitized.ok) return createDefaultCalendarProject();
+    return sanitized.project;
   } catch {
     return createDefaultCalendarProject();
   }
