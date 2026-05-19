@@ -34,15 +34,29 @@ describe("monthView logic", () => {
     expect(getCurrentMonthDays(current, baseSystem)).toHaveLength(20);
   });
 
-  it("detects current day", () => {
+  it("default weekday order keeps calendar order without monthGridStartsOnWeekdayId", () => {
+    expect(getCurrentMonthWeekdayNames(baseSystem)).toEqual(["One", "Two", "Three", "Four", "Five"]);
+  });
+
+  it("weekday order starts from configured monthGridStartsOnWeekdayId d4", () => {
+    expect(getCurrentMonthWeekdayNames(baseSystem, "d4")).toEqual(["Four", "Five", "One", "Two", "Three"]);
+  });
+
+  it("invalid monthGridStartsOnWeekdayId falls back to default order", () => {
+    expect(getCurrentMonthWeekdayNames(baseSystem, "missing-day")).toEqual(["One", "Two", "Three", "Four", "Five"]);
+  });
+
+  it("leading empty cells are recalculated for display weekday start", () => {
+    const current: InternalTime = { absoluteDay: 35, hour: 10, minute: 0 };
+    expect(getCurrentMonthFirstWeekdayIndex(current, baseSystem)).toBe(2);
+    expect(getCurrentMonthFirstWeekdayIndex(current, baseSystem, "d4")).toBe(4);
+  });
+
+  it("current day detection remains correct when display weekday order changes", () => {
     const current: InternalTime = { absoluteDay: 35, hour: 10, minute: 0 };
     const days = getCurrentMonthDays(current, baseSystem);
     const found = days.find((d) => d.isCurrentDay);
     expect(found?.dayOfMonth).toBe(6);
-  });
-
-  it("respects firstWeekdayOffset for first day of month", () => {
-    const current: InternalTime = { absoluteDay: 35, hour: 10, minute: 0 };
-    expect(getCurrentMonthFirstWeekdayIndex(current, baseSystem)).toBe(2);
+    expect(getCurrentMonthWeekdayNames(baseSystem, "d4")[0]).toBe("Four");
   });
 });
