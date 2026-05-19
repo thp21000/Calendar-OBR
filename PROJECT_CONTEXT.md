@@ -1,290 +1,195 @@
-# Project Context — OBR Living Calendar
-
-## Objectif du projet
-
-Ce projet est un addon Owlbear Rodeo destiné aux maîtres de jeu.
-
-L’objectif est de créer un calendrier vivant pour campagnes JDR, capable de gérer :
-
-- un calendrier personnalisé ;
-- la date actuelle de la campagne ;
-- l’heure actuelle ;
-- les événements de campagne ;
-- les saisons ;
-- les phases de lune ;
-- une météo procédurale cohérente ;
-- des prévisions météo ;
-- des événements météorologiques conditionnels ;
-- des imports/exports JSON ;
-- des packs prêts à l’emploi distribuables via Patreon.
-
-Le projet doit être pensé comme un outil de MJ utilisable en partie, dans une interface compacte adaptée au popover Owlbear Rodeo.
-
-## Intention produit
-
-L’addon ne doit pas être seulement un calendrier.
-
-Il doit devenir un outil de suivi du temps de campagne :
-
-- “Quel jour sommes-nous ?”
-- “Quelle heure est-il ?”
-- “Quelle est la météo ?”
-- “Y a-t-il un événement aujourd’hui ?”
-- “Quelle est la phase de lune ?”
-- “Que voient les joueurs ?”
-- “Quelles informations restent réservées au MJ ?”
-
-Phrase de présentation possible :
-
-> Un calendrier vivant pour campagnes JDR : temps, saisons, lunes, événements et météo dynamique directement utilisables en partie.
-
-## Public visé
-
-### MJ
-
-Le MJ est l’utilisateur principal.
-
-Il doit pouvoir :
-
-- créer et modifier le calendrier ;
-- gérer la date et l’heure ;
-- créer des événements ;
-- configurer les saisons ;
-- configurer la météo ;
-- gérer les lunes ;
-- importer/exporter les données ;
-- préparer des calendriers ou packs à partager.
-
-### Joueurs
-
-Les joueurs doivent pouvoir consulter une version limitée, si cette fonction est activée.
-
-Ils peuvent voir :
-
-- la date actuelle ;
-- l’heure actuelle ;
-- la saison ;
-- la météo actuelle ;
-- les prévisions autorisées ;
-- les événements publics ;
-- les phases de lune visibles.
-
-Ils ne doivent pas pouvoir modifier le calendrier.
-
-### Créateur Patreon
-
-Le projet doit permettre de proposer des packs prêts à l’emploi :
-
-- calendriers complets ;
-- saisons ;
-- événements ;
-- événements météo ;
-- lunes ;
-- profils météo ;
-- packs de campagne.
-
-## Principe technique central
-
-Le système doit fonctionner avec une date interne absolue.
-
-Même si le calendrier affiché est personnalisé, irrégulier ou fantastique, l’addon doit garder en interne une valeur simple :
-
-- jour absolu ;
-- heure ;
-- minute.
-
-Exemple :
-
-```ts
-{
-  absoluteDay: 142,
-  hour: 18,
-  minute: 55
-}
-```
-
-Ensuite, le système convertit cette valeur en date affichée selon la configuration du calendrier.
-
-Exemple affiché :
-
-```txt
-21 Calistril 4710, 18:55
-Hiver
-Lune gibbeuse décroissante
-```
-
-Ce principe est important pour gérer correctement :
-
-- le passage du temps ;
-- les mois personnalisés ;
-- les années ;
-- les événements récurrents ;
-- les saisons ;
-- les lunes ;
-- la météo déterministe ;
-- les prévisions.
-
-## Priorités du MVP
-
-Le MVP doit être volontairement limité.
-
-Le but de la première version n’est pas de tout faire, mais de poser une base propre.
-
-Le MVP doit inclure :
-
-- création d’un calendrier personnalisé ;
-- mois personnalisés ;
-- nombre de jours par mois ;
-- jours de semaine personnalisés ;
-- année actuelle ;
-- date actuelle ;
-- heure actuelle ;
-- boutons rapides de changement d’heure ;
-- pause longue +8 h ;
-- vue du mois ;
-- événements ponctuels simples ;
-- événements récurrents simples ;
-- notifications d’événements ;
-- import/export JSON complet ;
-- i18n FR/EN ;
-- stockage local.
-
-## Hors scope du MVP
-
-Ne pas implémenter immédiatement :
-
-- météo avancée ;
-- prévisions météo ;
-- événements météo conditionnels ;
-- multiples lunes ;
-- synchronisation OBR complète MJ/joueurs ;
-- packs Patreon avancés ;
-- biomes ;
-- altitude ;
-- régions climatiques ;
-- notes de voyage ;
-- journal de campagne.
-
-Ces fonctionnalités doivent être prévues dans l’architecture, mais pas codées tout de suite.
-
-## Découpage prévu
-
-### MVP
-
-Base calendrier + temps + événements simples + import/export.
-
-### V1
-
-Saisons, météo actuelle, prévisions simples, une lune.
-
-### V1.5
-
-Événements météo conditionnels, événements lunaires, notifications avancées.
-
-### V2
-
-Packs Patreon, import sélectif, plusieurs lunes, meilleure synchronisation OBR, vue joueur plus complète.
-
-## Contraintes UX
-
-L’interface doit être :
-
-- compacte ;
-- lisible ;
-- utilisable dans un popover OBR ;
-- rapide en partie ;
-- adaptée au MJ ;
-- non surchargée pour les joueurs.
-
-L’écran principal doit toujours rendre visibles :
-
-- la date ;
-- l’heure ;
-- la saison ;
-- la météo actuelle, même si elle est provisoire ou placeholder dans le MVP ;
-- les boutons rapides de temps ;
-- les événements du jour.
-
-## Contraintes de données
-
-Les exports JSON doivent inclure :
-
-- schemaVersion ;
-- appVersion ;
-- identifiant du calendrier ;
-- nom du calendrier ;
-- configuration du calendrier ;
-- date actuelle ;
-- événements ;
-- paramètres UI ;
-- futures sections prévues pour saisons, météo, lunes et packs.
-
-L’import/export doit être fiable dès le début, car il servira :
-
-- aux sauvegardes ;
-- aux tests ;
-- aux migrations ;
-- au partage de calendriers ;
-- aux packs Patreon.
-
-## Architecture souhaitée
-
-Séparer clairement :
-
-- logique calendrier ;
-- logique de temps ;
-- logique événements ;
-- stockage ;
-- import/export ;
-- i18n ;
-- interface utilisateur ;
-- futures fonctions météo ;
-- futures fonctions lune ;
-- futures fonctions packs.
-
-Les fonctions de calcul de date doivent être pures et testables.
-
-Éviter un gros fichier unique qui mélange toute la logique.
-
-## Langues
-
-Prévoir dès le départ :
-
-- français ;
-- anglais.
-
-Tout texte visible dans l’interface doit passer par l’i18n.
-
-## Unités prévues
-
-Pour le MVP, les unités météo peuvent rester en attente.
-
-Pour la V1, prévoir :
-
-- température : Celsius ;
-- vent : km/h ;
-- pluie : mm.
-
-La structure doit permettre plus tard :
-
-- Fahrenheit ;
-- mph ;
-- pouces.
-
-## Stockage OBR
-
-Pour le MVP, le stockage local est suffisant.
-
-La synchronisation avec la room OBR pourra venir plus tard.
-
-Ne pas bloquer l’architecture, mais ne pas essayer de tout synchroniser dès le départ.
-
-## Philosophie de développement
-
-Faire simple, propre et extensible.
-
-Ne pas sur-implémenter.
-
-Ne pas coder la météo complète tant que le moteur de date, les événements et l’import/export ne sont pas solides.
-
-Chaque phase doit être fonctionnelle et testable avant de passer à la suivante.
+# PROJECT_CONTEXT
+
+## Projet
+- **Nom** : Calendar OBR (Calendrier vivant pour Owlbear Rodeo)
+- **Type** : Extension Owlbear Rodeo (frontend web + manifest Owlbear)
+- **Objectif** : Permettre au MJ de gérer un calendrier de campagne vivant (date/heure, événements, affichages Aujourd’hui/Mois/Événements, import/export), avec une base propre pour les évolutions futures (saisons, météo, lunes, packs).
+
+## Stack
+- **Front** : React + TypeScript + Vite
+- **Back** : Aucun backend dédié
+- **BDD** : Aucune BDD serveur ; stockage local navigateur (avec scope room OBR quand disponible)
+- **Outils / infra** :
+  - npm
+  - Vitest
+  - Owlbear Rodeo SDK (`@owlbear-rodeo/sdk`)
+
+## Décisions validées
+- Architecture modulaire (date engine, logique événements, formatage, stockage, import/export, UI).
+- Fonctions de calcul de date pures et testables.
+- MVP sans météo avancée, sans lunes avancées, sans récurrence complexe, sans packs Patreon.
+- Tout texte visible passe par i18n FR/EN.
+- Les exports incluent `schemaVersion` et `appVersion`.
+- Itérations petites et ciblées (pas de refonte globale inutile).
+
+## État actuel
+### Ce qui fonctionne
+- Extension frontend fonctionnelle avec navigation : **Aujourd’hui / Mois / Événements / Paramètres**.
+- Moteur calendrier :
+  - conversion date interne ↔ date calendrier,
+  - gestion mois personnalisés / jours / offset semaine,
+  - ajout/retrait de minutes/heures/jours.
+- Gestion des événements :
+  - création,
+  - édition,
+  - suppression,
+  - tri,
+  - filtrage jour courant / jour donné,
+  - all-day,
+  - date de fin optionnelle.
+- Affichage événements :
+  - liste complète dans l’onglet Événements,
+  - événements du jour dans Aujourd’hui,
+  - icône dans la grille Mois + tooltip des noms d’événements.
+- Icônes événement :
+  - support emoji/texte,
+  - support URL image (png/jpg/jpeg/gif/webp/svg),
+  - fallback en cas d’échec image.
+- Stockage et import/export :
+  - stockage local,
+  - scope OBR room si disponible,
+  - import/export JSON validé/sanitisé.
+- i18n FR/EN active.
+- Suite de tests unitaires (calendar engine, events, formatters, month view, settings, storage, import/export, OBR scope).
+
+### Ce qui est en cours
+- Stabilisation incrémentale UX dans le popover OBR (densité et lisibilité des blocs UI).
+
+### Ce qui bloque / limites connues
+- Pas encore de récurrence événementielle avancée.
+- Pas encore de notifications automatiques de déclenchement.
+- Pas encore de modules météo/saisons/lunes fonctionnels au-delà des placeholders.
+
+## Architecture du projet
+- `src/domain/types.ts`
+  - Types centraux (`CalendarProject`, `CalendarSystem`, `CalendarEvent`, etc.).
+- `src/calendar/dateEngine.ts`
+  - Logique pure de date/heure interne et conversions.
+- `src/calendar/eventsLogic.ts`
+  - Logique pure événements (CRUD logique, tri, helpers all-day/fin, image URL, etc.).
+- `src/calendar/formatEvent.ts`
+  - Formatage partagé des événements (date/heure/visibilité, formats courts/longs).
+- `src/calendar/formatDisplayDate.ts`
+  - Formatage date principale affichée.
+- `src/calendar/monthView.ts`
+  - Helpers de construction de la vue mensuelle.
+- `src/calendar/settingsLogic.ts`
+  - Normalisation/gestion structure calendrier.
+- `src/components/TodayView.tsx`
+  - Vue principale : date courante, actions de temps, événements du jour.
+- `src/components/MonthView.tsx`
+  - Grille du mois + icône du premier événement par jour + tooltip.
+- `src/components/EventsView.tsx`
+  - Liste des événements + actions modifier/supprimer.
+- `src/components/events/EventForm.tsx`
+  - Formulaire partagé création/édition d’événement.
+- `src/components/EventIcon.tsx`
+  - Affichage unifié icône texte/image avec taille configurable.
+- `src/components/SettingsView.tsx` et `src/components/settings/*`
+  - Paramétrage du calendrier et données.
+- `src/storage/calendarStorage.ts`
+  - Chargement/sauvegarde/reset localStorage.
+- `src/obr/roomScope.ts`
+  - Détection scope room OBR / fallback local.
+- `src/importExport/calendarImportExport.ts`
+  - Import/export + validation/sanitation.
+- `src/i18n/messages.ts`
+  - Dictionnaires FR/EN + helper de traduction.
+
+## Bugs / points de vigilance connus
+- Le rendu compact du popover OBR demande de rester vigilant sur toute évolution UI (éviter débordements et surcharge).
+- Les changements UI doivent rester localisés pour ne pas casser la lisibilité globale.
+
+## Fonctionnalités
+### Déjà faites
+- [x] Socle TypeScript/React/Vite + manifest
+- [x] Moteur calendrier interne (dates/heures)
+- [x] Vue Aujourd’hui
+- [x] Vue Mois
+- [x] Vue Événements
+- [x] Création d’événement
+- [x] Édition d’événement
+- [x] Suppression d’événement
+- [x] Événement all-day
+- [x] Date de fin optionnelle
+- [x] Affichage icône événement (texte/image)
+- [x] Affichage événements du jour (Aujourd’hui)
+- [x] Marqueur événement en grille Mois (icône + tooltip)
+- [x] i18n FR/EN
+- [x] Stockage local + scope OBR
+- [x] Import/export JSON validé
+- [x] Tests unitaires principaux
+
+### En cours
+- [ ] Polish UI compact popover OBR
+- [ ] Consolidation ergonomique de l’onglet Événements
+
+### À faire ensuite
+- [ ] Récurrence événements
+- [ ] Notifications automatiques
+- [ ] Saisons fonctionnelles
+- [ ] Météo fonctionnelle
+- [ ] Lunes fonctionnelles
+- [ ] Outillage packs / compatibilité avancée
+
+## Décisions techniques à ne pas re-discuter à chaque reprise
+- Conserver le principe de date interne absolue + conversion affichée.
+- Conserver la séparation logique métier / UI.
+- Garder les fonctions de calcul en pur/facilement testable.
+- Préférer des étapes MVP petites et validées plutôt que des lots massifs.
+
+## État actuel précis
+Le MVP calendrier est déjà utilisable avec gestion complète d’événements simples (CRUD), affichage dans Aujourd’hui, repères en Mois, et base technique propre (tests, i18n, stockage, import/export). Les prochaines étapes prioritaires concernent la récurrence/automatisation et les modules hors-scope MVP initial (météo/lunes/saisons) sans casser la simplicité actuelle.
+
+## Journal de session
+### Session du 19 mai 2026
+- **sujets traités :**
+  - Implémentation de la logique métier événements (fichier dédié) : création, ajout, mise à jour, suppression, occurrence sur un jour, récupération par jour/jour courant, tri.
+  - Ajout des tests unitaires de la logique événements (cas CRUD + tri + filtres + projet vide).
+  - Ajout de l’onglet **Événements** en lecture seule dans la navigation principale.
+  - Ajout d’un formulaire minimal de création d’événement dans l’onglet Événements (nom, icône, résumé, date/heure, visibilité) avec validations de base.
+  - Enrichissement des événements avec :
+    - icône image (détection URL image + fallback),
+    - option **toute la journée**,
+    - date de fin optionnelle.
+  - Mise à jour de l’affichage événements :
+    - formats date/heure adaptés (normal, all-day, avec fin même jour / autre jour),
+    - affichage des événements du jour dans **Aujourd’hui**,
+    - affichage des événements dans **Mois**.
+  - Factorisation du formatage d’événements dans un module partagé (`formatEvent`) pour éviter la duplication entre vues.
+  - Évolution de la grille **Mois** : passage du marqueur `• N` à l’icône du premier événement + tooltip détaillant les noms d’événements.
+  - Ajout des actions **Modifier** / **Supprimer** sur les cartes d’événements avec confirmation de suppression.
+  - Extraction d’un formulaire partagé **create/edit** (`EventForm`) et correction d’un bug critique d’édition (id régénéré par erreur).
+  - Refonte de `PROJECT_CONTEXT.md` vers un format structuré demandé + normalisation du journal de session.
+
+- **fichiers modifiés :**
+  - `PROJECT_CONTEXT.md`
+  - `src/domain/types.ts`
+  - `src/calendar/eventsLogic.ts`
+  - `src/calendar/formatEvent.ts`
+  - `src/calendar/__tests__/eventsLogic.test.ts`
+  - `src/calendar/__tests__/formatEvent.test.ts`
+  - `src/components/App.tsx`
+  - `src/components/EventIcon.tsx`
+  - `src/components/EventsView.tsx`
+  - `src/components/TodayView.tsx`
+  - `src/components/MonthView.tsx`
+  - `src/components/events/EventForm.tsx`
+  - `src/i18n/messages.ts`
+
+- **décisions prises :**
+  - Avancer en petites étapes MVP, sans implémenter récurrence/notifications/météo/lunes/packs.
+  - Garder la logique métier dans `src/calendar/*` et éviter de surcharger les composants React.
+  - Centraliser le formatage événementiel dans `src/calendar/formatEvent.ts` pour réutilisation inter-vues.
+  - Utiliser `EventIcon` comme point unique pour gérer emoji/texte/image + fallback.
+  - Conserver les validations simples (nom requis, bornes heure/minute, correction fin < début).
+  - Garder une UX compacte adaptée au popover OBR.
+
+- **problèmes restants :**
+  - Pas encore de récurrence événementielle fonctionnelle.
+  - Pas encore de notifications automatiques de déclenchement.
+  - Pas encore d’édition/suppression depuis Aujourd’hui ou Mois (uniquement via onglet Événements).
+  - Modules météo/saisons/lunes/packs encore hors scope MVP actif.
+
+- **prochaine action utile :**
+  - Enchaîner avec la prochaine petite étape demandée (probable : récurrence simple ou amélioration UX de l’onglet Événements), puis mettre à jour immédiatement ce journal avec le même format.
