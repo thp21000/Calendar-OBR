@@ -75,6 +75,7 @@ export type CalendarEvent = {
   deleteAfterTrigger: boolean;
   archiveAfterTrigger: boolean;
   status: CalendarEventStatus;
+  allDay?: boolean;
 };
 
 export type UiSettings = {
