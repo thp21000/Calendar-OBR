@@ -69,7 +69,7 @@ export const App = () => {
       {project.uiSettings.activeTab === "month" ? (
         <MonthView project={project} />
       ) : project.uiSettings.activeTab === "events" ? (
-        <EventsView project={project} />
+        <EventsView project={project} onProjectUpdate={updateProject} />
       ) : project.uiSettings.activeTab === "settings" ? (
         <SettingsView project={project} onProjectUpdate={updateProject} saveError={saveError} scope={scope} onReset={handleReset} />
       ) : (
