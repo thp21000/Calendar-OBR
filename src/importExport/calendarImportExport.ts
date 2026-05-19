@@ -27,9 +27,18 @@ export const validateImportedCalendarProject = (
   if (data.units.rain !== "mm") return { valid: false, error: "units.rain must be 'mm'." };
 
   if (!isRecord(data.currentTime)) return { valid: false, error: "currentTime is required and must be an object." };
-  if (typeof data.currentTime.absoluteDay !== "number") return { valid: false, error: "currentTime.absoluteDay must be a number." };
-  if (typeof data.currentTime.hour !== "number") return { valid: false, error: "currentTime.hour must be a number." };
-  if (typeof data.currentTime.minute !== "number") return { valid: false, error: "currentTime.minute must be a number." };
+  const absoluteDay = data.currentTime.absoluteDay;
+  const hour = data.currentTime.hour;
+  const minute = data.currentTime.minute;
+  if (typeof absoluteDay !== "number" || !Number.isInteger(absoluteDay)) {
+    return { valid: false, error: "currentTime.absoluteDay must be an integer." };
+  }
+  if (typeof hour !== "number" || !Number.isInteger(hour) || hour < 0 || hour > 23) {
+    return { valid: false, error: "currentTime.hour must be an integer between 0 and 23." };
+  }
+  if (typeof minute !== "number" || !Number.isInteger(minute) || minute < 0 || minute > 59) {
+    return { valid: false, error: "currentTime.minute must be an integer between 0 and 59." };
+  }
 
   if (!isRecord(data.calendarSystem)) return { valid: false, error: "calendarSystem is required and must be an object." };
 

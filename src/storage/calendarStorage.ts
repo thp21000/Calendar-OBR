@@ -1,5 +1,5 @@
 import type { CalendarProject } from "../domain/types";
-import { sanitizeCalendarProject } from "../importExport/calendarImportExport";
+import { sanitizeCalendarProject, validateImportedCalendarProject } from "../importExport/calendarImportExport";
 
 const STORAGE_KEY = "calendar-obr.project";
 
@@ -61,6 +61,8 @@ export const loadCalendarProject = (): CalendarProject => {
 };
 
 export const saveCalendarProject = (project: CalendarProject): { ok: true } | { ok: false; error: string } => {
+  const validation = validateImportedCalendarProject(project);
+  if (!validation.valid) return { ok: false, error: validation.error };
   const storage = safeStorage();
   if (!storage) return { ok: false, error: "localStorage unavailable" };
 
