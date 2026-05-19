@@ -16,7 +16,6 @@ export const MonthView = ({ project }: { project: CalendarProject }) => {
   const leading = Array.from({ length: firstWeekday }, (_, i) => i);
 
   return (
-    <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{project.name}</div>
       <div style={{ marginBottom: 8 }}>
         <strong>{t(project.locale, "calendar.currentMonth")}:</strong> {current.monthName} {current.year}
