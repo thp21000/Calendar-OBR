@@ -2,10 +2,15 @@ import type { LocaleCode } from "../domain/types";
 
 export const messages: Record<LocaleCode, Record<string, string>> = {
   fr: {
-    "app.title": "Aujourd'hui",
+    "app.title": "Calendrier vivant",
+    "nav.today": "Aujourd'hui",
+    "nav.month": "Mois",
     "common.month": "Mois",
     "common.year": "Année",
     "calendar.currentDate": "Date actuelle",
+    "calendar.currentMonth": "Mois actuel",
+    "calendar.currentDay": "Jour actuel",
+    "calendar.noEventsYet": "Événements à venir",
     "calendar.weekday": "Jour de semaine",
     "calendar.seasonPlaceholder": "Saison à venir",
     "calendar.weatherPlaceholder": "Météo à venir",
@@ -23,10 +28,15 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "settings.resetCalendar": "Réinitialiser le calendrier"
   },
   en: {
-    "app.title": "Today",
+    "app.title": "Living Calendar",
+    "nav.today": "Today",
+    "nav.month": "Month",
     "common.month": "Month",
     "common.year": "Year",
     "calendar.currentDate": "Current date",
+    "calendar.currentMonth": "Current month",
+    "calendar.currentDay": "Current day",
+    "calendar.noEventsYet": "Events coming soon",
     "calendar.weekday": "Weekday",
     "calendar.seasonPlaceholder": "Season coming soon",
     "calendar.weatherPlaceholder": "Weather coming soon",
