@@ -59,9 +59,24 @@ export const EventForm = ({ project, mode, initialEvent, onSubmit, onCancel }: {
       setEndError(endDate && compareCalendarDates(endDate, safeEnd, project) !== 0 ? t(project.locale, "events.endBeforeStart") : null);
     } else setEndError(null);
 
+    if (mode === "edit" && initialEvent) {
+      onSubmit({
+        ...initialEvent,
+        name,
+        icon: form.icon.trim() || undefined,
+        summary: form.summary,
+        date: startDate,
+        endDate,
+        visibility: form.visibility,
+        allDay: form.allDay
+      });
+      setNameError(null);
+      return;
+    }
+    
     const base = createCalendarEvent({ name, date: startDate, icon: form.icon.trim() || undefined, allDay: form.allDay, endDate });
-    onSubmit({ ...(initialEvent ? { ...initialEvent, id: initialEvent.id, recurrence: initialEvent.recurrence, status: initialEvent.status } : base), ...base, summary: form.summary, visibility: form.visibility, allDay: form.allDay, endDate });
-    if (mode === "create") setForm(toFormValue(project));
+    onSubmit({ ...base, summary: form.summary, visibility: form.visibility, allDay: form.allDay, endDate });
+    setForm(toFormValue(project));
     setNameError(null);
   };
 

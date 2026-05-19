@@ -137,6 +137,23 @@ describe("eventsLogic", () => {
     expect(updated.events[0].summary).toBe("Desc");
   });
 
+  it("updateCalendarEvent garde le même id et ne crée pas de nouvel événement", () => {
+    const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 8, minute: 0 });
+    const project = { ...buildProject(), events: [event] };
+
+    const updated = updateCalendarEvent(project, "e1", {
+      name: "Nom modifié",
+      summary: "Résumé modifié",
+      date: { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 10, minute: 30 }
+    });
+
+    expect(updated.events).toHaveLength(1);
+    expect(updated.events[0].id).toBe("e1");
+    expect(updated.events[0].name).toBe("Nom modifié");
+    expect(updated.events[0].summary).toBe("Résumé modifié");
+    expect(updated.events[0].date.dayOfMonth).toBe(2);
+  });
+
   it("deleteCalendarEvent supprime un événement", () => {
     const e1 = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 8, minute: 0 });
     const e2 = makeEvent("e2", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 8, minute: 0 });
