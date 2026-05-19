@@ -1,54 +1,57 @@
-import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
-import {
-  getCurrentMonthDays,
-  getCurrentMonthFirstWeekdayIndex,
-  getCurrentMonthWeekdayNames
-} from "../calendar/monthView";
-import type { CalendarProject } from "../domain/types";
-import { t } from "../i18n/messages";
+import type { CalendarSystem, InternalTime } from "../domain/types";
+import { absoluteDayToCalendarDate, getDaysInYear } from "./dateEngine";
 
-export const MonthView = ({ project }: { project: CalendarProject }) => {
-  const current = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
-  const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem);
-  const firstWeekday = getCurrentMonthFirstWeekdayIndex(project.currentTime, project.calendarSystem);
-  const monthDays = getCurrentMonthDays(project.currentTime, project.calendarSystem);
+export type MonthDayCell = {
+  dayOfMonth: number;
+  absoluteDay: number;
+  isCurrentDay: boolean;
+};
 
-  const leading = Array.from({ length: firstWeekday }, (_, i) => i);
+const sortedMonths = (system: CalendarSystem) => [...system.months].sort((a, b) => a.order - b.order);
+const sortedWeekdays = (system: CalendarSystem) => [...system.weekdays].sort((a, b) => a.order - b.order);
 
-  return (
-      <div style={{ marginBottom: 8, fontWeight: 700 }}>{project.name}</div>
-      <div style={{ marginBottom: 8 }}>
-        <strong>{t(project.locale, "calendar.currentMonth")}:</strong> {current.monthName} {current.year}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${weekdays.length}, 1fr)`, gap: 4, marginBottom: 4 }}>
-        {weekdays.map((day) => (
-          <div key={day} style={{ fontSize: 11, color: "#9ca3af", textAlign: "center" }}>{day}</div>
-        ))}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${weekdays.length}, 1fr)`, gap: 4 }}>
-        {leading.map((n) => (
-          <div key={`lead-${n}`} />
-        ))}
-        {monthDays.map((day) => (
-          <div
-            key={day.absoluteDay}
-            title={day.isCurrentDay ? t(project.locale, "calendar.currentDay") : undefined}
-            style={{
-              minHeight: 28,
-              borderRadius: 6,
-              border: day.isCurrentDay ? "1px solid #22c55e" : "1px solid #374151",
-              background: day.isCurrentDay ? "#14532d" : "#1f2937",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12
-            }}
-          >
-            {day.dayOfMonth}
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: 10, fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "calendar.noEventsYet")}</div>
-    </>
-  );
+export const getCurrentMonthDays = (currentTime: InternalTime, calendarSystem: CalendarSystem): MonthDayCell[] => {
+  const months = sortedMonths(calendarSystem);
+  const currentDisplay = absoluteDayToCalendarDate(currentTime, calendarSystem);
+
+  const monthIndex = months.findIndex((month) => month.id === currentDisplay.monthId);
+  if (monthIndex < 0) return [];
+
+  const daysBeforeMonth = months.slice(0, monthIndex).reduce((sum, month) => sum + month.days, 0);
+  const dayInYearIndex = daysBeforeMonth + (currentDisplay.dayOfMonth - 1);
+  const yearStartAbsoluteDay = currentTime.absoluteDay - dayInYearIndex;
+  const firstDayAbsolute = yearStartAbsoluteDay + daysBeforeMonth;
+
+  return Array.from({ length: months[monthIndex].days }, (_, index) => {
+    const absoluteDay = firstDayAbsolute + index;
+    return {
+      dayOfMonth: index + 1,
+      absoluteDay,
+      isCurrentDay: absoluteDay === currentTime.absoluteDay
+    };
+  });
+};
+
+export const getCurrentMonthFirstWeekdayIndex = (currentTime: InternalTime, calendarSystem: CalendarSystem): number => {
+  const weekdays = sortedWeekdays(calendarSystem);
+  if (weekdays.length === 0) return 0;
+
+  const monthDays = getCurrentMonthDays(currentTime, calendarSystem);
+  if (monthDays.length === 0) return 0;
+
+  const firstAbsoluteDay = monthDays[0].absoluteDay;
+  const firstWeekdayOffset = calendarSystem.firstWeekdayOffset ?? 0;
+  return ((firstAbsoluteDay + firstWeekdayOffset) % weekdays.length + weekdays.length) % weekdays.length;
+};
+
+export const getCurrentMonthWeekdayNames = (calendarSystem: CalendarSystem): string[] =>
+  sortedWeekdays(calendarSystem).map((day) => day.shortName ?? day.name);
+
+export const getCurrentMonthMeta = (currentTime: InternalTime, calendarSystem: CalendarSystem) => {
+  const current = absoluteDayToCalendarDate(currentTime, calendarSystem);
+  return {
+    monthName: current.monthName,
+    year: current.year,
+    daysInYear: getDaysInYear(calendarSystem)
+  };
 };
