@@ -1,7 +1,7 @@
 import type { CalendarProject } from "../domain/types";
 import { sanitizeCalendarProject, validateImportedCalendarProject } from "../importExport/calendarImportExport";
 
-const STORAGE_KEY = "calendar-obr.project";
+const STORAGE_KEY = "calendar-obr.project.local-dev";
 
 const defaultProject: CalendarProject = {
   schemaVersion: 1,
@@ -44,12 +44,12 @@ const safeStorage = (): Storage | undefined => {
   return localStorage;
 };
 
-export const loadCalendarProject = (): CalendarProject => {
+export const loadCalendarProject = (storageKey = STORAGE_KEY): CalendarProject => {
   const storage = safeStorage();
   if (!storage) return createDefaultCalendarProject();
 
   try {
-    const raw = storage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(storageKey);
     if (!raw) return createDefaultCalendarProject();
     const parsed = JSON.parse(raw) as unknown;
     const sanitized = sanitizeCalendarProject(parsed);
@@ -60,26 +60,27 @@ export const loadCalendarProject = (): CalendarProject => {
   }
 };
 
-export const saveCalendarProject = (project: CalendarProject): { ok: true } | { ok: false; error: string } => {
+export const saveCalendarProject = (project: CalendarProject, storageKey = STORAGE_KEY): { ok: true } | { ok: false; error: string } => {
   const validation = validateImportedCalendarProject(project);
   if (!validation.valid) return { ok: false, error: validation.error };
+
   const storage = safeStorage();
   if (!storage) return { ok: false, error: "localStorage unavailable" };
 
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(project));
+    storage.setItem(storageKey, JSON.stringify(project));
     return { ok: true };
   } catch {
     return { ok: false, error: "Failed to persist project." };
   }
 };
 
-export const resetCalendarProject = (): CalendarProject => {
+export const resetCalendarProject = (storageKey = STORAGE_KEY): CalendarProject => {
   const project = createDefaultCalendarProject();
   const storage = safeStorage();
   if (storage) {
-    storage.removeItem(STORAGE_KEY);
-    storage.setItem(STORAGE_KEY, JSON.stringify(project));
+    storage.removeItem(storageKey);
+    storage.setItem(storageKey, JSON.stringify(project));
   }
   return project;
 };

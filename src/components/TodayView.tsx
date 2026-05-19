@@ -1,4 +1,5 @@
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
+import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import type { CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 
@@ -12,9 +13,20 @@ const quickActions: QuickAction[] = [
   { key: "time.plus5m", deltaMinutes: 5 },
   { key: "time.plus15m", deltaMinutes: 15 },
   { key: "time.plus1h", deltaMinutes: 60 },
-  { key: "time.plus2h", deltaMinutes: 120 },
-  { key: "time.longRest", deltaMinutes: 480 }
+  { key: "time.plus2h", deltaMinutes: 120 }
 ];
+
+const buttonStyle = {
+  border: "1px solid #8b5cf6",
+  borderRadius: 8,
+  background: "#1a1530",
+  color: "#c4b5fd",
+  padding: "8px 6px",
+  fontSize: 12,
+  fontWeight: 700,
+  textTransform: "uppercase" as const,
+  cursor: "pointer"
+};
 
 export const TodayView = ({
   project,
@@ -34,36 +46,23 @@ export const TodayView = ({
   return (
     <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{project.name}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 6, marginBottom: 10 }}>
-        <div>
-          <strong>{t(project.locale, "calendar.currentDate")}:</strong> {displayDate.dayOfMonth} {displayDate.monthName}
-        </div>
-        <div>
-          <strong>{t(project.locale, "calendar.weekday")}:</strong> {displayDate.weekdayName}
-        </div>
-        <div>
-          <strong>{t(project.locale, "common.month")}:</strong> {displayDate.monthName}
-        </div>
-        <div>
-          <strong>{t(project.locale, "common.year")}:</strong> {displayDate.year}
-        </div>
-        <div>
-          <strong>{t(project.locale, "time.current")}:</strong> {String(displayDate.hour).padStart(2, "0")}:{String(displayDate.minute).padStart(2, "0")}
-        </div>
-      </div>
+      <div style={{ marginBottom: 10, fontSize: 14, fontWeight: 700 }}>{formatDisplayDate(displayDate, project.locale)}</div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, marginBottom: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>
         {quickActions.map((action) => (
-          <button
-            key={action.key}
-            type="button"
-            onClick={() => applyTimeDelta(action.deltaMinutes)}
-            style={{ border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#f3f4f6", padding: "6px 4px", fontSize: 12, cursor: "pointer" }}
-          >
+          <button key={action.key} type="button" onClick={() => applyTimeDelta(action.deltaMinutes)} style={buttonStyle}>
             {t(project.locale, action.key)}
           </button>
         ))}
       </div>
+
+      <button
+        type="button"
+        onClick={() => applyTimeDelta(480)}
+        style={{ ...buttonStyle, width: "100%", marginBottom: 10, textTransform: "none" }}
+      >
+        🛌 {t(project.locale, "time.longRest")}
+      </button>
 
       <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
         <div>{t(project.locale, "calendar.seasonPlaceholder")}</div>

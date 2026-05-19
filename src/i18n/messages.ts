@@ -45,7 +45,8 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "settings.daysCount": "Jours",
     "settings.firstWeekdayOffset": "Décalage premier jour",
     "settings.saveError": "Erreur de sauvegarde",
-    "settings.resetCalendar": "Réinitialiser le calendrier"
+    "settings.resetCalendar": "Réinitialiser le calendrier",
+    "common.loading": "Chargement..."
   },
   en: {
     "app.title": "Living Calendar",
@@ -91,7 +92,8 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "settings.daysCount": "Days",
     "settings.firstWeekdayOffset": "First weekday offset",
     "settings.saveError": "Save error",
-    "settings.resetCalendar": "Reset calendar"
+    "settings.resetCalendar": "Reset calendar",
+    "common.loading": "Loading..."
   }
 };
 
