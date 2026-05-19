@@ -4,6 +4,7 @@ import {
   getCurrentMonthFirstWeekdayIndex,
   getCurrentMonthWeekdayNames
 } from "../calendar/monthView";
+import type { MonthDayCell } from "../calendar/monthView";
 import type { CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 
@@ -11,6 +12,7 @@ export const MonthView = ({ project }: { project: CalendarProject }) => {
   const current = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
   const firstWeekday = getCurrentMonthFirstWeekdayIndex(project.currentTime, project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
+  const monthDays: MonthDayCell[] = getCurrentMonthDays(project.currentTime, project.calendarSystem);
 
   const leading = Array.from({ length: firstWeekday }, (_, i) => i);
 
@@ -29,7 +31,7 @@ export const MonthView = ({ project }: { project: CalendarProject }) => {
         {leading.map((n) => (
           <div key={`lead-${n}`} />
         ))}
-        {monthDays.map((day) => (
+        {monthDays.map((day: MonthDayCell) => (
           <div
             key={day.absoluteDay}
             title={day.isCurrentDay ? t(project.locale, "calendar.currentDay") : undefined}
