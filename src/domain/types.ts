@@ -1,5 +1,11 @@
 export type LocaleCode = "fr" | "en";
 
+export type UnitsSettings = {
+  temperature: "celsius";
+  windSpeed: "kmh";
+  rain: "mm";
+};
+
 export type CalendarMonth = {
   id: string;
   name: string;
@@ -18,6 +24,7 @@ export type CalendarWeekday = {
 export type CalendarSystem = {
   eraName: string;
   startYear: number;
+  firstWeekdayOffset?: number;
   months: CalendarMonth[];
   weekdays: CalendarWeekday[];
 };
@@ -28,15 +35,96 @@ export type InternalTime = {
   minute: number;
 };
 
-export type DisplayDate = {
+export type CalendarCurrentTime = InternalTime;
+
+export type CalendarDate = {
   year: number;
   monthId: string;
-  monthName: string;
   dayOfMonth: number;
-  weekdayId?: string;
-  weekdayName?: string;
   hour: number;
   minute: number;
+};
+
+export type DisplayDate = CalendarDate & {
+  monthName: string;
+  weekdayId?: string;
+  weekdayName?: string;
+};
+
+export type CalendarEventVisibility = "gm" | "players" | "revealOnTrigger";
+export type CalendarEventStatus = "active" | "triggered" | "archived" | "disabled";
+
+export type CalendarEventRecurrence =
+  | { type: "none" }
+  | { type: "everyXDays"; interval: number }
+  | { type: "everyXMonths"; interval: number }
+  | { type: "yearly"; interval: number };
+
+export type CalendarEvent = {
+  id: string;
+  name: string;
+  icon?: string;
+  date: {
+    monthId: string;
+    day: number;
+    hour?: number | null;
+    minute?: number | null;
+  };
+  recurrence: CalendarEventRecurrence;
+  summary: string;
+  gmDescription?: string;
+  playerDescription?: string;
+  link?: string;
+  visibility: CalendarEventVisibility;
+  notifyOnTrigger: boolean;
+  deleteAfterTrigger: boolean;
+  archiveAfterTrigger: boolean;
+  status: CalendarEventStatus;
+};
+
+export type UiSettings = {
+  activeTab: "today" | "month" | "events" | "settings";
+  compactMode: boolean;
+};
+
+export type WeatherSettings = {
+  seed?: string;
+  forecastMode?: "wide" | "fine";
+};
+
+export type Season = {
+  id: string;
+  name: string;
+  icon?: string;
+};
+
+export type Moon = {
+  id: string;
+  name: string;
+  cycleLengthDays?: number;
+};
+
+export type WeatherEvent = {
+  id: string;
+  name: string;
+  summary?: string;
+};
+
+export type CalendarProject = {
+  schemaVersion: number;
+  appVersion: string;
+  id: string;
+  name: string;
+  locale: LocaleCode;
+  units: UnitsSettings;
+  currentTime: CalendarCurrentTime;
+  calendarSystem: CalendarSystem;
+  events: CalendarEvent[];
+  seasons: Season[];
+  moons: Moon[];
+  weatherSettings: WeatherSettings;
+  weatherEvents: WeatherEvent[];
+  uiSettings: UiSettings;
 };
 
 export type TimePreset = {
