@@ -7,7 +7,10 @@ import {
   getEventsForCurrentDay,
   getEventsForDay,
   sortEventsByDate,
-  updateCalendarEvent
+  updateCalendarEvent,
+  isImageUrl,
+  isEventEndBeforeStart,
+  normalizeEventDateRange
 } from "../eventsLogic";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../../domain/types";
 
@@ -55,6 +58,46 @@ const makeEvent = (id: string, date: CalendarDate): CalendarEvent => ({
 });
 
 describe("eventsLogic", () => {
+
+  it("isImageUrl détecte les extensions image supportées", () => {
+    expect(isImageUrl("https://a/icon.png")).toBe(true);
+    expect(isImageUrl("https://a/icon.jpg")).toBe(true);
+    expect(isImageUrl("https://a/icon.jpeg")).toBe(true);
+    expect(isImageUrl("https://a/icon.gif")).toBe(true);
+    expect(isImageUrl("https://a/icon.webp")).toBe(true);
+    expect(isImageUrl("https://a/icon.svg")).toBe(true);
+  });
+
+  it("isImageUrl retourne true avec paramètres URL", () => {
+    expect(isImageUrl("https://site.com/icon.png?token=abc")).toBe(true);
+  });
+
+  it("isImageUrl retourne false pour emoji ou texte", () => {
+    expect(isImageUrl("🔥")).toBe(false);
+    expect(isImageUrl("sword")).toBe(false);
+  });
+
+  it("createCalendarEvent peut créer un événement allDay", () => {
+    const date: CalendarDate = { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 9, minute: 0 };
+    const event = createCalendarEvent({ name: "Fête", date, allDay: true });
+    expect(event.allDay).toBe(true);
+  });
+
+  it("createCalendarEvent peut créer un événement avec endDate", () => {
+    const date: CalendarDate = { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 9, minute: 0 };
+    const endDate: CalendarDate = { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 10, minute: 0 };
+    const event = createCalendarEvent({ name: "Réunion", date, endDate });
+    expect(event.endDate).toEqual(endDate);
+  });
+
+  it("normalizeEventDateRange corrige une fin avant le début", () => {
+    const project = buildProject();
+    const startDate: CalendarDate = { year: 1000, monthId: "m1", dayOfMonth: 5, hour: 12, minute: 0 };
+    const endDate: CalendarDate = { year: 1000, monthId: "m1", dayOfMonth: 5, hour: 10, minute: 0 };
+
+    expect(isEventEndBeforeStart(project, startDate, endDate)).toBe(true);
+    expect(normalizeEventDateRange(project, startDate, endDate)).toEqual(startDate);
+  });
   it("createCalendarEvent crée un événement valide avec les valeurs par défaut", () => {
     const date: CalendarDate = { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 14, minute: 5 };
 

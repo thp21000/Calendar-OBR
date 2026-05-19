@@ -65,6 +65,7 @@ export type CalendarEvent = {
   name: string;
   icon?: string;
   date: CalendarDate;
+  endDate?: CalendarDate;
   recurrence: CalendarEventRecurrence;
   summary: string;
   gmDescription?: string;
