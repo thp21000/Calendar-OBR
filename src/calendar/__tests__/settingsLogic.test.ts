@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { clampDateParts, ensureValidCalendarSystem } from "../settingsLogic";
-import type { CalendarSystem } from "../../domain/types";
+import type { CalendarSystem, UiSettings } from "../../domain/types";
 
 const system: CalendarSystem = {
   eraName: "AR",
@@ -34,5 +34,9 @@ describe("settingsLogic", () => {
   it("normalizes invalid firstWeekdayOffset", () => {
     const normalized = ensureValidCalendarSystem({ ...system, firstWeekdayOffset: -4 });
     expect(normalized.firstWeekdayOffset).toBe(0);
+  });
+  it("accepts monthGridStartsOnWeekdayId in uiSettings type", () => {
+    const ui: UiSettings = { activeTab: "settings", compactMode: true, monthGridStartsOnWeekdayId: "d1" };
+    expect(ui.monthGridStartsOnWeekdayId).toBe("d1");
   });
 });

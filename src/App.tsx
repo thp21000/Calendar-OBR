@@ -67,7 +67,7 @@ export const App = () => {
       {project.uiSettings.activeTab === "month" ? (
         <MonthView project={project} />
       ) : project.uiSettings.activeTab === "settings" ? (
-        <SettingsView project={project} onProjectUpdate={updateProject} saveError={saveError} />
+        <SettingsView project={project} onProjectUpdate={updateProject} saveError={saveError} scope={scope} onReset={handleReset} />
       ) : (
         <TodayView project={project} onProjectUpdate={updateProject} onReset={handleReset} />
       )}

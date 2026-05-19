@@ -80,6 +80,7 @@ export type CalendarEvent = {
 export type UiSettings = {
   activeTab: "today" | "month" | "events" | "settings";
   compactMode: boolean;
+  monthGridStartsOnWeekdayId?: string;
 };
 
 export type WeatherSettings = {
