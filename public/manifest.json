@@ -1,12 +1,12 @@
 {
   "name": "Calendar OBR MVP",
-  "version": "0.0.9",
+  "version": "0.1.2",
   "manifest_version": 1,
   "action": {
     "title": "Calendar OBR MVP",
     "icon": "https://thp21000.github.io/Calendar-OBR/icon.svg",
     "popover": "https://thp21000.github.io/Calendar-OBR/index.html",
     "height": 480,
-    "width": 360
+    "width": 660
   }
 }
