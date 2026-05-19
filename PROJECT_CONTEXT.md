@@ -471,139 +471,7 @@ Les prochaines étapes doivent rester ciblées. La priorité immédiate recomman
 
 ### Session du 19 mai 2026
 
-#### Sujets traités
-
-- Mise en place et consolidation du socle calendrier :
-  - moteur de date ;
-  - stockage ;
-  - import/export ;
-  - i18n ;
-  - tests.
-- Mise en place de GitHub Pages et du manifest OBR.
-- Validation du chargement dans Owlbear Rodeo.
-- Ajout de la vue Aujourd’hui :
-  - date actuelle ;
-  - heure actuelle ;
-  - boutons rapides ;
-  - pause longue.
-- Ajout de la sauvegarde indépendante par room OBR.
-- Ajout de la vue Mois :
-  - grille mensuelle ;
-  - jour actuel ;
-  - premier jour affiché configurable.
-- Refonte de la page Paramètres :
-  - sections repliables ;
-  - configuration générale ;
-  - date/heure ;
-  - mois ;
-  - jours de semaine ;
-  - affichage ;
-  - données ;
-  - placeholders futurs.
-- Implémentation de la logique métier événements :
-  - création ;
-  - ajout ;
-  - mise à jour ;
-  - suppression ;
-  - occurrence sur un jour ;
-  - récupération par jour ;
-  - récupération jour courant ;
-  - tri.
-- Ajout des tests unitaires de logique événements.
-- Ajout de l’onglet Événements.
-- Ajout du formulaire minimal de création d’événement.
-- Enrichissement des événements :
-  - icône image ;
-  - fallback icône ;
-  - toute la journée ;
-  - date de fin optionnelle.
-- Mise à jour de l’affichage événements :
-  - formats date/heure ;
-  - all-day ;
-  - fin même jour ;
-  - fin autre jour.
-- Affichage des événements du jour dans Aujourd’hui.
-- Affichage des événements dans Mois.
-- Remplacement du marqueur `• N` par une icône dans la grille Mois.
-- Tooltip de jour avec numéro et noms d’événements.
-- Ajout des actions Modifier / Supprimer.
-- Extraction d’un formulaire partagé `EventForm`.
-- Correction prévue/faite du bug d’édition lié à l’id régénéré.
-- Refonte de `PROJECT_CONTEXT.md`.
-
-#### Fichiers modifiés pendant la session
-
-- `PROJECT_CONTEXT.md`
-- `public/manifest.json`
-- `package.json`
-- `vite.config.ts`
-- `src/App.tsx`
-- `src/domain/types.ts`
-- `src/calendar/dateEngine.ts`
-- `src/calendar/eventsLogic.ts`
-- `src/calendar/formatEvent.ts`
-- `src/calendar/formatDisplayDate.ts`
-- `src/calendar/monthView.ts`
-- `src/calendar/settingsLogic.ts`
-- `src/calendar/__tests__/dateEngine.test.ts`
-- `src/calendar/__tests__/eventsLogic.test.ts`
-- `src/calendar/__tests__/formatEvent.test.ts`
-- `src/calendar/__tests__/monthView.test.ts`
-- `src/calendar/__tests__/settingsLogic.test.ts`
-- `src/components/TodayView.tsx`
-- `src/components/MonthView.tsx`
-- `src/components/EventsView.tsx`
-- `src/components/EventIcon.tsx`
-- `src/components/CollapsibleSection.tsx`
-- `src/components/events/EventForm.tsx`
-- `src/components/settings/*`
-- `src/storage/calendarStorage.ts`
-- `src/importExport/calendarImportExport.ts`
-- `src/obr/roomScope.ts`
-- `src/i18n/messages.ts`
-
-#### Décisions prises
-
-- Continuer en petites étapes.
-- Ne pas passer directement à météo/lunes/packs.
-- Stabiliser d’abord les événements simples.
-- Garder l’édition/suppression dans l’onglet Événements pour le moment.
-- Ne pas surcharger la vue Mois.
-- Utiliser une icône compacte dans Mois avec tooltip.
-- Centraliser le formatage événementiel dans `formatEvent`.
-- Centraliser l’affichage d’icône dans `EventIcon`.
-- Garder les validations simples :
-  - nom requis ;
-  - heure/minute bornées ;
-  - jour limité au mois ;
-  - date de fin corrigée si avant début.
-
-#### Problèmes restants
-
-- Vérifier que l’édition d’événement fonctionne bien en conditions réelles après correction du bug d’id.
-- Pas encore de récurrence événementielle.
-- Pas encore de notifications automatiques.
-- Pas encore d’interface import/export complète.
-- Pas encore d’édition/suppression depuis Aujourd’hui ou Mois.
-- Météo/saisons/lunes/packs non fonctionnels pour l’instant.
-
-#### Prochaine action utile
-
-Petite étape recommandée :
-
-1. Vérifier/corriger l’édition événement en conditions réelles.
-2. Ajouter des tests si une fonction pure est ajoutée.
-3. Ensuite seulement, commencer la récurrence simple :
-   - aucune ;
-   - tous les X jours ;
-   - tous les X mois ;
-   - annuel.
-
-## Journal de session
-
-  ### Session du 19 mai 2026
-
-- **sujets traités :**
+#### sujets traités :
   - Préparation et consolidation du socle technique du projet :
     - types principaux du calendrier ;
     - moteur de date interne ;
@@ -720,7 +588,7 @@ Petite étape recommandée :
     - correction demandée : en édition, conserver impérativement `initialEvent.id`.
   - Mise à jour de `PROJECT_CONTEXT.md` pour documenter l’état du projet et faciliter la reprise.
 
-- **fichiers modifiés ou créés pendant la session :**
+#### fichiers modifiés ou créés pendant la session :
   - `PROJECT_CONTEXT.md`
   - `AGENTS.md`
   - `docs/MVP_TASKS.md`
@@ -766,7 +634,7 @@ Petite étape recommandée :
   - `src/obr/roomScope.ts`
   - `src/i18n/messages.ts`
 
-- **décisions prises :**
+#### décisions prises :
   - Avancer en petites étapes MVP plutôt que demander de grosses fonctionnalités d’un coup.
   - Garder la logique métier dans `src/calendar/*`.
   - Éviter de dupliquer la logique dans les composants React.
@@ -781,7 +649,7 @@ Petite étape recommandée :
   - Ne pas encore coder météo, lunes, saisons fonctionnelles, packs Patreon ou synchronisation joueur avancée.
   - Ne pas encore coder les récurrences tant que les événements simples ne sont pas stabilisés.
 
-- **problèmes corrigés pendant la session :**
+#### problèmes corrigés pendant la session :
   - Erreur 404 dans OBR liée aux chemins du manifest.
   - Risque de stockage partagé entre plusieurs rooms OBR.
   - Page Paramètres trop longue et brouillonne.
@@ -791,7 +659,7 @@ Petite étape recommandée :
   - Icône URL affichée comme texte au lieu d’image.
   - Marqueur événement dans Mois trop peu lisible sous forme `• N`.
 
-- **problèmes restants / points de vigilance :**
+#### problèmes restants / points de vigilance :
   - Vérifier en conditions réelles que la modification d’un événement conserve bien l’id original.
   - Vérifier qu’une modification d’événement met bien à jour :
     - la liste Événements ;
@@ -811,7 +679,7 @@ Petite étape recommandée :
   - Pas encore de vue joueur différenciée.
   - L’onglet Événements risque de devenir trop long si on ajoute encore des options sans sections repliables.
 
-- **état final de la session :**
+#### état final de la session :
   - L’extension se charge dans Owlbear Rodeo.
   - Le calendrier est utilisable avec date, heure, mois, paramètres et événements simples.
   - Les événements peuvent être créés et affichés.
