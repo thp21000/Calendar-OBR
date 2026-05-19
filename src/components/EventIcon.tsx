@@ -3,7 +3,7 @@ import { isImageUrl } from "../calendar/eventsLogic";
 import { t } from "../i18n/messages";
 import type { LocaleCode } from "../domain/types";
 
-export const EventIcon = ({ icon, locale }: { icon?: string; locale: LocaleCode }) => {
+export const EventIcon = ({ icon, locale, size = 24 }: { icon?: string; locale: LocaleCode; size?: number }) => {
   const [failed, setFailed] = useState(false);
   if (!icon) return null;
 
@@ -15,10 +15,10 @@ export const EventIcon = ({ icon, locale }: { icon?: string; locale: LocaleCode 
         src={icon}
         alt={t(locale, "events.imageIcon")}
         onError={() => setFailed(true)}
-        style={{ width: 24, height: 24, objectFit: "contain", borderRadius: 4, flexShrink: 0 }}
+        style={{ width: size, height: size, objectFit: "contain", borderRadius: 4, flexShrink: 0 }}
       />
     );
   }
 
-  return <span aria-hidden style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>;
+  return <span aria-hidden style={{ fontSize: Math.max(12, Math.round(size * 0.8)), lineHeight: 1 }}>{icon}</span>;
 };
