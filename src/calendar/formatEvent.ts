@@ -84,3 +84,10 @@ export const formatEventTriggerOptions = (project: CalendarProject, event: Calen
   if (parts.length === 0) return t(project.locale, "events.triggerNone");
   return parts.join(", ");
 };
+
+export const formatEventStatus = (project: CalendarProject, event: CalendarEvent): string => {
+  if (event.status === "triggered") return t(project.locale, "events.statusTriggered");
+  if (event.status === "archived") return t(project.locale, "events.statusArchived");
+  if (event.status === "disabled") return t(project.locale, "events.statusDisabled");
+  return t(project.locale, "events.statusActive");
+};

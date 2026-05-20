@@ -95,6 +95,9 @@ const getEventCompletionDate = (project: CalendarProject, startDate: CalendarDat
   return absoluteDayToCalendarDate({ absoluteDay: startInternal.absoluteDay + 1, hour: 0, minute: 0 }, project.calendarSystem);
 };
 
+const isEventVisibleInActiveViews = (event: CalendarEvent): boolean =>
+  event.status !== "archived" && event.status !== "disabled";
+
 const getEventDurationDays = (project: CalendarProject, event: CalendarEvent): number => {
   if (!event.endDate) return 1;
   return Math.max(1, toAbsoluteDayOnly(project, event.endDate) - toAbsoluteDayOnly(project, event.date) + 1);
@@ -205,7 +208,7 @@ export const eventOccursOnDay = (event: CalendarEvent, date: CalendarDate, proje
 };
 
 export const getEventsForDay = (project: CalendarProject, date: CalendarDate): CalendarEvent[] =>
-  sortEventsByDate(project.events.filter((event) => eventOccursOnDay(event, date, project)), project);
+  sortEventsByDate(project.events.filter((event) => isEventVisibleInActiveViews(event) && eventOccursOnDay(event, date, project)), project);
 
 export const getEventsForCurrentDay = (project: CalendarProject): CalendarEvent[] => {
   const currentDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
@@ -313,6 +316,30 @@ const getRecurringOccurrenceStartsUpTo = (
   return getRecurringOccurrenceStartsBetween(project, event, baseStartMinute - 1, toMinute);
 };
 
+const toInternalTime = (absoluteMinute: number): { absoluteDay: number; hour: number; minute: number } => ({
+  absoluteDay: Math.floor(absoluteMinute / 1440),
+  hour: Math.floor((absoluteMinute % 1440) / 60),
+  minute: absoluteMinute % 60
+});
+
+const getOccurrenceCompletionMinute = (project: CalendarProject, event: CalendarEvent, occurrenceStartMinute: number): number => {
+  if (event.recurrence.type === "none") {
+    const completion = getEventCompletionDate(project, absoluteDayToCalendarDate(toInternalTime(occurrenceStartMinute), project.calendarSystem), event);
+    return toAbsoluteMinute(project, completion);
+  }
+
+  const baseStartMinute = toAbsoluteMinute(project, getEventTriggerStartDate(event));
+  if (event.allDay) {
+    const completionDays = event.endDate
+      ? Math.max(1, toAbsoluteDayOnly(project, event.endDate) - toAbsoluteDayOnly(project, event.date) + 1)
+      : 1;
+    return occurrenceStartMinute + completionDays * 1440;
+  }
+  const baseCompletionMinute = event.endDate ? toAbsoluteMinute(project, event.endDate) : baseStartMinute;
+  const durationMinutes = Math.max(0, baseCompletionMinute - baseStartMinute);
+  return occurrenceStartMinute + durationMinutes;
+};
+
 export const getTriggeredEventsBetween = (
   project: CalendarProject,
   fromTime: { absoluteDay: number; hour: number; minute: number },
@@ -354,15 +381,7 @@ export const getCompletedEventsBetween = (
 
     const occurrenceStarts = getRecurringOccurrenceStartsUpTo(project, event, toMinute);
     for (const occurrenceStartMinute of occurrenceStarts) {
-      const occurrenceStartDate = absoluteDayToCalendarDate(
-        {
-          absoluteDay: Math.floor(occurrenceStartMinute / 1440),
-          hour: Math.floor((occurrenceStartMinute % 1440) / 60),
-          minute: occurrenceStartMinute % 60
-        },
-        project.calendarSystem
-      );
-      const completionMinute = toAbsoluteMinute(project, getEventCompletionDate(project, occurrenceStartDate, event));
+      const completionMinute = getOccurrenceCompletionMinute(project, event, occurrenceStartMinute);
       if (completionMinute > fromMinute && completionMinute <= toMinute) return true;
     }
     return false;
@@ -379,6 +398,7 @@ export const applyEventCompletionActions = (project: CalendarProject, completedE
       if (!completedIds.has(event.id)) return event;
       if (event.deleteAfterTrigger) return event;
       if (event.archiveAfterTrigger) return { ...event, status: "archived" as const };
+      if (event.recurrence.type === "none") return { ...event, status: "triggered" as const };
       return event;
     });
 

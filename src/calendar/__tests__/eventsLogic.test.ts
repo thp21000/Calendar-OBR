@@ -236,6 +236,17 @@ describe("eventsLogic", () => {
     expect(result[0].id).toBe("e1");
   });
 
+  it("getEventsForDay n'inclut pas les événements archived et disabled", () => {
+    const target = { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 0, minute: 0 };
+    const active = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 10, minute: 0 });
+    const triggered = { ...makeEvent("e2", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 11, minute: 0 }), status: "triggered" as const };
+    const archived = { ...makeEvent("e3", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 12, minute: 0 }), status: "archived" as const };
+    const disabled = { ...makeEvent("e4", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 13, minute: 0 }), status: "disabled" as const };
+    const project = { ...buildProject(), events: [active, triggered, archived, disabled] };
+
+    expect(getEventsForDay(project, target).map((event) => event.id)).toEqual(["e1", "e2"]);
+  });
+
   it("sortEventsByDate trie correctement plusieurs événements", () => {
     const project = buildProject();
     const events = [
@@ -496,6 +507,27 @@ it("getCompletedEventsBetween: événement normal sans endDate terminé au débu
     expect(applyEventCompletionActions(withEvent, atEnd).events[0].status).toBe("archived");
   });
 
+  it("applyEventCompletionActions: événement non récurrent terminé devient triggered sans delete/archive", () => {
+    const project = buildProject();
+    const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 0 });
+    const withEvent = { ...project, events: [event] };
+    const completed = getCompletedEventsBetween(withEvent, { absoluteDay: 0, hour: 11, minute: 55 }, { absoluteDay: 0, hour: 12, minute: 0 });
+    const nextProject = applyEventCompletionActions(withEvent, completed);
+    expect(nextProject.events[0].status).toBe("triggered");
+  });
+
+  it("applyEventCompletionActions: si delete et archive sont vrais, delete gagne", () => {
+    const project = buildProject();
+    const event = {
+      ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 0 }),
+      deleteAfterTrigger: true,
+      archiveAfterTrigger: true
+    };
+    const withEvent = { ...project, events: [event] };
+    const completed = getCompletedEventsBetween(withEvent, { absoluteDay: 0, hour: 11, minute: 55 }, { absoluteDay: 0, hour: 12, minute: 0 });
+    expect(applyEventCompletionActions(withEvent, completed).events).toEqual([]);
+  });
+
   it("événement déclenché mais pas terminé n'est pas supprimé", () => {
     const project = buildProject();
     const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 0, minute: 0 }), allDay: true, deleteAfterTrigger: true };
@@ -516,4 +548,23 @@ it("getCompletedEventsBetween: événement normal sans endDate terminé au débu
     const nextProject = applyEventCompletionActions(withEvent, completed);
     expect(nextProject.events).toHaveLength(1);
     expect(nextProject.events[0].status).toBe("active");
+  });
+
+  it("getCompletedEventsBetween: occurrence récurrente avec endDate conserve la durée (ex: 10:00→12:00 chaque jour)", () => {
+    const project = buildProject();
+    const event = {
+      ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 10, minute: 0 }),
+      endDate: { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 0 },
+      recurrence: { type: "everyXDays" as const, interval: 1 }
+    };
+    const withEvent = { ...project, events: [event] };
+    expect(getCompletedEventsBetween(withEvent, { absoluteDay: 1, hour: 11, minute: 55 }, { absoluteDay: 1, hour: 12, minute: 0 }).map((e) => e.id)).toEqual(["e1"]);
+    expect(getCompletedEventsBetween(withEvent, { absoluteDay: 1, hour: 9, minute: 55 }, { absoluteDay: 1, hour: 10, minute: 0 })).toEqual([]);
+  });
+
+  it("un projet sans événement retourne une liste vide", () => {
+    const project = buildProject();
+
+    expect(getEventsForDay(project, { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 0, minute: 0 })).toEqual([]);
+    expect(getEventsForCurrentDay(project)).toEqual([]);
   });
