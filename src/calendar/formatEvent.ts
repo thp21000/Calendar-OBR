@@ -75,3 +75,12 @@ export const formatEventRecurrence = (project: CalendarProject, event: CalendarE
   if (interval === 1) return project.locale === "fr" ? "Tous les ans" : "Every year";
   return t(project.locale, "events.recurrenceEveryYearsLabel").replace("{n}", String(interval));
 };
+
+export const formatEventTriggerOptions = (project: CalendarProject, event: CalendarEvent): string => {
+  const parts: string[] = [];
+  if (event.notifyOnTrigger) parts.push(t(project.locale, "events.triggerNotify"));
+  if (event.deleteAfterTrigger) parts.push(t(project.locale, "events.triggerDelete"));
+  if (event.archiveAfterTrigger) parts.push(t(project.locale, "events.triggerArchive"));
+  if (parts.length === 0) return t(project.locale, "events.triggerNone");
+  return parts.join(", ");
+};

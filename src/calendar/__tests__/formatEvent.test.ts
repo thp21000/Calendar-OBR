@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatEventRecurrence, formatEventTimeShort } from "../formatEvent";
+import { formatEventRecurrence, formatEventTimeShort, formatEventTriggerOptions } from "../formatEvent";
 import type { CalendarEvent, CalendarProject } from "../../domain/types";
 
 const project: CalendarProject = {
@@ -75,5 +75,23 @@ describe("formatEventRecurrence", () => {
   });
   it("yearly 2 -> Tous les 2 ans", () => {
     expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "yearly", interval: 2 } })).toBe("Tous les 2 ans");
+  });
+});
+
+describe("formatEventTriggerOptions", () => {
+  it("notification seule", () => {
+    expect(formatEventTriggerOptions(project, { ...baseEvent, notifyOnTrigger: true, deleteAfterTrigger: false, archiveAfterTrigger: false })).toBe("Notification");
+  });
+  it("notification + archivage", () => {
+    expect(formatEventTriggerOptions(project, { ...baseEvent, notifyOnTrigger: true, deleteAfterTrigger: false, archiveAfterTrigger: true })).toBe("Notification, Archivage");
+  });
+  it("notification + suppression", () => {
+    expect(formatEventTriggerOptions(project, { ...baseEvent, notifyOnTrigger: true, deleteAfterTrigger: true, archiveAfterTrigger: false })).toBe("Notification, Suppression");
+  });
+  it("aucun déclenchement", () => {
+    expect(formatEventTriggerOptions(project, { ...baseEvent, notifyOnTrigger: false, deleteAfterTrigger: false, archiveAfterTrigger: false })).toBe("Aucun");
+  });
+  it("suppression seule", () => {
+    expect(formatEventTriggerOptions(project, { ...baseEvent, notifyOnTrigger: false, deleteAfterTrigger: true, archiveAfterTrigger: false })).toBe("Suppression");
   });
 });

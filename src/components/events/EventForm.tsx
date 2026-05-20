@@ -8,6 +8,7 @@ export type EventFormValue = {
   name: string; icon: string; summary: string; year: number; monthId: string; dayOfMonth: number; hour: number; minute: number;
   visibility: CalendarEvent["visibility"]; allDay: boolean;
   recurrenceType: CalendarEvent["recurrence"]["type"]; recurrenceInterval: number;
+  notifyOnTrigger: boolean; deleteAfterTrigger: boolean; archiveAfterTrigger: boolean;
   hasEndDate: boolean; endYear: number; endMonthId: string; endDayOfMonth: number; endHour: number; endMinute: number;
 };
 
@@ -28,6 +29,9 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent): EventForm
       allDay: event.allDay === true,
       recurrenceType: event.recurrence.type,
       recurrenceInterval: event.recurrence.type === "none" ? 1 : Math.max(1, event.recurrence.interval),
+      notifyOnTrigger: event.notifyOnTrigger,
+      deleteAfterTrigger: event.deleteAfterTrigger,
+      archiveAfterTrigger: event.archiveAfterTrigger,
       hasEndDate: Boolean(event.endDate),
       endYear: event.endDate?.year ?? event.date.year,
       endMonthId: event.endDate?.monthId ?? event.date.monthId,
@@ -39,7 +43,9 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent): EventForm
   const now = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   return {
     name: "", icon: "", summary: "", year: now.year, monthId: now.monthId, dayOfMonth: now.dayOfMonth, hour: now.hour, minute: now.minute,
-    visibility: "gm", allDay: false, recurrenceType: "none", recurrenceInterval: 1, hasEndDate: false, endYear: now.year, endMonthId: now.monthId, endDayOfMonth: now.dayOfMonth, endHour: clamp(now.hour + 1, 0, 23), endMinute: now.minute
+    visibility: "gm", allDay: false, recurrenceType: "none", recurrenceInterval: 1,
+    notifyOnTrigger: true, deleteAfterTrigger: false, archiveAfterTrigger: false,
+    hasEndDate: false, endYear: now.year, endMonthId: now.monthId, endDayOfMonth: now.dayOfMonth, endHour: clamp(now.hour + 1, 0, 23), endMinute: now.minute
   };
 };
 
@@ -89,14 +95,21 @@ export const EventForm = ({ project, mode, initialEvent, onSubmit, onCancel }: {
         endDate,
         visibility: form.visibility,
         allDay: form.allDay,
-        recurrence
+        recurrence,
+        notifyOnTrigger: form.notifyOnTrigger,
+        deleteAfterTrigger: form.deleteAfterTrigger,
+        archiveAfterTrigger: form.archiveAfterTrigger
       });
       setNameError(null);
       return;
     }
     
     const base = createCalendarEvent({ name, date: startDate, icon: form.icon.trim() || undefined, allDay: form.allDay, endDate });
-    onSubmit({ ...base, summary: form.summary, visibility: form.visibility, allDay: form.allDay, endDate, recurrence });
+    onSubmit({ ...base, summary: form.summary, visibility: form.visibility, allDay: form.allDay, endDate, recurrence,
+      notifyOnTrigger: form.notifyOnTrigger,
+      deleteAfterTrigger: form.deleteAfterTrigger,
+      archiveAfterTrigger: form.archiveAfterTrigger
+    });
     setForm(toFormValue(project));
     setNameError(null);
   };
@@ -126,6 +139,12 @@ export const EventForm = ({ project, mode, initialEvent, onSubmit, onCancel }: {
       <div><label>{t(project.locale, "events.day")}</label><input type="number" value={form.dayOfMonth} onChange={(e)=>updateForm("dayOfMonth", Number(e.target.value))} style={inputStyle}/></div>
       {!form.allDay ? <><div><label>{t(project.locale, "events.hour")}</label><input type="number" min={0} max={23} value={form.hour} onChange={(e)=>updateForm("hour", Number(e.target.value))} style={inputStyle}/></div><div><label>{t(project.locale, "events.minute")}</label><input type="number" min={0} max={59} value={form.minute} onChange={(e)=>updateForm("minute", Number(e.target.value))} style={inputStyle}/></div></> : null}
       <div><label>{t(project.locale, "events.visibility")}</label><select value={form.visibility} onChange={(e)=>updateForm("visibility", e.target.value as CalendarEvent["visibility"])} style={inputStyle}><option value="gm">{t(project.locale, "events.visibilityGm")}</option><option value="players">{t(project.locale, "events.visibilityPlayers")}</option><option value="revealOnTrigger">{t(project.locale, "events.visibilityRevealOnTrigger")}</option></select></div>
+    </div>
+    <div style={{ border: "1px dashed #374151", borderRadius: 6, padding: 6, marginBottom: 8 }}>
+      <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 12 }}>{t(project.locale, "events.triggerOptions")}</div>
+      <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.notifyOnTrigger} onChange={(e)=>updateForm("notifyOnTrigger", e.target.checked)}/>{t(project.locale, "events.notifyOnTrigger")}</label>
+      <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.deleteAfterTrigger} onChange={(e)=>updateForm("deleteAfterTrigger", e.target.checked)}/>{t(project.locale, "events.deleteAfterTrigger")}</label>
+      <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.archiveAfterTrigger} onChange={(e)=>updateForm("archiveAfterTrigger", e.target.checked)}/>{t(project.locale, "events.archiveAfterTrigger")}</label>
     </div>
     <label style={{ display: "flex", gap: 6 }}><input type="checkbox" checked={form.hasEndDate} onChange={(e)=>updateForm("hasEndDate", e.target.checked)}/>{t(project.locale, "events.addEndDate")}</label>
     {form.hasEndDate ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
