@@ -176,8 +176,6 @@ describe("eventsLogic", () => {
     expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 0, minute: 0 }, buildProject())).toBe(false);
   });
 
-
-
   it("événement sans endDate apparaît seulement le jour de début", () => {
     const project = buildProject();
     const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 12, minute: 0 });
@@ -207,6 +205,7 @@ describe("eventsLogic", () => {
     const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 23, minute: 0 }), endDate: { year: 1000, monthId: "m1", dayOfMonth: 5, hour: 1, minute: 0 } };
     expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 0, minute: 0 }, project)).toBe(true);
     expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 5, hour: 0, minute: 0 }, project)).toBe(true);
+  });
 
   it("getEventsForDay retourne seulement les événements du jour demandé", () => {
     const target = { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 0, minute: 0 };
