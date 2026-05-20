@@ -68,3 +68,22 @@ export const getHourlyWeatherForecast = (
 
   return entries;
 };
+
+export const getDailyWeatherForecast = (
+  project: CalendarProject,
+  count: number
+): Array<{ offsetDays: number; weather: WeatherSnapshot }> => {
+  const entries: Array<{ offsetDays: number; weather: WeatherSnapshot }> = [];
+  const safeCount = Math.max(0, Math.floor(count));
+  const startAbsoluteDay = project.currentTime.absoluteDay;
+
+  for (let offsetDays = 1; offsetDays <= safeCount; offsetDays++) {
+    const absoluteDay = startAbsoluteDay + offsetDays;
+    const weather = generateWeatherForTime(project, absoluteDay, 12);
+
+    if (!weather) continue;
+    entries.push({ offsetDays, weather });
+  }
+
+  return entries;
+};

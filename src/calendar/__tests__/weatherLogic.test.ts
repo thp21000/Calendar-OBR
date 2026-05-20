@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, Season } from "../../domain/types";
-import { generateWeatherForTime, getCurrentWeather, getHourlyWeatherForecast } from "../weatherLogic";
+import { generateWeatherForTime, getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../weatherLogic";
 
 const buildProject = (): CalendarProject => ({
   schemaVersion: 1,
@@ -138,6 +138,45 @@ describe("weatherLogic", () => {
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
     const a = getHourlyWeatherForecast(project, 5);
     const b = getHourlyWeatherForecast(project, 5);
+    expect(a).toEqual(b);
+  });
+
+  it("getDailyWeatherForecast retourne 5 entrées si saison existe", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const forecast = getDailyWeatherForecast(project, 5);
+    expect(forecast).toHaveLength(5);
+  });
+
+  it("la première entrée de prévision journalière correspond à +1 jour", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const forecast = getDailyWeatherForecast(project, 5);
+    expect(forecast[0]?.offsetDays).toBe(1);
+    expect(forecast[0]?.weather).toEqual(generateWeatherForTime(project, project.currentTime.absoluteDay + 1, 12));
+  });
+
+  it("les entrées de prévision journalière utilisent l'heure fixe 12", () => {
+    const project = buildProject();
+    project.currentTime = { absoluteDay: 10, hour: 23, minute: 0 };
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const forecast = getDailyWeatherForecast(project, 5);
+
+    expect(forecast[0]?.weather).toEqual(generateWeatherForTime(project, 11, 12));
+    expect(forecast[1]?.weather).toEqual(generateWeatherForTime(project, 12, 12));
+    expect(forecast[4]?.weather).toEqual(generateWeatherForTime(project, 15, 12));
+  });
+
+  it("retourne un tableau vide en prévision journalière si aucune saison n'existe", () => {
+    const project = buildProject();
+    expect(getDailyWeatherForecast(project, 5)).toEqual([]);
+  });
+
+  it("prévision journalière déterministe pour même projet et même heure", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const a = getDailyWeatherForecast(project, 5);
+    const b = getDailyWeatherForecast(project, 5);
     expect(a).toEqual(b);
   });
 });

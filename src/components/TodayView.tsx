@@ -2,7 +2,7 @@ import { useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
-import { getCurrentWeather, getHourlyWeatherForecast } from "../calendar/weatherLogic";
+import { getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import { formatEventDateTime, formatEventTimeShort, formatEventVisibility } from "../calendar/formatEvent";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
@@ -22,6 +22,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
   const hourlyForecast = getHourlyWeatherForecast(project, 5);
+  const dailyForecast = getDailyWeatherForecast(project, 5);
   const weatherUnits = getWeatherUnitLabels(project.locale);
   const eventsToday = getEventsForCurrentDay(project);
   const [lastTriggeredEvents, setLastTriggeredEvents] = useState<CalendarEvent[]>([]);
@@ -113,6 +114,21 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
           {t(project.locale, "calendar.weather")}: {currentWeather
             ? `${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
             : t(project.locale, "calendar.noWeather")}
+        </div>
+        <div style={{ marginTop: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 700 }}>{t(project.locale, "calendar.dailyForecast")}</div>
+          {dailyForecast.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "calendar.noForecast")}</div>
+          ) : (
+            <div style={{ display: "grid", gap: 2, fontSize: 12 }}>
+              {dailyForecast.map((entry) => (
+                <div key={entry.offsetDays}>
+                  +{entry.offsetDays} {project.locale === "fr" ? "j" : "d"} · {entry.weather.temperature} {weatherUnits.temperature} ·{" "}
+                  {entry.weather.windDirection} {entry.weather.windSpeed} {weatherUnits.windSpeed} · {entry.weather.rain} {weatherUnits.rain}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div>{t(project.locale, "calendar.moonPlaceholder")}</div>
       </div>
