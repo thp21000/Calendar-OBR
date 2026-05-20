@@ -11,10 +11,18 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "triggered" | "archived" | "disabled" | "all">("active");
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
-  
-  const filteredEvents = events.filter((event) => {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredByStatus = events.filter((event) => {
     if (statusFilter === "all") return true;
     return event.status === statusFilter;
+  });
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredEvents = filteredByStatus.filter((event) => {
+    if (!normalizedQuery) return true;
+    const iconText = event.icon && !/^https?:\/\//i.test(event.icon) ? event.icon : "";
+    const haystack = `${event.name ?? ""} ${event.summary ?? ""} ${iconText}`.toLowerCase();
+    return haystack.includes(normalizedQuery);
   });
 
     const handleCreate = (event: CalendarEvent) => {
@@ -44,6 +52,18 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
       </button>
       {isCreateFormOpen ? <EventForm project={project} mode="create" onSubmit={handleCreate} /> : null}
       <div style={{ marginBottom: 8 }}>
+        <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "events.search")}</label>
+        <div style={{ display: "flex", gap: 6 }}>
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t(project.locale, "events.searchPlaceholder")}
+            style={{ width: "100%", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", fontSize: 12, boxSizing: "border-box" }}
+          />
+          {searchQuery.trim() ? <button type="button" onClick={() => setSearchQuery("")} style={btn}>{t(project.locale, "events.clearSearch")}</button> : null}
+        </div>
+      </div>
+      <div style={{ marginBottom: 8 }}>
         <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "events.filter")}</label>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "active" | "triggered" | "archived" | "disabled" | "all")} style={{ width: "100%", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", fontSize: 12 }}>
           <option value="active">{t(project.locale, "events.filterActive")}</option>
@@ -54,7 +74,7 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
         </select>
       </div>
 
-      {filteredEvents.length === 0 ? <div style={{ color: "#9ca3af" }}>{t(project.locale, "events.noEventsForFilter")}</div> : <div style={{ display: "grid", gap: 8 }}>
+      {filteredEvents.length === 0 ? <div style={{ color: "#9ca3af" }}>{normalizedQuery ? t(project.locale, "events.noEventsForSearch") : t(project.locale, "events.noEventsForFilter")}</div> : <div style={{ display: "grid", gap: 8 }}>
         {filteredEvents.map((event) => (
           <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
             {editingEventId === event.id ? (
