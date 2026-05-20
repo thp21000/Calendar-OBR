@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, Season } from "../../domain/types";
-import { getCurrentSeason, getSeasonForDate, seasonContainsDate, sortSeasonsByStartDate } from "../seasonsLogic";
+import { createDefaultSeason, deleteSeason, getCurrentSeason, getSeasonForDate, seasonContainsDate, sortSeasonsByStartDate, updateSeason } from "../seasonsLogic";
 
 const buildProject = (): CalendarProject => ({
   schemaVersion: 1,
@@ -78,5 +78,42 @@ describe("seasonsLogic", () => {
     ];
     expect(sortSeasonsByStartDate(project, seasons).map((s) => s.id)).toEqual(["s1", "s2"]);
   });
-});
 
+  it("createDefaultSeason utilise le premier mois", () => {
+    const project = buildProject();
+    const created = createDefaultSeason(project);
+    expect(created.start.monthId).toBe("m1");
+    expect(created.start.dayOfMonth).toBe(1);
+    expect(created.end.monthId).toBe("m1");
+    expect(created.end.dayOfMonth).toBe(30);
+  });
+
+  it("updateSeason modifie seulement la saison ciblée", () => {
+    const project = buildProject();
+    project.seasons = [
+      { id: "s1", name: "A", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } },
+      { id: "s2", name: "B", start: { monthId: "m2", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }
+    ];
+    const updated = updateSeason(project, "s2", { name: "B2" });
+    expect(updated.seasons.find((s) => s.id === "s1")?.name).toBe("A");
+    expect(updated.seasons.find((s) => s.id === "s2")?.name).toBe("B2");
+  });
+
+  it("deleteSeason supprime seulement la saison ciblée", () => {
+    const project = buildProject();
+    project.seasons = [
+      { id: "s1", name: "A", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } },
+      { id: "s2", name: "B", start: { monthId: "m2", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }
+    ];
+    const updated = deleteSeason(project, "s1");
+    expect(updated.seasons.map((s) => s.id)).toEqual(["s2"]);
+  });
+
+  it("updateSeason borne les jours selon le mois", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "A", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 1 } }];
+    const updated = updateSeason(project, "s1", { start: { monthId: "m1", dayOfMonth: 99 }, end: { monthId: "m2", dayOfMonth: 0 } });
+    expect(updated.seasons[0].start.dayOfMonth).toBe(30);
+    expect(updated.seasons[0].end.dayOfMonth).toBe(1);
+  });
+});

@@ -33,3 +33,36 @@ export const getSeasonForDate = (project: CalendarProject, date: CalendarDate): 
 export const getCurrentSeason = (project: CalendarProject): Season | undefined =>
   getSeasonForDate(project, absoluteDayToCalendarDate(project.currentTime, project.calendarSystem));
 
+export const createDefaultSeason = (project: CalendarProject): Season => {
+  const months = [...project.calendarSystem.months].sort((a, b) => a.order - b.order);
+  const firstMonth = months[0];
+  const monthId = firstMonth?.id ?? "month-1";
+  const monthDays = firstMonth?.days ?? 30;
+  return {
+    id: `season-${Date.now()}`,
+    name: project.locale === "fr" ? "Nouvelle saison" : "New season",
+    icon: "🌤️",
+    start: { monthId, dayOfMonth: 1 },
+    end: { monthId, dayOfMonth: monthDays }
+  };
+};
+
+export const updateSeason = (project: CalendarProject, seasonId: string, patch: Partial<Season>): CalendarProject => ({
+  ...project,
+  seasons: project.seasons.map((season) => {
+    if (season.id !== seasonId) return season;
+    const next = { ...season, ...patch };
+    const startMonth = project.calendarSystem.months.find((m) => m.id === next.start.monthId);
+    const endMonth = project.calendarSystem.months.find((m) => m.id === next.end.monthId);
+    return {
+      ...next,
+      start: { ...next.start, dayOfMonth: Math.min(Math.max(1, next.start.dayOfMonth), startMonth?.days ?? 1) },
+      end: { ...next.end, dayOfMonth: Math.min(Math.max(1, next.end.dayOfMonth), endMonth?.days ?? 1) }
+    };
+  })
+});
+
+export const deleteSeason = (project: CalendarProject, seasonId: string): CalendarProject => ({
+  ...project,
+  seasons: project.seasons.filter((season) => season.id !== seasonId)
+});

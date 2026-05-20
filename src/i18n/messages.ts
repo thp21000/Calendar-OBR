@@ -144,6 +144,7 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "settings.section.calendarReference": "Référence du calendrier",
     "settings.section.years": "Années",
     "settings.section.display": "Affichage",
+    "settings.section.seasons": "Saisons",
     "settings.section.data": "Données / sauvegarde",
     "settings.section.future": "Fonctions futures",
     "settings.eraName": "Nom de l’ère",
@@ -175,7 +176,18 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "common.expand": "Ouvrir",
     "common.collapse": "Fermer",
     "settings.resetCalendar": "Réinitialiser le calendrier",
-    "common.loading": "Chargement..."
+    "common.loading": "Chargement...",
+    "seasons.name": "Nom",
+    "seasons.icon": "Icône",
+    "seasons.startMonth": "Mois de début",
+    "seasons.startDay": "Jour de début",
+    "seasons.endMonth": "Mois de fin",
+    "seasons.endDay": "Jour de fin",
+    "seasons.add": "Ajouter une saison",
+    "seasons.delete": "Supprimer",
+    "seasons.confirmDelete": "Supprimer cette saison ?",
+    "seasons.empty": "Aucune saison configurée",
+    "seasons.newSeason": "Nouvelle saison"
   },
   en: {
     "app.title": "Living Calendar",
@@ -320,6 +332,7 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "settings.section.calendarReference": "Calendar reference",
     "settings.section.years": "Years",
     "settings.section.display": "Display",
+    "settings.section.seasons": "Seasons",
     "settings.section.data": "Data / storage",
     "settings.section.future": "Future features",
     "settings.eraName": "Era name",
@@ -351,7 +364,18 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "common.expand": "Expand",
     "common.collapse": "Collapse",
     "settings.resetCalendar": "Reset calendar",
-    "common.loading": "Loading..."
+    "common.loading": "Loading...",
+    "seasons.name": "Name",
+    "seasons.icon": "Icon",
+    "seasons.startMonth": "Start month",
+    "seasons.startDay": "Start day",
+    "seasons.endMonth": "End month",
+    "seasons.endDay": "End day",
+    "seasons.add": "Add season",
+    "seasons.delete": "Delete",
+    "seasons.confirmDelete": "Delete this season?",
+    "seasons.empty": "No seasons configured",
+    "seasons.newSeason": "New season"
   }
 };
 

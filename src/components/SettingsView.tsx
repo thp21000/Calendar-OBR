@@ -8,6 +8,7 @@ import { DataSettingsSection } from "./settings/DataSettingsSection";
 import { DisplaySettingsSection } from "./settings/DisplaySettingsSection";
 import { FutureSettingsSection } from "./settings/FutureSettingsSection";
 import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
+import { SeasonsSettingsSection } from "./settings/SeasonsSettingsSection";
 
 export const SettingsView = ({
   project,
@@ -40,6 +41,10 @@ export const SettingsView = ({
 
       <CollapsibleSection title={t(project.locale, "settings.section.display")}>
         <DisplaySettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
+      </CollapsibleSection>
+
+      <CollapsibleSection title={t(project.locale, "settings.section.seasons")}>
+        <SeasonsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.data")}>
