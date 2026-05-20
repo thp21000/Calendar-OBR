@@ -43,7 +43,7 @@ export const SettingsView = ({
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.data")}>
-        <DataSettingsSection locale={project.locale} scope={scope} onReset={onReset} />
+        <DataSettingsSection project={project} onProjectUpdate={onProjectUpdate} locale={project.locale} scope={scope} onReset={onReset} />
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.future")}>
