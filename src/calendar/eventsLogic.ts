@@ -215,6 +215,26 @@ export const getEventsForCurrentDay = (project: CalendarProject): CalendarEvent[
   return getEventsForDay(project, currentDate);
 };
 
+export const getEventTimeBucket = (
+  project: CalendarProject,
+  event: CalendarEvent
+): "past" | "today" | "future" => {
+  const currentDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+  if (eventOccursOnDay(event, currentDate, project)) return "today";
+
+  if (event.recurrence.type !== "none") {
+    return event.status === "active" ? "future" : "past";
+  }
+
+  const eventStartDay = toAbsoluteDayOnly(project, event.date);
+  const eventEndDay = event.endDate ? toAbsoluteDayOnly(project, event.endDate) : eventStartDay;
+  const currentDay = project.currentTime.absoluteDay;
+
+  if (eventEndDay < currentDay) return "past";
+  if (eventStartDay > currentDay) return "future";
+  return "today";
+};
+
 const toAbsoluteMinute = (project: CalendarProject, date: CalendarDate): number => {
   const internal = calendarDateToAbsoluteDay(date, project.calendarSystem);
   return internal.absoluteDay * 1440 + internal.hour * 60 + internal.minute;

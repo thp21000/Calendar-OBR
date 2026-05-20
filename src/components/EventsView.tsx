@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { addCalendarEvent, deleteCalendarEvent, sortEventsByDate, updateCalendarEvent } from "../calendar/eventsLogic";
+import { addCalendarEvent, deleteCalendarEvent, getEventTimeBucket, sortEventsByDate, updateCalendarEvent } from "../calendar/eventsLogic";
 import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEventTriggerOptions, formatEventVisibility } from "../calendar/formatEvent";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
@@ -12,13 +12,18 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
   const [statusFilter, setStatusFilter] = useState<"active" | "triggered" | "archived" | "disabled" | "all">("active");
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [timeFilter, setTimeFilter] = useState<"all" | "past" | "today" | "future">("all");
 
   const filteredByStatus = events.filter((event) => {
     if (statusFilter === "all") return true;
     return event.status === statusFilter;
   });
+  const filteredByTime = filteredByStatus.filter((event) => {
+    if (timeFilter === "all") return true;
+    return getEventTimeBucket(project, event) === timeFilter;
+  });
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const filteredEvents = filteredByStatus.filter((event) => {
+  const filteredEvents = filteredByTime.filter((event) => {
     if (!normalizedQuery) return true;
     const iconText = event.icon && !/^https?:\/\//i.test(event.icon) ? event.icon : "";
     const haystack = `${event.name ?? ""} ${event.summary ?? ""} ${iconText}`.toLowerCase();
@@ -62,6 +67,15 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
           />
           {searchQuery.trim() ? <button type="button" onClick={() => setSearchQuery("")} style={btn}>{t(project.locale, "events.clearSearch")}</button> : null}
         </div>
+      </div>
+      <div style={{ marginBottom: 8 }}>
+        <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "events.timeFilter")}</label>
+        <select value={timeFilter} onChange={(e) => setTimeFilter(e.target.value as "all" | "past" | "today" | "future")} style={{ width: "100%", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", fontSize: 12 }}>
+          <option value="all">{t(project.locale, "events.timeFilterAll")}</option>
+          <option value="past">{t(project.locale, "events.timeFilterPast")}</option>
+          <option value="today">{t(project.locale, "events.timeFilterToday")}</option>
+          <option value="future">{t(project.locale, "events.timeFilterFuture")}</option>
+        </select>
       </div>
       <div style={{ marginBottom: 8 }}>
         <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "events.filter")}</label>

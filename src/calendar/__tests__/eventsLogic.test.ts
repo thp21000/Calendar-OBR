@@ -13,7 +13,8 @@ import {
   normalizeEventDateRange,
   getTriggeredEventsBetween,
   getCompletedEventsBetween,
-  applyEventCompletionActions
+  applyEventCompletionActions,
+  getEventTimeBucket
 } from "../eventsLogic";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../../domain/types";
 
@@ -245,6 +246,57 @@ describe("eventsLogic", () => {
     const project = { ...buildProject(), events: [active, triggered, archived, disabled] };
 
     expect(getEventsForDay(project, target).map((event) => event.id)).toEqual(["e1", "e2"]);
+  });
+
+  it("getEventTimeBucket: non récurrent avant aujourd'hui => past", () => {
+    const project = buildProject();
+    project.currentTime = { absoluteDay: 5, hour: 10, minute: 0 };
+    const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 9, minute: 0 });
+    expect(getEventTimeBucket(project, event)).toBe("past");
+  });
+
+  it("getEventTimeBucket: non récurrent aujourd'hui => today", () => {
+    const project = buildProject();
+    project.currentTime = { absoluteDay: 2, hour: 10, minute: 0 };
+    const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 9, minute: 0 });
+    expect(getEventTimeBucket(project, event)).toBe("today");
+  });
+
+  it("getEventTimeBucket: non récurrent après aujourd'hui => future", () => {
+    const project = buildProject();
+    project.currentTime = { absoluteDay: 1, hour: 10, minute: 0 };
+    const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 9, minute: 0 });
+    expect(getEventTimeBucket(project, event)).toBe("future");
+  });
+
+  it("getEventTimeBucket: multi-jours couvrant aujourd'hui => today", () => {
+    const project = buildProject();
+    project.currentTime = { absoluteDay: 2, hour: 10, minute: 0 };
+    const event = {
+      ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 9, minute: 0 }),
+      endDate: { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 9, minute: 0 }
+    };
+    expect(getEventTimeBucket(project, event)).toBe("today");
+  });
+
+  it("getEventTimeBucket: récurrent actif tombant aujourd'hui => today", () => {
+    const project = buildProject();
+    project.currentTime = { absoluteDay: 2, hour: 10, minute: 0 };
+    const event = {
+      ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 9, minute: 0 }),
+      recurrence: { type: "everyXDays" as const, interval: 2 }
+    };
+    expect(getEventTimeBucket(project, event)).toBe("today");
+  });
+
+  it("getEventTimeBucket: récurrent actif ne tombant pas aujourd'hui => future", () => {
+    const project = buildProject();
+    project.currentTime = { absoluteDay: 1, hour: 10, minute: 0 };
+    const event = {
+      ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 9, minute: 0 }),
+      recurrence: { type: "everyXDays" as const, interval: 2 }
+    };
+    expect(getEventTimeBucket(project, event)).toBe("future");
   });
 
   it("sortEventsByDate trie correctement plusieurs événements", () => {
