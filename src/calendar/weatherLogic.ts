@@ -28,6 +28,9 @@ const aroundAverage = (min: number, max: number, average: number, seed: string, 
   return round1(clamp(value, min, max));
 };
 
+const windDirectionIndex = (direction: WindDirection): number => WIND_DIRECTIONS.indexOf(direction);
+const wrapDirection = (index: number): WindDirection => WIND_DIRECTIONS[(index + WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
+
 export const generateWeatherForTime = (project: CalendarProject, absoluteDay: number, hour: number): WeatherSnapshot | undefined => {
   const season = getCurrentSeason({ ...project, currentTime: { ...project.currentTime, absoluteDay, hour } });
   if (!season) return undefined;
@@ -46,6 +49,42 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
 export const getCurrentWeather = (project: CalendarProject): WeatherSnapshot | undefined =>
   generateWeatherForTime(project, project.currentTime.absoluteDay, project.currentTime.hour);
 
+export const getForecastWeatherForTime = (
+  project: CalendarProject,
+  absoluteDay: number,
+  hour: number,
+  offsetHours: number
+): WeatherSnapshot | undefined => {
+  const realWeather = generateWeatherForTime(project, absoluteDay, hour);
+  if (!realWeather) return undefined;
+
+  const mode = project.weatherSettings.forecastMode ?? "fine";
+  const absOffset = Math.max(0, Math.floor(Math.abs(offsetHours)));
+  const seed = `${project.weatherSettings.seed || project.id}|forecast|${mode}|${absoluteDay}|${hour}|${absOffset}`;
+  const errorBase = mode === "wide" ? 3 : 1;
+  const distanceFactor = mode === "wide" ? 0.35 : 0.12;
+  const errorScale = errorBase + absOffset * distanceFactor;
+
+  const centered = (salt: string) => (seeded(seed, salt) - 0.5) * 2;
+  const round = (value: number) => Math.round(value * 10) / 10;
+
+  const temperature = round(realWeather.temperature + centered("temp") * errorScale);
+  const windSpeed = Math.max(0, round(realWeather.windSpeed + centered("wind") * errorScale * 1.5));
+  const rain = Math.max(0, round(realWeather.rain + centered("rain") * errorScale * 0.8));
+
+  let windDirection = realWeather.windDirection;
+  if (mode === "wide") {
+    const directionRoll = seeded(seed, "dir");
+    if (directionRoll < 0.33) {
+      windDirection = wrapDirection(windDirectionIndex(realWeather.windDirection) - 1);
+    } else if (directionRoll > 0.66) {
+      windDirection = wrapDirection(windDirectionIndex(realWeather.windDirection) + 1);
+    }
+  }
+
+  return { temperature, windSpeed, windDirection, rain };
+};
+
 export const getHourlyWeatherForecast = (
   project: CalendarProject,
   count: number
@@ -60,7 +99,7 @@ export const getHourlyWeatherForecast = (
     const dayOffset = Math.floor(totalHours / 24);
     const hour = ((totalHours % 24) + 24) % 24;
     const absoluteDay = startAbsoluteDay + dayOffset;
-    const weather = generateWeatherForTime(project, absoluteDay, hour);
+    const weather = getForecastWeatherForTime(project, absoluteDay, hour, offsetHours);
 
     if (!weather) continue;
     entries.push({ offsetHours, weather });
@@ -79,7 +118,8 @@ export const getDailyWeatherForecast = (
 
   for (let offsetDays = 1; offsetDays <= safeCount; offsetDays++) {
     const absoluteDay = startAbsoluteDay + offsetDays;
-    const weather = generateWeatherForTime(project, absoluteDay, 12);
+    const offsetHours = offsetDays * 24;
+    const weather = getForecastWeatherForTime(project, absoluteDay, 12, offsetHours);
 
     if (!weather) continue;
     entries.push({ offsetDays, weather });

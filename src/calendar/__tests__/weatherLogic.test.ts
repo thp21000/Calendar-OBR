@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, Season } from "../../domain/types";
-import { generateWeatherForTime, getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../weatherLogic";
+import { generateWeatherForTime, getCurrentWeather, getDailyWeatherForecast, getForecastWeatherForTime, getHourlyWeatherForecast } from "../weatherLogic";
 
 const buildProject = (): CalendarProject => ({
   schemaVersion: 1,
@@ -111,7 +111,9 @@ describe("weatherLogic", () => {
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
     const forecast = getHourlyWeatherForecast(project, 5);
     expect(forecast[0]?.offsetHours).toBe(1);
-    expect(forecast[0]?.weather).toEqual(generateWeatherForTime(project, project.currentTime.absoluteDay, project.currentTime.hour + 1));
+    expect(forecast[0]?.weather).toEqual(
+      getForecastWeatherForTime(project, project.currentTime.absoluteDay, project.currentTime.hour + 1, 1)
+    );
   });
 
   it("gère le passage de 23:00 à 00:00 le jour suivant", () => {
@@ -121,11 +123,11 @@ describe("weatherLogic", () => {
     const forecast = getHourlyWeatherForecast(project, 5);
 
     expect(forecast).toHaveLength(5);
-    expect(forecast[0]?.weather).toEqual(generateWeatherForTime(project, 10, 23));
-    expect(forecast[1]?.weather).toEqual(generateWeatherForTime(project, 11, 0));
-    expect(forecast[2]?.weather).toEqual(generateWeatherForTime(project, 11, 1));
-    expect(forecast[3]?.weather).toEqual(generateWeatherForTime(project, 11, 2));
-    expect(forecast[4]?.weather).toEqual(generateWeatherForTime(project, 11, 3));
+    expect(forecast[0]?.weather).toEqual(getForecastWeatherForTime(project, 10, 23, 1));
+    expect(forecast[1]?.weather).toEqual(getForecastWeatherForTime(project, 11, 0, 2));
+    expect(forecast[2]?.weather).toEqual(getForecastWeatherForTime(project, 11, 1, 3));
+    expect(forecast[3]?.weather).toEqual(getForecastWeatherForTime(project, 11, 2, 4));
+    expect(forecast[4]?.weather).toEqual(getForecastWeatherForTime(project, 11, 3, 5));
   });
 
   it("retourne un tableau vide en forecast si aucune saison n'existe", () => {
@@ -153,7 +155,7 @@ describe("weatherLogic", () => {
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
     const forecast = getDailyWeatherForecast(project, 5);
     expect(forecast[0]?.offsetDays).toBe(1);
-    expect(forecast[0]?.weather).toEqual(generateWeatherForTime(project, project.currentTime.absoluteDay + 1, 12));
+    expect(forecast[0]?.weather).toEqual(getForecastWeatherForTime(project, project.currentTime.absoluteDay + 1, 12, 24));
   });
 
   it("les entrées de prévision journalière utilisent l'heure fixe 12", () => {
@@ -162,9 +164,9 @@ describe("weatherLogic", () => {
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
     const forecast = getDailyWeatherForecast(project, 5);
 
-    expect(forecast[0]?.weather).toEqual(generateWeatherForTime(project, 11, 12));
-    expect(forecast[1]?.weather).toEqual(generateWeatherForTime(project, 12, 12));
-    expect(forecast[4]?.weather).toEqual(generateWeatherForTime(project, 15, 12));
+    expect(forecast[0]?.weather).toEqual(getForecastWeatherForTime(project, 11, 12, 24));
+    expect(forecast[1]?.weather).toEqual(getForecastWeatherForTime(project, 12, 12, 48));
+    expect(forecast[4]?.weather).toEqual(getForecastWeatherForTime(project, 15, 12, 120));
   });
 
   it("retourne un tableau vide en prévision journalière si aucune saison n'existe", () => {
@@ -178,5 +180,61 @@ describe("weatherLogic", () => {
     const a = getDailyWeatherForecast(project, 5);
     const b = getDailyWeatherForecast(project, 5);
     expect(a).toEqual(b);
+  });
+
+  it("getCurrentWeather reste identique quel que soit le forecastMode", () => {
+    const projectFine = buildProject();
+    projectFine.weatherSettings = { seed: "abc", forecastMode: "fine" };
+    projectFine.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const projectWide = buildProject();
+    projectWide.weatherSettings = { seed: "abc", forecastMode: "wide" };
+    projectWide.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    expect(getCurrentWeather(projectFine)).toEqual(getCurrentWeather(projectWide));
+  });
+
+  it("les prévisions horaires utilisent le mode de prévision (fine vs wide)", () => {
+    const fine = buildProject();
+    fine.weatherSettings = { seed: "abc", forecastMode: "fine" };
+    fine.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const wide = buildProject();
+    wide.weatherSettings = { seed: "abc", forecastMode: "wide" };
+    wide.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    expect(getHourlyWeatherForecast(fine, 5)).not.toEqual(getHourlyWeatherForecast(wide, 5));
+  });
+
+  it("les prévisions journalières utilisent le mode de prévision (fine vs wide)", () => {
+    const fine = buildProject();
+    fine.weatherSettings = { seed: "abc", forecastMode: "fine" };
+    fine.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const wide = buildProject();
+    wide.weatherSettings = { seed: "abc", forecastMode: "wide" };
+    wide.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    expect(getDailyWeatherForecast(fine, 5)).not.toEqual(getDailyWeatherForecast(wide, 5));
+  });
+
+  it("les prévisions wide restent déterministes", () => {
+    const project = buildProject();
+    project.weatherSettings = { seed: "abc", forecastMode: "wide" };
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    expect(getHourlyWeatherForecast(project, 5)).toEqual(getHourlyWeatherForecast(project, 5));
+    expect(getDailyWeatherForecast(project, 5)).toEqual(getDailyWeatherForecast(project, 5));
+  });
+
+  it("les prévisions ne produisent pas de vent/pluie négatifs", () => {
+    const project = buildProject();
+    project.weatherSettings = { seed: "abc", forecastMode: "wide" };
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const hourly = getHourlyWeatherForecast(project, 5);
+    const daily = getDailyWeatherForecast(project, 5);
+    for (const entry of [...hourly, ...daily]) {
+      expect(entry.weather.windSpeed).toBeGreaterThanOrEqual(0);
+      expect(entry.weather.rain).toBeGreaterThanOrEqual(0);
+    }
   });
 });
