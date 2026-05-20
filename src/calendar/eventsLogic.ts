@@ -249,6 +249,7 @@ const getRecurringOccurrenceStartsBetween = (
     const day = Math.min(event.date.dayOfMonth, month.days);
     const triggerStart = getEventTriggerStartDate(event);
     return { year, monthId: month.id, dayOfMonth: day, hour: triggerStart.hour, minute: triggerStart.minute };
+  };
 
   if (event.recurrence.type === "everyXMonths") {
     const interval = event.recurrence.interval;
