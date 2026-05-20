@@ -78,6 +78,12 @@ const fromYearMonthDayLike = (project: CalendarProject, year: number, monthId: s
   return { year, monthId, dayOfMonth: Math.min(day, month.days), hour: ref.hour, minute: ref.minute };
 };
 
+const getEventTriggerStartDate = (event: CalendarEvent): CalendarDate => ({
+  ...event.date,
+  hour: event.allDay ? 0 : event.date.hour,
+  minute: event.allDay ? 0 : event.date.minute
+});
+
 const getEventDurationDays = (project: CalendarProject, event: CalendarEvent): number => {
   if (!event.endDate) return 1;
   return Math.max(1, toAbsoluteDayOnly(project, event.endDate) - toAbsoluteDayOnly(project, event.date) + 1);
@@ -216,7 +222,7 @@ const getRecurringOccurrenceStartsBetween = (
   toMinute: number
 ): number[] => {
   const starts: number[] = [];
-  const startInternal = calendarDateToAbsoluteDay(event.date, project.calendarSystem);
+  const startInternal = calendarDateToAbsoluteDay(getEventTriggerStartDate(event), project.calendarSystem);
   const baseStartMinute = internalToAbsoluteMinute(startInternal);
 
   if (event.recurrence.type === "everyXDays") {
@@ -241,8 +247,8 @@ const getRecurringOccurrenceStartsBetween = (
     const month = months[monthIndex];
     if (!month) return null;
     const day = Math.min(event.date.dayOfMonth, month.days);
-    return { year, monthId: month.id, dayOfMonth: day, hour: event.date.hour, minute: event.date.minute };
-  };
+    const triggerStart = getEventTriggerStartDate(event);
+    return { year, monthId: month.id, dayOfMonth: day, hour: triggerStart.hour, minute: triggerStart.minute };
 
   if (event.recurrence.type === "everyXMonths") {
     const interval = event.recurrence.interval;
@@ -296,7 +302,7 @@ export const getTriggeredEventsBetween = (
     if (!isEventTriggerable(event)) return false;
 
     if (event.recurrence.type === "none") {
-      const startMinute = toAbsoluteMinute(project, event.date);
+      const startMinute = toAbsoluteMinute(project, getEventTriggerStartDate(event));
       return eventStartsBetween(startMinute, fromMinute, toMinute);
     }
 

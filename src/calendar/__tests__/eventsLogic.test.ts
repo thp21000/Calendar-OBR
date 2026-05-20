@@ -394,6 +394,43 @@ describe("eventsLogic", () => {
     expect(triggered.map((e) => e.id)).toEqual(["e1"]);
   });
   
+  it("getTriggeredEventsBetween: all-day déclenché à 00:00", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 0, minute: 0 }), allDay: true };
+    project.events = [event];
+    const triggered = getTriggeredEventsBetween(project, { absoluteDay: 0, hour: 23, minute: 55 }, { absoluteDay: 1, hour: 0, minute: 0 });
+    expect(triggered.map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("getTriggeredEventsBetween: ancien all-day mal stocké est normalisé à 00:00", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 12, minute: 15 }), allDay: true };
+    project.events = [event];
+    const triggered = getTriggeredEventsBetween(project, { absoluteDay: 0, hour: 23, minute: 55 }, { absoluteDay: 1, hour: 0, minute: 0 });
+    expect(triggered.map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("getTriggeredEventsBetween: all-day déjà commencé ne se redéclenche pas", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 0, minute: 0 }), allDay: true };
+    project.events = [event];
+    const triggered = getTriggeredEventsBetween(project, { absoluteDay: 1, hour: 0, minute: 30 }, { absoluteDay: 1, hour: 0, minute: 35 });
+    expect(triggered).toEqual([]);
+  });
+
+  it("getTriggeredEventsBetween: yearly all-day déclenché à minuit", () => {
+    const project = buildProject();
+    const event = {
+      ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 16, minute: 45 }),
+      allDay: true,
+      recurrence: { type: "yearly" as const, interval: 1 }
+    };
+    project.events = [event];
+    // année suivante, jour 2 du mois m1 => absoluteDay 60+1 = 61
+    const triggered = getTriggeredEventsBetween(project, { absoluteDay: 60, hour: 23, minute: 55 }, { absoluteDay: 61, hour: 0, minute: 0 });
+    expect(triggered.map((e) => e.id)).toEqual(["e1"]);
+  });
+  
   it("un projet sans événement retourne une liste vide", () => {
     const project = buildProject();
 

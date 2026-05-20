@@ -54,11 +54,23 @@ export const EventForm = ({ project, mode, initialEvent, onSubmit, onCancel }: {
     const name = form.name.trim();
     if (!name) return setNameError(t(project.locale, "events.nameRequired"));
     const month = getMonthById(project.calendarSystem, form.monthId);
-    const startDate: CalendarDate = { year: form.year, monthId: form.monthId, dayOfMonth: clamp(form.dayOfMonth, 1, month?.days ?? 1), hour: clamp(form.hour, 0, 23), minute: clamp(form.minute, 0, 59) };
+    const startDate: CalendarDate = {
+      year: form.year,
+      monthId: form.monthId,
+      dayOfMonth: clamp(form.dayOfMonth, 1, month?.days ?? 1),
+      hour: form.allDay ? 0 : clamp(form.hour, 0, 23),
+      minute: form.allDay ? 0 : clamp(form.minute, 0, 59)
+    };
     let endDate: CalendarDate | undefined;
     if (form.hasEndDate) {
       const endMonth = getMonthById(project.calendarSystem, form.endMonthId);
-      const safeEnd: CalendarDate = { year: form.endYear, monthId: form.endMonthId, dayOfMonth: clamp(form.endDayOfMonth, 1, endMonth?.days ?? 1), hour: clamp(form.endHour, 0, 23), minute: clamp(form.endMinute, 0, 59) };
+      const safeEnd: CalendarDate = {
+        year: form.endYear,
+        monthId: form.endMonthId,
+        dayOfMonth: clamp(form.endDayOfMonth, 1, endMonth?.days ?? 1),
+        hour: form.allDay ? 0 : clamp(form.endHour, 0, 23),
+        minute: form.allDay ? 0 : clamp(form.endMinute, 0, 59)
+      };
       endDate = normalizeEventDateRange(project, startDate, safeEnd);
       setEndError(endDate && compareCalendarDates(endDate, safeEnd, project) !== 0 ? t(project.locale, "events.endBeforeStart") : null);
     } else setEndError(null);
