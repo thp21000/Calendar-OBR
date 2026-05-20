@@ -90,6 +90,15 @@ export type WeatherSettings = {
   forecastMode?: "wide" | "fine";
 };
 
+export type WindDirection = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
+
+export type WeatherSnapshot = {
+  temperature: number;
+  windSpeed: number;
+  windDirection: WindDirection;
+  rain: number;
+};
+
 export type Season = {
   id: string;
   name: string;

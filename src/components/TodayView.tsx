@@ -2,6 +2,8 @@ import { useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
+import { getCurrentWeather } from "../calendar/weatherLogic";
+import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import { formatEventDateTime, formatEventTimeShort, formatEventVisibility } from "../calendar/formatEvent";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
@@ -18,6 +20,8 @@ const buttonStyle = { border: "1px solid #8b5cf6", borderRadius: 8, background: 
 export const TodayView = ({ project, onProjectUpdate, onReset }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; onReset: () => void; }) => {
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const currentSeason = getCurrentSeason(project);
+  const currentWeather = getCurrentWeather(project);
+  const weatherUnits = getWeatherUnitLabels(project.locale);
   const eventsToday = getEventsForCurrentDay(project);
   const [lastTriggeredEvents, setLastTriggeredEvents] = useState<CalendarEvent[]>([]);
 
@@ -89,7 +93,12 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
           <span>{t(project.locale, "calendar.season")}:</span>
           {currentSeason ? <><EventIcon icon={currentSeason.icon} locale={project.locale} size={16} /><span>{currentSeason.name}</span></> : <span>{t(project.locale, "calendar.noSeason")}</span>}
         </div>
-        <div>{t(project.locale, "calendar.weatherPlaceholder")}</div><div>{t(project.locale, "calendar.moonPlaceholder")}</div>
+        <div>
+          {t(project.locale, "calendar.weather")}: {currentWeather
+            ? `${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
+            : t(project.locale, "calendar.noWeather")}
+        </div>
+        <div>{t(project.locale, "calendar.moonPlaceholder")}</div>
       </div>
 
       <button type="button" onClick={onReset} style={{ border: "1px solid #7f1d1d", borderRadius: 6, background: "#991b1b", color: "#fff", padding: "7px 10px", fontSize: 12 }}>{t(project.locale, "settings.resetCalendar")}</button>
