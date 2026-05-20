@@ -3,6 +3,8 @@ import { absoluteDayToCalendarDate, getMonthById } from "../../calendar/dateEngi
 import { compareCalendarDates, createCalendarEvent, normalizeEventDateRange } from "../../calendar/eventsLogic";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { CollapsibleSection } from "../CollapsibleSection";
+
 
 export type EventFormValue = {
   name: string; icon: string; summary: string; year: number; monthId: string; dayOfMonth: number; hour: number; minute: number;
@@ -116,44 +118,51 @@ export const EventForm = ({ project, mode, initialEvent, onSubmit, onCancel }: {
 
   return <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
     <div style={{ fontWeight: 700, marginBottom: 6 }}>{mode === "create" ? t(project.locale, "events.createTitle") : t(project.locale, "events.editTitle")}</div>
-    <label>{t(project.locale, "events.name")}</label><input value={form.name} onChange={(e)=>updateForm("name", e.target.value)} style={inputStyle}/>{nameError ? <div style={{ color: "#fca5a5", fontSize: 12 }}>{nameError}</div>:null}
-    <label>{t(project.locale, "events.icon")}</label><input value={form.icon} onChange={(e)=>updateForm("icon", e.target.value)} style={inputStyle}/>
-    <label>{t(project.locale, "events.summary")}</label><input value={form.summary} onChange={(e)=>updateForm("summary", e.target.value)} style={inputStyle}/>
-    <label style={{ display: "flex", gap: 6 }}><input type="checkbox" checked={form.allDay} onChange={(e)=>updateForm("allDay", e.target.checked)}/>{t(project.locale, "events.allDay")}</label>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-      <div><label>{t(project.locale, "events.recurrence")}</label>
-        <select value={form.recurrenceType} onChange={(e)=>updateForm("recurrenceType", e.target.value as EventFormValue["recurrenceType"])} style={inputStyle}>
-          <option value="none">{t(project.locale, "events.recurrenceNone")}</option>
-          <option value="everyXDays">{t(project.locale, "events.recurrenceEveryXDays")}</option>
-          <option value="everyXMonths">{t(project.locale, "events.recurrenceEveryXMonths")}</option>
-          <option value="yearly">{t(project.locale, "events.recurrenceYearly")}</option>
-        </select>
-      </div>
-      {form.recurrenceType !== "none" ? <div><label>{t(project.locale, "events.recurrenceInterval")}</label>
-        <input type="number" min={1} value={form.recurrenceInterval} onChange={(e)=>updateForm("recurrenceInterval", Math.max(1, Number(e.target.value) || 1))} style={inputStyle} />
-      </div> : null}
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-      <div><label>{t(project.locale, "events.year")}</label><input type="number" value={form.year} onChange={(e)=>updateForm("year", Number(e.target.value))} style={inputStyle}/></div>
-      <div><label>{t(project.locale, "events.month")}</label><select value={form.monthId} onChange={(e)=>updateForm("monthId", e.target.value)} style={inputStyle}>{sortedMonths.map((m)=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
-      <div><label>{t(project.locale, "events.day")}</label><input type="number" value={form.dayOfMonth} onChange={(e)=>updateForm("dayOfMonth", Number(e.target.value))} style={inputStyle}/></div>
-      {!form.allDay ? <><div><label>{t(project.locale, "events.hour")}</label><input type="number" min={0} max={23} value={form.hour} onChange={(e)=>updateForm("hour", Number(e.target.value))} style={inputStyle}/></div><div><label>{t(project.locale, "events.minute")}</label><input type="number" min={0} max={59} value={form.minute} onChange={(e)=>updateForm("minute", Number(e.target.value))} style={inputStyle}/></div></> : null}
+    <CollapsibleSection title={t(project.locale, "events.sectionGeneral")} defaultOpen>
+      <label>{t(project.locale, "events.name")}</label><input value={form.name} onChange={(e)=>updateForm("name", e.target.value)} style={inputStyle}/>{nameError ? <div style={{ color: "#fca5a5", fontSize: 12 }}>{nameError}</div>:null}
+      <label>{t(project.locale, "events.icon")}</label><input value={form.icon} onChange={(e)=>updateForm("icon", e.target.value)} style={inputStyle}/>
+      <label>{t(project.locale, "events.summary")}</label><input value={form.summary} onChange={(e)=>updateForm("summary", e.target.value)} style={inputStyle}/>
       <div><label>{t(project.locale, "events.visibility")}</label><select value={form.visibility} onChange={(e)=>updateForm("visibility", e.target.value as CalendarEvent["visibility"])} style={inputStyle}><option value="gm">{t(project.locale, "events.visibilityGm")}</option><option value="players">{t(project.locale, "events.visibilityPlayers")}</option><option value="revealOnTrigger">{t(project.locale, "events.visibilityRevealOnTrigger")}</option></select></div>
-    </div>
-    <div style={{ border: "1px dashed #374151", borderRadius: 6, padding: 6, marginBottom: 8 }}>
-      <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 12 }}>{t(project.locale, "events.triggerOptions")}</div>
+    </CollapsibleSection>
+    <CollapsibleSection title={t(project.locale, "events.sectionDateTime")} defaultOpen>
+      <label style={{ display: "flex", gap: 6 }}><input type="checkbox" checked={form.allDay} onChange={(e)=>updateForm("allDay", e.target.checked)}/>{t(project.locale, "events.allDay")}</label>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+        <div><label>{t(project.locale, "events.year")}</label><input type="number" value={form.year} onChange={(e)=>updateForm("year", Number(e.target.value))} style={inputStyle}/></div>
+        <div><label>{t(project.locale, "events.month")}</label><select value={form.monthId} onChange={(e)=>updateForm("monthId", e.target.value)} style={inputStyle}>{sortedMonths.map((m)=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+        <div><label>{t(project.locale, "events.day")}</label><input type="number" value={form.dayOfMonth} onChange={(e)=>updateForm("dayOfMonth", Number(e.target.value))} style={inputStyle}/></div>
+        {!form.allDay ? <><div><label>{t(project.locale, "events.hour")}</label><input type="number" min={0} max={23} value={form.hour} onChange={(e)=>updateForm("hour", Number(e.target.value))} style={inputStyle}/></div><div><label>{t(project.locale, "events.minute")}</label><input type="number" min={0} max={59} value={form.minute} onChange={(e)=>updateForm("minute", Number(e.target.value))} style={inputStyle}/></div></> : null}
+      </div>
+      </CollapsibleSection>
+    <CollapsibleSection title={t(project.locale, "events.sectionEnd")} defaultOpen={Boolean(initialEvent?.endDate)}>
+      <label style={{ display: "flex", gap: 6 }}><input type="checkbox" checked={form.hasEndDate} onChange={(e)=>updateForm("hasEndDate", e.target.checked)}/>{t(project.locale, "events.addEndDate")}</label>
+      {form.hasEndDate ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+        <div><label>{t(project.locale, "events.endYear")}</label><input type="number" value={form.endYear} onChange={(e)=>updateForm("endYear", Number(e.target.value))} style={inputStyle}/></div>
+        <div><label>{t(project.locale, "events.endMonth")}</label><select value={form.endMonthId} onChange={(e)=>updateForm("endMonthId", e.target.value)} style={inputStyle}>{sortedMonths.map((m)=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
+        <div><label>{t(project.locale, "events.endDay")}</label><input type="number" value={form.endDayOfMonth} onChange={(e)=>updateForm("endDayOfMonth", Number(e.target.value))} style={inputStyle}/></div>
+        {!form.allDay ? <><div><label>{t(project.locale, "events.endHour")}</label><input type="number" min={0} max={23} value={form.endHour} onChange={(e)=>updateForm("endHour", Number(e.target.value))} style={inputStyle}/></div><div><label>{t(project.locale, "events.endMinute")}</label><input type="number" min={0} max={59} value={form.endMinute} onChange={(e)=>updateForm("endMinute", Number(e.target.value))} style={inputStyle}/></div></> : null}
+      </div> : null}
+    {endError ? <div style={{ color: "#fca5a5", fontSize: 12 }}>{endError}</div> : null}
+    </CollapsibleSection>
+    <CollapsibleSection title={t(project.locale, "events.sectionRecurrence")} defaultOpen={mode === "edit" && initialEvent?.recurrence.type !== "none"}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+        <div><label>{t(project.locale, "events.recurrence")}</label>
+          <select value={form.recurrenceType} onChange={(e)=>updateForm("recurrenceType", e.target.value as EventFormValue["recurrenceType"])} style={inputStyle}>
+            <option value="none">{t(project.locale, "events.recurrenceNone")}</option>
+            <option value="everyXDays">{t(project.locale, "events.recurrenceEveryXDays")}</option>
+            <option value="everyXMonths">{t(project.locale, "events.recurrenceEveryXMonths")}</option>
+            <option value="yearly">{t(project.locale, "events.recurrenceYearly")}</option>
+          </select>
+        </div>
+        {form.recurrenceType !== "none" ? <div><label>{t(project.locale, "events.recurrenceInterval")}</label>
+          <input type="number" min={1} value={form.recurrenceInterval} onChange={(e)=>updateForm("recurrenceInterval", Math.max(1, Number(e.target.value) || 1))} style={inputStyle} />
+        </div> : null}
+      </div>
+    </CollapsibleSection>
+    <CollapsibleSection title={t(project.locale, "events.sectionTrigger")} defaultOpen={false}>
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.notifyOnTrigger} onChange={(e)=>updateForm("notifyOnTrigger", e.target.checked)}/>{t(project.locale, "events.notifyOnTrigger")}</label>
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.deleteAfterTrigger} onChange={(e)=>updateForm("deleteAfterTrigger", e.target.checked)}/>{t(project.locale, "events.deleteAfterTrigger")}</label>
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.archiveAfterTrigger} onChange={(e)=>updateForm("archiveAfterTrigger", e.target.checked)}/>{t(project.locale, "events.archiveAfterTrigger")}</label>
-    </div>
-    <label style={{ display: "flex", gap: 6 }}><input type="checkbox" checked={form.hasEndDate} onChange={(e)=>updateForm("hasEndDate", e.target.checked)}/>{t(project.locale, "events.addEndDate")}</label>
-    {form.hasEndDate ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-      <div><label>{t(project.locale, "events.endYear")}</label><input type="number" value={form.endYear} onChange={(e)=>updateForm("endYear", Number(e.target.value))} style={inputStyle}/></div>
-      <div><label>{t(project.locale, "events.endMonth")}</label><select value={form.endMonthId} onChange={(e)=>updateForm("endMonthId", e.target.value)} style={inputStyle}>{sortedMonths.map((m)=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
-      <div><label>{t(project.locale, "events.endDay")}</label><input type="number" value={form.endDayOfMonth} onChange={(e)=>updateForm("endDayOfMonth", Number(e.target.value))} style={inputStyle}/></div>
-      {!form.allDay ? <><div><label>{t(project.locale, "events.endHour")}</label><input type="number" min={0} max={23} value={form.endHour} onChange={(e)=>updateForm("endHour", Number(e.target.value))} style={inputStyle}/></div><div><label>{t(project.locale, "events.endMinute")}</label><input type="number" min={0} max={59} value={form.endMinute} onChange={(e)=>updateForm("endMinute", Number(e.target.value))} style={inputStyle}/></div></> : null}
-    </div> : null}
-    {endError ? <div style={{ color: "#fca5a5", fontSize: 12 }}>{endError}</div> : null}
+    </CollapsibleSection>
     <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
       <button type="button" onClick={submit} style={buttonStyle}>{mode === "create" ? t(project.locale, "events.save") : t(project.locale, "events.update")}</button>
       {onCancel ? <button type="button" onClick={onCancel} style={buttonStyle}>{t(project.locale, "events.cancel")}</button> : null}
