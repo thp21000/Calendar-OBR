@@ -9,6 +9,12 @@ import { EventForm } from "./events/EventForm";
 export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void }) => {
   const events = sortEventsByDate(project.events, project);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"active" | "triggered" | "archived" | "disabled" | "all">("active");
+
+  const filteredEvents = events.filter((event) => {
+    if (statusFilter === "all") return true;
+    return event.status === statusFilter;
+  });
 
     const handleCreate = (event: CalendarEvent) => onProjectUpdate(addCalendarEvent(project, event));
   const handleUpdate = (event: CalendarEvent) => {
@@ -24,8 +30,19 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
     <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{t(project.locale, "events.title")}</div>
       <EventForm project={project} mode="create" onSubmit={handleCreate} />
-      {events.length === 0 ? <div style={{ color: "#9ca3af" }}>{t(project.locale, "events.noEvents")}</div> : <div style={{ display: "grid", gap: 8 }}>
-        {events.map((event) => (
+      <div style={{ marginBottom: 8 }}>
+        <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "events.filter")}</label>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "active" | "triggered" | "archived" | "disabled" | "all")} style={{ width: "100%", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", fontSize: 12 }}>
+          <option value="active">{t(project.locale, "events.filterActive")}</option>
+          <option value="triggered">{t(project.locale, "events.filterTriggered")}</option>
+          <option value="archived">{t(project.locale, "events.filterArchived")}</option>
+          <option value="disabled">{t(project.locale, "events.filterDisabled")}</option>
+          <option value="all">{t(project.locale, "events.filterAll")}</option>
+        </select>
+      </div>
+
+      {filteredEvents.length === 0 ? <div style={{ color: "#9ca3af" }}>{t(project.locale, "events.noEventsForFilter")}</div> : <div style={{ display: "grid", gap: 8 }}>
+        {filteredEvents.map((event) => (
           <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
             {editingEventId === event.id ? (
               <EventForm project={project} mode="edit" initialEvent={event} onSubmit={handleUpdate} onCancel={() => setEditingEventId(null)} />
