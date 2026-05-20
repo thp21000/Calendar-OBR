@@ -46,3 +46,25 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
 export const getCurrentWeather = (project: CalendarProject): WeatherSnapshot | undefined =>
   generateWeatherForTime(project, project.currentTime.absoluteDay, project.currentTime.hour);
 
+export const getHourlyWeatherForecast = (
+  project: CalendarProject,
+  count: number
+): Array<{ offsetHours: number; weather: WeatherSnapshot }> => {
+  const entries: Array<{ offsetHours: number; weather: WeatherSnapshot }> = [];
+  const safeCount = Math.max(0, Math.floor(count));
+  const startAbsoluteDay = project.currentTime.absoluteDay;
+  const startHour = project.currentTime.hour;
+
+  for (let offsetHours = 1; offsetHours <= safeCount; offsetHours++) {
+    const totalHours = startHour + offsetHours;
+    const dayOffset = Math.floor(totalHours / 24);
+    const hour = ((totalHours % 24) + 24) % 24;
+    const absoluteDay = startAbsoluteDay + dayOffset;
+    const weather = generateWeatherForTime(project, absoluteDay, hour);
+
+    if (!weather) continue;
+    entries.push({ offsetHours, weather });
+  }
+
+  return entries;
+};

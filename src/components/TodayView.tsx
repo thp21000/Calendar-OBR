@@ -2,7 +2,7 @@ import { useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
-import { getCurrentWeather } from "../calendar/weatherLogic";
+import { getCurrentWeather, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import { formatEventDateTime, formatEventTimeShort, formatEventVisibility } from "../calendar/formatEvent";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
@@ -21,6 +21,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
+  const hourlyForecast = getHourlyWeatherForecast(project, 5);
   const weatherUnits = getWeatherUnitLabels(project.locale);
   const eventsToday = getEventsForCurrentDay(project);
   const [lastTriggeredEvents, setLastTriggeredEvents] = useState<CalendarEvent[]>([]);
@@ -92,6 +93,21 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span>{t(project.locale, "calendar.season")}:</span>
           {currentSeason ? <><EventIcon icon={currentSeason.icon} locale={project.locale} size={16} /><span>{currentSeason.name}</span></> : <span>{t(project.locale, "calendar.noSeason")}</span>}
+        </div>
+        <div style={{ marginTop: 4 }}>
+          <div style={{ fontSize: 12, fontWeight: 700 }}>{t(project.locale, "calendar.hourlyForecast")}</div>
+          {hourlyForecast.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "calendar.noForecast")}</div>
+          ) : (
+            <div style={{ display: "grid", gap: 2, fontSize: 12 }}>
+              {hourlyForecast.map((entry) => (
+                <div key={entry.offsetHours}>
+                  +{entry.offsetHours} h · {entry.weather.temperature} {weatherUnits.temperature} · {entry.weather.windDirection}{" "}
+                  {entry.weather.windSpeed} {weatherUnits.windSpeed} · {entry.weather.rain} {weatherUnits.rain}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           {t(project.locale, "calendar.weather")}: {currentWeather
