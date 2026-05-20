@@ -247,6 +247,96 @@ describe("eventsLogic", () => {
     expect(sorted.map((event) => event.id)).toEqual(["e4", "e3", "e2", "e1"]);
   });
 
+  it("événement endDate traverse changement de mois", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 30, hour: 12, minute: 0 }), endDate: { year: 1000, monthId: "m2", dayOfMonth: 2, hour: 10, minute: 0 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 30, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m2", dayOfMonth: 1, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m2", dayOfMonth: 2, hour: 0, minute: 0 }, project)).toBe(true);
+  });
+
+  it("événement endDate traverse changement d'année", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m2", dayOfMonth: 30, hour: 12, minute: 0 }), endDate: { year: 1001, monthId: "m1", dayOfMonth: 2, hour: 10, minute: 0 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m2", dayOfMonth: 30, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1001, monthId: "m1", dayOfMonth: 1, hour: 0, minute: 0 }, project)).toBe(true);
+  });
+
+  it("everyXDays: occurrences selon intervalle", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 9, minute: 0 }), recurrence: { type: "everyXDays" as const, interval: 3 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 0, minute: 0 }, project)).toBe(false);
+    expect(eventOccursOnDay(event, { year: 999, monthId: "m2", dayOfMonth: 30, hour: 0, minute: 0 }, project)).toBe(false);
+  });
+
+  it("everyXDays: interval <= 0 retourne false", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 9, minute: 0 }), recurrence: { type: "everyXDays" as const, interval: 0 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 0, minute: 0 }, project)).toBe(false);
+  });
+
+  it("everyXDays multi-jours: couvre chaque occurrence sur sa durée", () => {
+    const project = buildProject();
+    const event = {
+      ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 9, minute: 0 }),
+      endDate: { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 9, minute: 0 },
+      recurrence: { type: "everyXDays" as const, interval: 7 }
+    };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 8, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 9, hour: 0, minute: 0 }, project)).toBe(true);
+  });
+
+  it("everyXMonths: mois de départ, mois cible, mois intermédiaire", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 10, hour: 9, minute: 0 }), recurrence: { type: "everyXMonths" as const, interval: 2 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 10, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m2", dayOfMonth: 10, hour: 0, minute: 0 }, project)).toBe(false);
+    expect(eventOccursOnDay(event, { year: 1001, monthId: "m1", dayOfMonth: 10, hour: 0, minute: 0 }, project)).toBe(true);
+  });
+
+  it("everyXMonths: clamp au dernier jour du mois cible", () => {
+    const project = buildProject();
+    project.calendarSystem.months = [
+      { id: "m1", name: "M1", order: 1, days: 31 },
+      { id: "m2", name: "M2", order: 2, days: 30 }
+    ];
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 31, hour: 9, minute: 0 }), recurrence: { type: "everyXMonths" as const, interval: 1 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m2", dayOfMonth: 30, hour: 0, minute: 0 }, project)).toBe(true);
+  });
+
+  it("everyXMonths: interval <= 0 retourne false", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 10, hour: 9, minute: 0 }), recurrence: { type: "everyXMonths" as const, interval: 0 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 10, hour: 0, minute: 0 }, project)).toBe(false);
+  });
+
+  it("yearly: année de départ, après intervalle, année intermédiaire", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 12, hour: 9, minute: 0 }), recurrence: { type: "yearly" as const, interval: 2 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 12, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1001, monthId: "m1", dayOfMonth: 12, hour: 0, minute: 0 }, project)).toBe(false);
+    expect(eventOccursOnDay(event, { year: 1002, monthId: "m1", dayOfMonth: 12, hour: 0, minute: 0 }, project)).toBe(true);
+  });
+
+  it("yearly: clamp du jour au dernier jour valide", () => {
+    const project = buildProject();
+    project.calendarSystem.months = [
+      { id: "m1", name: "M1", order: 1, days: 31 },
+      { id: "m2", name: "M2", order: 2, days: 30 }
+    ];
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 31, hour: 9, minute: 0 }), recurrence: { type: "yearly" as const, interval: 1 } };
+    expect(eventOccursOnDay(event, { year: 1001, monthId: "m1", dayOfMonth: 31, hour: 0, minute: 0 }, project)).toBe(true);
+  });
+
+  it("yearly: interval <= 0 retourne false", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 12, hour: 9, minute: 0 }), recurrence: { type: "yearly" as const, interval: 0 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 12, hour: 0, minute: 0 }, project)).toBe(false);
+  });
+
   it("un projet sans événement retourne une liste vide", () => {
     const project = buildProject();
 

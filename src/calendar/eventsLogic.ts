@@ -61,6 +61,80 @@ const getMonthOrder = (project: CalendarProject, monthId: string): number => {
   return month?.order ?? Number.MAX_SAFE_INTEGER;
 };
 
+const getMonthById = (project: CalendarProject, monthId: string) =>
+  project.calendarSystem.months.find((month) => month.id === monthId);
+
+const getSortedMonths = (project: CalendarProject) => [...project.calendarSystem.months].sort((a, b) => a.order - b.order);
+
+const getMonthIndex = (project: CalendarProject, monthId: string): number =>
+  getSortedMonths(project).findIndex((month) => month.id === monthId);
+
+const toAbsoluteDayOnly = (project: CalendarProject, value: CalendarDate): number =>
+  calendarDateToAbsoluteDay({ ...value, hour: 0, minute: 0 }, project.calendarSystem).absoluteDay;
+
+const fromYearMonthDayLike = (project: CalendarProject, year: number, monthId: string, day: number, ref: CalendarDate): CalendarDate => {
+  const month = getMonthById(project, monthId);
+  if (!month) throw new Error(`Unknown month id: ${monthId}`);
+  return { year, monthId, dayOfMonth: Math.min(day, month.days), hour: ref.hour, minute: ref.minute };
+};
+
+const getEventDurationDays = (project: CalendarProject, event: CalendarEvent): number => {
+  if (!event.endDate) return 1;
+  return Math.max(1, toAbsoluteDayOnly(project, event.endDate) - toAbsoluteDayOnly(project, event.date) + 1);
+};
+
+const occursOnRange = (target: number, start: number, durationDays: number): boolean =>
+  target >= start && target <= start + durationDays - 1;
+
+const eventOccursOnEveryXDays = (project: CalendarProject, event: CalendarEvent, date: CalendarDate, interval: number): boolean => {
+  if (interval <= 0) return false;
+  const targetDay = toAbsoluteDayOnly(project, date);
+  const startDay = toAbsoluteDayOnly(project, event.date);
+  if (targetDay < startDay) return false;
+
+  const duration = getEventDurationDays(project, event);
+  const delta = targetDay - startDay;
+  const kMin = Math.max(0, Math.floor((delta - duration + 1 + interval - 1) / interval));
+  const kMax = Math.floor(delta / interval);
+  for (let k = kMin; k <= kMax; k++) {
+    if (occursOnRange(targetDay, startDay + k * interval, duration)) return true;
+  }
+  return false;
+};
+
+const eventOccursOnEveryXMonths = (project: CalendarProject, event: CalendarEvent, date: CalendarDate, interval: number): boolean => {
+  if (interval <= 0) return false;
+  const startMonthIndex = getMonthIndex(project, event.date.monthId);
+  const targetMonthIndex = getMonthIndex(project, date.monthId);
+  if (startMonthIndex < 0 || targetMonthIndex < 0) return false;
+
+  const monthsPerYear = getSortedMonths(project).length;
+  const eventMonthSerial = event.date.year * monthsPerYear + startMonthIndex;
+  const targetMonthSerial = date.year * monthsPerYear + targetMonthIndex;
+  if (targetMonthSerial < eventMonthSerial) return false;
+
+  const monthDelta = targetMonthSerial - eventMonthSerial;
+  if (monthDelta % interval !== 0) return false;
+
+  const occStart = fromYearMonthDayLike(project, date.year, date.monthId, event.date.dayOfMonth, event.date);
+  const targetDay = toAbsoluteDayOnly(project, date);
+  const occStartDay = toAbsoluteDayOnly(project, occStart);
+  return occursOnRange(targetDay, occStartDay, getEventDurationDays(project, event));
+};
+
+const eventOccursOnYearly = (project: CalendarProject, event: CalendarEvent, date: CalendarDate, interval: number): boolean => {
+  if (interval <= 0) return false;
+  if (date.year < event.date.year) return false;
+  if ((date.year - event.date.year) % interval !== 0) return false;
+  if (!getMonthById(project, event.date.monthId)) return false;
+  if (date.monthId !== event.date.monthId) return false;
+
+  const occStart = fromYearMonthDayLike(project, date.year, event.date.monthId, event.date.dayOfMonth, event.date);
+  const targetDay = toAbsoluteDayOnly(project, date);
+  const occStartDay = toAbsoluteDayOnly(project, occStart);
+  return occursOnRange(targetDay, occStartDay, getEventDurationDays(project, event));
+};
+
 export const sortEventsByDate = (events: CalendarEvent[], project: CalendarProject): CalendarEvent[] =>
   [...events].sort((a, b) => {
     if (a.date.year !== b.date.year) return a.date.year - b.date.year;
@@ -79,16 +153,9 @@ export const addCalendarEvent = (project: CalendarProject, event: CalendarEvent)
   events: sortEventsByDate([...project.events, event], project)
 });
 
-export const updateCalendarEvent = (
-  project: CalendarProject,
-  eventId: string,
-  patch: Partial<CalendarEvent>
-): CalendarProject => ({
+export const updateCalendarEvent = (project: CalendarProject, eventId: string, patch: Partial<CalendarEvent>): CalendarProject => ({
   ...project,
-  events: sortEventsByDate(
-    project.events.map((event) => (event.id === eventId ? { ...event, ...patch } : event)),
-    project
-  )
+  events: sortEventsByDate(project.events.map((event) => (event.id === eventId ? { ...event, ...patch } : event)), project)
 });
 
 export const deleteCalendarEvent = (project: CalendarProject, eventId: string): CalendarProject => ({
@@ -96,25 +163,28 @@ export const deleteCalendarEvent = (project: CalendarProject, eventId: string): 
   events: project.events.filter((event) => event.id !== eventId)
 });
 
-const toAbsoluteDayOnly = (project: CalendarProject, value: CalendarDate): number =>
-  calendarDateToAbsoluteDay({ ...value, hour: 0, minute: 0 }, project.calendarSystem).absoluteDay;
-
 export const eventOccursOnDay = (event: CalendarEvent, date: CalendarDate, project?: CalendarProject): boolean => {
-  if (event.recurrence.type !== "none") return false;
-
-  if (!event.endDate || !project) {
-    return (
-      event.date.year === date.year &&
-      event.date.monthId === date.monthId &&
-      event.date.dayOfMonth === date.dayOfMonth
-    );
+  if (!project) {
+    return event.date.year === date.year && event.date.monthId === date.monthId && event.date.dayOfMonth === date.dayOfMonth;
   }
 
-  const targetDay = toAbsoluteDayOnly(project, date);
-  const startDay = toAbsoluteDayOnly(project, event.date);
-  const endDay = toAbsoluteDayOnly(project, event.endDate);
-
-  return targetDay >= startDay && targetDay <= endDay;
+  switch (event.recurrence.type) {
+    case "none": {
+      if (!event.endDate) return event.date.year === date.year && event.date.monthId === date.monthId && event.date.dayOfMonth === date.dayOfMonth;
+      const targetDay = toAbsoluteDayOnly(project, date);
+      const startDay = toAbsoluteDayOnly(project, event.date);
+      const endDay = toAbsoluteDayOnly(project, event.endDate);
+      return targetDay >= startDay && targetDay <= endDay;
+    }
+    case "everyXDays":
+      return eventOccursOnEveryXDays(project, event, date, event.recurrence.interval);
+    case "everyXMonths":
+      return eventOccursOnEveryXMonths(project, event, date, event.recurrence.interval);
+    case "yearly":
+      return eventOccursOnYearly(project, event, date, event.recurrence.interval);
+    default:
+      return false;
+  }
 };
 
 export const getEventsForDay = (project: CalendarProject, date: CalendarDate): CalendarEvent[] =>
