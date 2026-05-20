@@ -168,14 +168,45 @@ describe("eventsLogic", () => {
   it("eventOccursOnDay retourne true pour le bon jour", () => {
     const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 12, minute: 0 });
 
-    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 0, minute: 0 })).toBe(true);
-  });
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 0, minute: 0 }, buildProject())).toBe(true);
 
   it("eventOccursOnDay retourne false pour un autre jour", () => {
     const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 12, minute: 0 });
 
-    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 0, minute: 0 })).toBe(false);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 0, minute: 0 }, buildProject())).toBe(false);
   });
+
+
+
+  it("événement sans endDate apparaît seulement le jour de début", () => {
+    const project = buildProject();
+    const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 12, minute: 0 });
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 5, hour: 0, minute: 0 }, project)).toBe(false);
+  });
+
+  it("événement avec endDate même jour apparaît seulement ce jour", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 10, minute: 0 }), endDate: { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 12, minute: 0 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 5, hour: 0, minute: 0 }, project)).toBe(false);
+  });
+
+  it("événement multi-jours apparaît du début à la fin inclus", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 12, minute: 0 }), endDate: { year: 1000, monthId: "m1", dayOfMonth: 6, hour: 18, minute: 0 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 5, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 6, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 0, minute: 0 }, project)).toBe(false);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 7, hour: 0, minute: 0 }, project)).toBe(false);
+  });
+
+  it("événement 23:00 à 01:00 lendemain apparaît sur les deux jours", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 23, minute: 0 }), endDate: { year: 1000, monthId: "m1", dayOfMonth: 5, hour: 1, minute: 0 } };
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 0, minute: 0 }, project)).toBe(true);
+    expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 5, hour: 0, minute: 0 }, project)).toBe(true);
 
   it("getEventsForDay retourne seulement les événements du jour demandé", () => {
     const target = { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 0, minute: 0 };

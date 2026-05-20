@@ -96,18 +96,29 @@ export const deleteCalendarEvent = (project: CalendarProject, eventId: string): 
   events: project.events.filter((event) => event.id !== eventId)
 });
 
-export const eventOccursOnDay = (event: CalendarEvent, date: CalendarDate): boolean => {
+const toAbsoluteDayOnly = (project: CalendarProject, value: CalendarDate): number =>
+  calendarDateToAbsoluteDay({ ...value, hour: 0, minute: 0 }, project.calendarSystem).absoluteDay;
+
+export const eventOccursOnDay = (event: CalendarEvent, date: CalendarDate, project?: CalendarProject): boolean => {
   if (event.recurrence.type !== "none") return false;
 
-  return (
-    event.date.year === date.year &&
-    event.date.monthId === date.monthId &&
-    event.date.dayOfMonth === date.dayOfMonth
-  );
+  if (!event.endDate || !project) {
+    return (
+      event.date.year === date.year &&
+      event.date.monthId === date.monthId &&
+      event.date.dayOfMonth === date.dayOfMonth
+    );
+  }
+
+  const targetDay = toAbsoluteDayOnly(project, date);
+  const startDay = toAbsoluteDayOnly(project, event.date);
+  const endDay = toAbsoluteDayOnly(project, event.endDate);
+
+  return targetDay >= startDay && targetDay <= endDay;
 };
 
 export const getEventsForDay = (project: CalendarProject, date: CalendarDate): CalendarEvent[] =>
-  sortEventsByDate(project.events.filter((event) => eventOccursOnDay(event, date)), project);
+  sortEventsByDate(project.events.filter((event) => eventOccursOnDay(event, date, project)), project);
 
 export const getEventsForCurrentDay = (project: CalendarProject): CalendarEvent[] => {
   const currentDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
