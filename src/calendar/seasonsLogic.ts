@@ -1,5 +1,5 @@
 import { absoluteDayToCalendarDate } from "./dateEngine";
-import type { CalendarDate, CalendarProject, Season } from "../domain/types";
+import type { CalendarDate, CalendarProject, Season, SeasonWeatherProfile } from "../domain/types";
 
 const seasonDateToOrdinal = (project: CalendarProject, value: { monthId: string; dayOfMonth: number }): number => {
   const months = [...project.calendarSystem.months].sort((a, b) => a.order - b.order);
@@ -52,6 +52,28 @@ export const createDefaultSeason = (project: CalendarProject): Season => {
   };
 };
 
+export const createDefaultSeasonWeatherProfile = (): SeasonWeatherProfile => ({
+  temperature: { min: 0, max: 20, average: 10 },
+  windSpeed: { min: 0, max: 40, average: 15 },
+  rain: { min: 0, max: 10, average: 2 }
+});
+
+const normalizeRange = (value: { min: number; max: number; average: number }) => {
+  const min = Number.isFinite(value.min) ? value.min : 0;
+  let max = Number.isFinite(value.max) ? value.max : min;
+  if (min > max) max = min;
+  let average = Number.isFinite(value.average) ? value.average : min;
+  if (average < min) average = min;
+  if (average > max) average = max;
+  return { min, max, average };
+};
+
+export const normalizeSeasonWeatherProfile = (profile: SeasonWeatherProfile): SeasonWeatherProfile => ({
+  temperature: normalizeRange(profile.temperature),
+  windSpeed: normalizeRange(profile.windSpeed),
+  rain: normalizeRange(profile.rain)
+});
+
 export const updateSeason = (project: CalendarProject, seasonId: string, patch: Partial<Season>): CalendarProject => ({
   ...project,
   seasons: project.seasons.map((season) => {
@@ -61,6 +83,7 @@ export const updateSeason = (project: CalendarProject, seasonId: string, patch: 
     const endMonth = project.calendarSystem.months.find((m) => m.id === next.end.monthId);
     return {
       ...next,
+      weatherProfile: next.weatherProfile ? normalizeSeasonWeatherProfile(next.weatherProfile) : undefined,
       start: { ...next.start, dayOfMonth: Math.min(Math.max(1, next.start.dayOfMonth), startMonth?.days ?? 1) },
       end: { ...next.end, dayOfMonth: Math.min(Math.max(1, next.end.dayOfMonth), endMonth?.days ?? 1) }
     };

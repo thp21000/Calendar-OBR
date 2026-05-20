@@ -187,7 +187,14 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "seasons.delete": "Supprimer",
     "seasons.confirmDelete": "Supprimer cette saison ?",
     "seasons.empty": "Aucune saison configurée",
-    "seasons.newSeason": "Nouvelle saison"
+    "seasons.newSeason": "Nouvelle saison",
+    "seasons.weatherProfile": "Profil météo",
+    "seasons.temperature": "Température",
+    "seasons.windSpeed": "Vent",
+    "seasons.rain": "Pluie",
+    "seasons.min": "Min",
+    "seasons.max": "Max",
+    "seasons.average": "Moyenne",
   },
   en: {
     "app.title": "Living Calendar",
@@ -375,7 +382,14 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "seasons.delete": "Delete",
     "seasons.confirmDelete": "Delete this season?",
     "seasons.empty": "No seasons configured",
-    "seasons.newSeason": "New season"
+    "seasons.newSeason": "New season",
+    "seasons.weatherProfile": "Weather profile",
+    "seasons.temperature": "Temperature",
+    "seasons.windSpeed": "Wind",
+    "seasons.rain": "Rain",
+    "seasons.min": "Min",
+    "seasons.max": "Max",
+    "seasons.average": "Average"
   }
 };
 

@@ -1,4 +1,4 @@
-import { createDefaultSeason, deleteSeason, sortSeasonsByStartDate, updateSeason } from "../../calendar/seasonsLogic";
+import { createDefaultSeason, createDefaultSeasonWeatherProfile, deleteSeason, sortSeasonsByStartDate, updateSeason } from "../../calendar/seasonsLogic";
 import type { CalendarProject, Season } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { CollapsibleSection } from "../CollapsibleSection";
@@ -30,6 +30,36 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
             </Field>
             <Field label={t(project.locale, "seasons.endDay")}><input type="number" min={1} value={season.end.dayOfMonth} onChange={(e) => patchSeason(season, { end: { ...season.end, dayOfMonth: Number(e.target.value) } })} style={inputStyle} /></Field>
           </div>
+          <CollapsibleSection title={t(project.locale, "seasons.weatherProfile")}>
+            {(() => {
+              const profile = season.weatherProfile ?? createDefaultSeasonWeatherProfile();
+              return (
+                <>
+                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.temperature")} (°C)</div>
+                  <RangeEditor
+                    locale={project.locale}
+                    inputStyle={inputStyle}
+                    value={profile.temperature}
+                    onChange={(next) => patchSeason(season, { weatherProfile: { ...profile, temperature: next } })}
+                  />
+                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.windSpeed")} (km/h)</div>
+                  <RangeEditor
+                    locale={project.locale}
+                    inputStyle={inputStyle}
+                    value={profile.windSpeed}
+                    onChange={(next) => patchSeason(season, { weatherProfile: { ...profile, windSpeed: next } })}
+                  />
+                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.rain")} (mm)</div>
+                  <RangeEditor
+                    locale={project.locale}
+                    inputStyle={inputStyle}
+                    value={profile.rain}
+                    onChange={(next) => patchSeason(season, { weatherProfile: { ...profile, rain: next } })}
+                  />
+                </>
+              );
+            })()}
+          </CollapsibleSection>
           <Action onClick={() => {
             if (!window.confirm(t(project.locale, "seasons.confirmDelete"))) return;
             onProjectUpdate(deleteSeason(project, season.id));
@@ -43,3 +73,21 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (<label style={{ display: "block" }}><div style={{ fontSize: 12, color: "#cbd5e1" }}>{label}</div>{children}</label>);
 const Action = ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button type="button" style={{ border: "1px solid #4b5563", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "5px 8px", fontSize: 12 }} {...props}>{children}</button>;
+
+const RangeEditor = ({
+  locale,
+  inputStyle,
+  value,
+  onChange
+}: {
+  locale: "fr" | "en";
+  inputStyle: React.CSSProperties;
+  value: { min: number; max: number; average: number };
+  onChange: (next: { min: number; max: number; average: number }) => void;
+}) => (
+  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+    <Field label={t(locale, "seasons.min")}><input type="number" value={value.min} onChange={(e) => onChange({ ...value, min: Number(e.target.value) })} style={inputStyle} /></Field>
+    <Field label={t(locale, "seasons.average")}><input type="number" value={value.average} onChange={(e) => onChange({ ...value, average: Number(e.target.value) })} style={inputStyle} /></Field>
+    <Field label={t(locale, "seasons.max")}><input type="number" value={value.max} onChange={(e) => onChange({ ...value, max: Number(e.target.value) })} style={inputStyle} /></Field>
+  </div>
+);

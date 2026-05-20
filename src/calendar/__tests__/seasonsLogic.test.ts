@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, Season } from "../../domain/types";
-import { createDefaultSeason, deleteSeason, getCurrentSeason, getSeasonForDate, getSeasonsStartingOnDate, seasonContainsDate, sortSeasonsByStartDate, updateSeason } from "../seasonsLogic";
+import { createDefaultSeason, createDefaultSeasonWeatherProfile, deleteSeason, getCurrentSeason, getSeasonForDate, getSeasonsStartingOnDate, normalizeSeasonWeatherProfile, seasonContainsDate, sortSeasonsByStartDate, updateSeason } from "../seasonsLogic";
 
 const buildProject = (): CalendarProject => ({
   schemaVersion: 1,
@@ -125,5 +125,48 @@ describe("seasonsLogic", () => {
     const updated = updateSeason(project, "s1", { start: { monthId: "m1", dayOfMonth: 99 }, end: { monthId: "m2", dayOfMonth: 0 } });
     expect(updated.seasons[0].start.dayOfMonth).toBe(30);
     expect(updated.seasons[0].end.dayOfMonth).toBe(1);
+  });
+  it("createDefaultSeasonWeatherProfile retourne un profil cohérent", () => {
+    const profile = createDefaultSeasonWeatherProfile();
+    expect(profile.temperature.min).toBeLessThanOrEqual(profile.temperature.average);
+    expect(profile.temperature.average).toBeLessThanOrEqual(profile.temperature.max);
+    expect(profile.windSpeed.min).toBeLessThanOrEqual(profile.windSpeed.average);
+    expect(profile.windSpeed.average).toBeLessThanOrEqual(profile.windSpeed.max);
+    expect(profile.rain.min).toBeLessThanOrEqual(profile.rain.average);
+    expect(profile.rain.average).toBeLessThanOrEqual(profile.rain.max);
+  });
+
+  it("normalizeSeasonWeatherProfile garde min <= average <= max", () => {
+    const normalized = normalizeSeasonWeatherProfile({
+      temperature: { min: 20, average: -1, max: 5 },
+      windSpeed: { min: 10, average: 50, max: 20 },
+      rain: { min: 4, average: 3, max: 2 }
+    });
+    expect(normalized.temperature).toEqual({ min: 20, average: 20, max: 20 });
+    expect(normalized.windSpeed).toEqual({ min: 10, average: 20, max: 20 });
+    expect(normalized.rain).toEqual({ min: 4, average: 4, max: 4 });
+  });
+
+  it("modifier le profil météo ne modifie pas les autres saisons", () => {
+    const project = buildProject();
+    project.seasons = [
+      { id: "s1", name: "A", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } },
+      { id: "s2", name: "B", start: { monthId: "m2", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }
+    ];
+    const updated = updateSeason(project, "s2", { weatherProfile: createDefaultSeasonWeatherProfile() });
+    expect(updated.seasons.find((s) => s.id === "s1")?.weatherProfile).toBeUndefined();
+    expect(updated.seasons.find((s) => s.id === "s2")?.weatherProfile).toBeDefined();
+  });
+
+  it("modifier le profil météo ne supprime pas les autres champs", () => {
+    const project = buildProject();
+    project.seasons = [
+      { id: "s1", name: "A", icon: "🌱", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }
+    ];
+    const updated = updateSeason(project, "s1", { weatherProfile: createDefaultSeasonWeatherProfile() });
+    expect(updated.seasons[0].name).toBe("A");
+    expect(updated.seasons[0].icon).toBe("🌱");
+    expect(updated.seasons[0].start.monthId).toBe("m1");
+    expect(updated.seasons[0].end.dayOfMonth).toBe(30);
   });
 });
