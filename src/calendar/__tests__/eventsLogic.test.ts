@@ -252,4 +252,3 @@ describe("eventsLogic", () => {
     expect(getEventsForDay(project, { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 0, minute: 0 })).toEqual([]);
     expect(getEventsForCurrentDay(project)).toEqual([]);
   });
-});
