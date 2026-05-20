@@ -194,3 +194,113 @@ export const getEventsForCurrentDay = (project: CalendarProject): CalendarEvent[
   const currentDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   return getEventsForDay(project, currentDate);
 };
+
+const toAbsoluteMinute = (project: CalendarProject, date: CalendarDate): number => {
+  const internal = calendarDateToAbsoluteDay(date, project.calendarSystem);
+  return internal.absoluteDay * 1440 + internal.hour * 60 + internal.minute;
+};
+
+const internalToAbsoluteMinute = (time: { absoluteDay: number; hour: number; minute: number }): number =>
+  time.absoluteDay * 1440 + time.hour * 60 + time.minute;
+
+const isEventTriggerable = (event: CalendarEvent): boolean =>
+  event.notifyOnTrigger === true && event.status !== "archived" && event.status !== "disabled";
+
+const eventStartsBetween = (startMinute: number, fromMinute: number, toMinute: number): boolean =>
+  startMinute > fromMinute && startMinute <= toMinute;
+
+const getRecurringOccurrenceStartsBetween = (
+  project: CalendarProject,
+  event: CalendarEvent,
+  fromMinute: number,
+  toMinute: number
+): number[] => {
+  const starts: number[] = [];
+  const startInternal = calendarDateToAbsoluteDay(event.date, project.calendarSystem);
+  const baseStartMinute = internalToAbsoluteMinute(startInternal);
+
+  if (event.recurrence.type === "everyXDays") {
+    const interval = event.recurrence.interval;
+    if (interval <= 0) return starts;
+    const stepMinutes = interval * 1440;
+    let k = Math.max(0, Math.floor((fromMinute - baseStartMinute) / stepMinutes));
+    while (baseStartMinute + k * stepMinutes <= toMinute) {
+      const occ = baseStartMinute + k * stepMinutes;
+      if (eventStartsBetween(occ, fromMinute, toMinute)) starts.push(occ);
+      k += 1;
+    }
+    return starts;
+  }
+
+  const months = [...project.calendarSystem.months].sort((a, b) => a.order - b.order);
+  const monthCount = months.length;
+  const baseMonthIndex = months.findIndex((m) => m.id === event.date.monthId);
+  if (baseMonthIndex < 0) return starts;
+
+  const buildOccurrenceDate = (year: number, monthIndex: number): CalendarDate | null => {
+    const month = months[monthIndex];
+    if (!month) return null;
+    const day = Math.min(event.date.dayOfMonth, month.days);
+    return { year, monthId: month.id, dayOfMonth: day, hour: event.date.hour, minute: event.date.minute };
+  };
+
+  if (event.recurrence.type === "everyXMonths") {
+    const interval = event.recurrence.interval;
+    if (interval <= 0) return starts;
+    const stepMonths = interval;
+    const baseSerial = event.date.year * monthCount + baseMonthIndex;
+    let k = Math.max(0, Math.floor(((fromMinute - baseStartMinute) / 1440) / 28));
+    // reset with exact month serial progression to avoid missing first match
+    let serial = baseSerial + k * stepMonths;
+    while (true) {
+      const year = Math.floor(serial / monthCount);
+      const monthIndex = ((serial % monthCount) + monthCount) % monthCount;
+      const occDate = buildOccurrenceDate(year, monthIndex);
+      if (!occDate) break;
+      const occMinute = toAbsoluteMinute(project, occDate);
+      if (occMinute > toMinute) break;
+      if (eventStartsBetween(occMinute, fromMinute, toMinute)) starts.push(occMinute);
+      serial += stepMonths;
+    }
+    return starts;
+  }
+
+  if (event.recurrence.type === "yearly") {
+    const interval = event.recurrence.interval;
+    if (interval <= 0) return starts;
+    const stepYears = interval;
+    let year = event.date.year + Math.max(0, Math.floor((fromMinute - baseStartMinute) / (1440 * 300))) * stepYears;
+    while (true) {
+      const occDate = buildOccurrenceDate(year, baseMonthIndex);
+      if (!occDate) break;
+      const occMinute = toAbsoluteMinute(project, occDate);
+      if (occMinute > toMinute) break;
+      if (eventStartsBetween(occMinute, fromMinute, toMinute)) starts.push(occMinute);
+      year += stepYears;
+    }
+  }
+
+  return starts;
+};
+
+export const getTriggeredEventsBetween = (
+  project: CalendarProject,
+  fromTime: { absoluteDay: number; hour: number; minute: number },
+  toTime: { absoluteDay: number; hour: number; minute: number }
+): CalendarEvent[] => {
+  const fromMinute = internalToAbsoluteMinute(fromTime);
+  const toMinute = internalToAbsoluteMinute(toTime);
+  if (toMinute <= fromMinute) return [];
+
+  return project.events.filter((event) => {
+    if (!isEventTriggerable(event)) return false;
+
+    if (event.recurrence.type === "none") {
+      const startMinute = toAbsoluteMinute(project, event.date);
+      return eventStartsBetween(startMinute, fromMinute, toMinute);
+    }
+
+    const occurrences = getRecurringOccurrenceStartsBetween(project, event, fromMinute, toMinute);
+    return occurrences.length > 0;
+  });
+};

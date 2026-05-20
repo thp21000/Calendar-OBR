@@ -61,17 +61,17 @@ describe("formatEventRecurrence", () => {
   it("none -> Aucune", () => {
     expect(formatEventRecurrence(project, baseEvent)).toBe("Aucune");
   });
-  it("everyXDays 1 -> Tous les 1 jours", () => {
-    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "everyXDays", interval: 1 } })).toBe("Tous les 1 jours");
+  it("everyXDays 1 -> Tous les jours", () => {
+    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "everyXDays", interval: 1 } })).toBe("Tous les jours");
   });
   it("everyXDays 3 -> Tous les 3 jours", () => {
     expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "everyXDays", interval: 3 } })).toBe("Tous les 3 jours");
   });
-  it("everyXMonths 1 -> Tous les 1 mois", () => {
-    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "everyXMonths", interval: 1 } })).toBe("Tous les 1 mois");
+  it("everyXMonths 1 -> Tous les mois", () => {
+    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "everyXMonths", interval: 1 } })).toBe("Tous les mois");
   });
-  it("yearly 1 -> Tous les 1 ans", () => {
-    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "yearly", interval: 1 } })).toBe("Tous les 1 ans");
+  it("yearly 1 -> Tous les ans", () => {
+    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "yearly", interval: 1 } })).toBe("Tous les ans");
   });
   it("yearly 2 -> Tous les 2 ans", () => {
     expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "yearly", interval: 2 } })).toBe("Tous les 2 ans");

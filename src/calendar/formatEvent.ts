@@ -65,10 +65,13 @@ export const formatEventRecurrence = (project: CalendarProject, event: CalendarE
 
   const interval = "interval" in recurrence ? Math.max(1, recurrence.interval) : 1;
   if (recurrence.type === "everyXDays") {
+    if (interval === 1) return project.locale === "fr" ? "Tous les jours" : "Every day";
     return t(project.locale, "events.recurrenceEveryDaysLabel").replace("{n}", String(interval));
   }
   if (recurrence.type === "everyXMonths") {
+    if (interval === 1) return project.locale === "fr" ? "Tous les mois" : "Every month";
     return t(project.locale, "events.recurrenceEveryMonthsLabel").replace("{n}", String(interval));
   }
+  if (interval === 1) return project.locale === "fr" ? "Tous les ans" : "Every year";
   return t(project.locale, "events.recurrenceEveryYearsLabel").replace("{n}", String(interval));
 };

@@ -10,7 +10,8 @@ import {
   updateCalendarEvent,
   isImageUrl,
   isEventEndBeforeStart,
-  normalizeEventDateRange
+  normalizeEventDateRange,
+  getTriggeredEventsBetween
 } from "../eventsLogic";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../../domain/types";
 
@@ -337,6 +338,62 @@ describe("eventsLogic", () => {
     expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 12, hour: 0, minute: 0 }, project)).toBe(false);
   });
 
+  it("getTriggeredEventsBetween: simple event entre from exclu et to inclus", () => {
+    const project = buildProject();
+    const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 15 });
+    project.events = [event];
+    const triggered = getTriggeredEventsBetween(project, { absoluteDay: 0, hour: 12, minute: 0 }, { absoluteDay: 0, hour: 13, minute: 0 });
+    expect(triggered.map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("getTriggeredEventsBetween: bornes from exclusif et to inclusif", () => {
+    const project = buildProject();
+    const atFrom = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 0 });
+    const atTo = makeEvent("e2", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 13, minute: 0 });
+    project.events = [atFrom, atTo];
+    const triggered = getTriggeredEventsBetween(project, { absoluteDay: 0, hour: 12, minute: 0 }, { absoluteDay: 0, hour: 13, minute: 0 });
+    expect(triggered.map((e) => e.id)).toEqual(["e2"]);
+  });
+
+  it("getTriggeredEventsBetween: ignore notifyOnTrigger false / archived / disabled", () => {
+    const project = buildProject();
+    const base = { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 15 };
+    const noNotify = { ...makeEvent("e1", base), notifyOnTrigger: false };
+    const archived = { ...makeEvent("e2", base), status: "archived" as const };
+    const disabled = { ...makeEvent("e3", base), status: "disabled" as const };
+    project.events = [noNotify, archived, disabled];
+    const triggered = getTriggeredEventsBetween(project, { absoluteDay: 0, hour: 12, minute: 0 }, { absoluteDay: 0, hour: 13, minute: 0 });
+    expect(triggered).toEqual([]);
+  });
+
+  it("getTriggeredEventsBetween: déclenche une occurrence everyXDays", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 10, minute: 0 }), recurrence: { type: "everyXDays" as const, interval: 2 } };
+    project.events = [event];
+    const triggered = getTriggeredEventsBetween(project, { absoluteDay: 1, hour: 9, minute: 0 }, { absoluteDay: 2, hour: 10, minute: 0 });
+    expect(triggered.map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("getTriggeredEventsBetween: déclenche une occurrence everyXMonths", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 10, hour: 8, minute: 0 }), recurrence: { type: "everyXMonths" as const, interval: 1 } };
+    project.events = [event];
+    const from = { absoluteDay: 35, hour: 0, minute: 0 }; // around m2
+    const to = { absoluteDay: 40, hour: 23, minute: 59 };
+    const triggered = getTriggeredEventsBetween(project, from, to);
+    expect(triggered.map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("getTriggeredEventsBetween: déclenche une occurrence yearly", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 5, hour: 9, minute: 0 }), recurrence: { type: "yearly" as const, interval: 1 } };
+    project.events = [event];
+    const from = { absoluteDay: 60, hour: 0, minute: 0 };
+    const to = { absoluteDay: 65, hour: 23, minute: 59 };
+    const triggered = getTriggeredEventsBetween(project, from, to);
+    expect(triggered.map((e) => e.id)).toEqual(["e1"]);
+  });
+  
   it("un projet sans événement retourne une liste vide", () => {
     const project = buildProject();
 
