@@ -9,9 +9,51 @@ type Props = {
 
 export const WeatherSettingsSection = ({ project, onProjectUpdate, inputStyle }: Props) => {
   const mode = project.weatherSettings.forecastMode ?? "fine";
+  const seed = project.weatherSettings.seed ?? "";
 
   return (
     <>
+      <label style={{ display: "block" }}>
+        <div style={{ fontSize: 12, color: "#cbd5e1" }}>{t(project.locale, "weather.seed")}</div>
+        <input
+          value={seed}
+          onChange={(e) =>
+            onProjectUpdate({
+              ...project,
+              weatherSettings: {
+                ...project.weatherSettings,
+                seed: e.target.value.trim() === "" ? undefined : e.target.value
+              }
+            })
+          }
+          placeholder={t(project.locale, "weather.seedPlaceholder")}
+          style={inputStyle}
+        />
+      </label>
+      <button
+        type="button"
+        onClick={() =>
+          onProjectUpdate({
+            ...project,
+            weatherSettings: {
+              ...project.weatherSettings,
+              seed: `${project.locale === "fr" ? "meteo" : "weather"}-${Date.now()}`
+            }
+          })
+        }
+        style={{
+          border: "1px solid #374151",
+          borderRadius: 6,
+          background: "#1f2937",
+          color: "#e5e7eb",
+          padding: "6px 10px",
+          marginBottom: 8,
+          cursor: "pointer"
+        }}
+      >
+        {t(project.locale, "weather.generateSeed")}
+      </button>
+      <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 8 }}>{t(project.locale, "weather.seedHelp")}</div>
       <label style={{ display: "block" }}>
         <div style={{ fontSize: 12, color: "#cbd5e1" }}>{t(project.locale, "weather.forecastMode")}</div>
         <select
