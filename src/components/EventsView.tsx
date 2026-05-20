@@ -26,6 +26,8 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
     onProjectUpdate(deleteCalendarEvent(project, event.id));
     if (editingEventId === event.id) setEditingEventId(null);
   };
+  const handleStatusUpdate = (event: CalendarEvent, status: CalendarEvent["status"]) =>
+    onProjectUpdate(updateCalendarEvent(project, event.id, { status }));
   return (
     <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{t(project.locale, "events.title")}</div>
@@ -58,6 +60,29 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
                 <div style={{ display: "flex", gap: 6 }}>
                   <button type="button" onClick={() => setEditingEventId(event.id)} style={btn}>{t(project.locale, "events.edit")}</button>
                   <button type="button" onClick={() => handleDelete(event)} style={btn}>{t(project.locale, "events.delete")}</button>
+                </div>
+                <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                  {event.status === "active" ? (
+                    <>
+                      <button type="button" onClick={() => handleStatusUpdate(event, "disabled")} style={btn}>{t(project.locale, "events.disable")}</button>
+                      <button type="button" onClick={() => handleStatusUpdate(event, "archived")} style={btn}>{t(project.locale, "events.archive")}</button>
+                    </>
+                  ) : null}
+                  {event.status === "triggered" ? (
+                    <>
+                      <button type="button" onClick={() => handleStatusUpdate(event, "active")} style={btn}>{t(project.locale, "events.reactivate")}</button>
+                      <button type="button" onClick={() => handleStatusUpdate(event, "archived")} style={btn}>{t(project.locale, "events.archive")}</button>
+                    </>
+                  ) : null}
+                  {event.status === "archived" ? (
+                    <button type="button" onClick={() => handleStatusUpdate(event, "active")} style={btn}>{t(project.locale, "events.reactivate")}</button>
+                  ) : null}
+                  {event.status === "disabled" ? (
+                    <>
+                      <button type="button" onClick={() => handleStatusUpdate(event, "active")} style={btn}>{t(project.locale, "events.reactivate")}</button>
+                      <button type="button" onClick={() => handleStatusUpdate(event, "archived")} style={btn}>{t(project.locale, "events.archive")}</button>
+                    </>
+                  ) : null}
                 </div>
               </>
             )}
