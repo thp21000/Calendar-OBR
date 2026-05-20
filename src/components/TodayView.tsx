@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
-import { getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
+import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { formatEventDateTime, formatEventTimeShort, formatEventVisibility } from "../calendar/formatEvent";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
@@ -24,7 +24,11 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
     const nextTime = addMinutes(project.currentTime, deltaMinutes);
 
     if (deltaMinutes > 0) {
-      setLastTriggeredEvents(getTriggeredEventsBetween(project, previousTime, nextTime));
+      const triggered = getTriggeredEventsBetween(project, previousTime, nextTime);
+      const completed = getCompletedEventsBetween(project, previousTime, nextTime);
+      setLastTriggeredEvents(triggered);
+      onProjectUpdate(applyEventCompletionActions({ ...project, currentTime: nextTime }, completed));
+      return;
     } else {
       setLastTriggeredEvents([]);
     }

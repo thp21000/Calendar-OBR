@@ -84,6 +84,17 @@ const getEventTriggerStartDate = (event: CalendarEvent): CalendarDate => ({
   minute: event.allDay ? 0 : event.date.minute
 });
 
+const getEventCompletionDate = (project: CalendarProject, startDate: CalendarDate, event: CalendarEvent): CalendarDate => {
+  if (event.endDate) {
+    if (!event.allDay) return event.endDate;
+    const endDayInternal = calendarDateToAbsoluteDay({ ...event.endDate, hour: 0, minute: 0 }, project.calendarSystem);
+    return absoluteDayToCalendarDate({ absoluteDay: endDayInternal.absoluteDay + 1, hour: 0, minute: 0 }, project.calendarSystem);
+  }
+  if (!event.allDay) return startDate;
+  const startInternal = calendarDateToAbsoluteDay({ ...startDate, hour: 0, minute: 0 }, project.calendarSystem);
+  return absoluteDayToCalendarDate({ absoluteDay: startInternal.absoluteDay + 1, hour: 0, minute: 0 }, project.calendarSystem);
+};
+
 const getEventDurationDays = (project: CalendarProject, event: CalendarEvent): number => {
   if (!event.endDate) return 1;
   return Math.max(1, toAbsoluteDayOnly(project, event.endDate) - toAbsoluteDayOnly(project, event.date) + 1);
@@ -290,6 +301,18 @@ const getRecurringOccurrenceStartsBetween = (
   return starts;
 };
 
+const getRecurringOccurrenceStartsUpTo = (
+  project: CalendarProject,
+  event: CalendarEvent,
+  toMinute: number
+): number[] => {
+  const startInternal = calendarDateToAbsoluteDay(getEventTriggerStartDate(event), project.calendarSystem);
+  const baseStartMinute = internalToAbsoluteMinute(startInternal);
+  if (toMinute < baseStartMinute) return [];
+
+  return getRecurringOccurrenceStartsBetween(project, event, baseStartMinute - 1, toMinute);
+};
+
 export const getTriggeredEventsBetween = (
   project: CalendarProject,
   fromTime: { absoluteDay: number; hour: number; minute: number },
@@ -310,4 +333,54 @@ export const getTriggeredEventsBetween = (
     const occurrences = getRecurringOccurrenceStartsBetween(project, event, fromMinute, toMinute);
     return occurrences.length > 0;
   });
+};
+
+export const getCompletedEventsBetween = (
+  project: CalendarProject,
+  fromTime: { absoluteDay: number; hour: number; minute: number },
+  toTime: { absoluteDay: number; hour: number; minute: number }
+): CalendarEvent[] => {
+  const fromMinute = internalToAbsoluteMinute(fromTime);
+  const toMinute = internalToAbsoluteMinute(toTime);
+  if (toMinute <= fromMinute) return [];
+
+  return project.events.filter((event) => {
+    if (event.status === "archived" || event.status === "disabled") return false;
+
+    if (event.recurrence.type === "none") {
+      const completionMinute = toAbsoluteMinute(project, getEventCompletionDate(project, getEventTriggerStartDate(event), event));
+      return completionMinute > fromMinute && completionMinute <= toMinute;
+    }
+
+    const occurrenceStarts = getRecurringOccurrenceStartsUpTo(project, event, toMinute);
+    for (const occurrenceStartMinute of occurrenceStarts) {
+      const occurrenceStartDate = absoluteDayToCalendarDate(
+        {
+          absoluteDay: Math.floor(occurrenceStartMinute / 1440),
+          hour: Math.floor((occurrenceStartMinute % 1440) / 60),
+          minute: occurrenceStartMinute % 60
+        },
+        project.calendarSystem
+      );
+      const completionMinute = toAbsoluteMinute(project, getEventCompletionDate(project, occurrenceStartDate, event));
+      if (completionMinute > fromMinute && completionMinute <= toMinute) return true;
+    }
+    return false;
+  });
+};
+
+export const applyEventCompletionActions = (project: CalendarProject, completedEvents: CalendarEvent[]): CalendarProject => {
+  if (completedEvents.length === 0) return project;
+  const completedIds = new Set(completedEvents.map((event) => event.id));
+
+  const nextEvents = project.events
+    .filter((event) => !(completedIds.has(event.id) && event.deleteAfterTrigger))
+    .map((event) => {
+      if (!completedIds.has(event.id)) return event;
+      if (event.deleteAfterTrigger) return event;
+      if (event.archiveAfterTrigger) return { ...event, status: "archived" as const };
+      return event;
+    });
+
+  return { ...project, events: nextEvents };
 };

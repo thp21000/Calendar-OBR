@@ -11,7 +11,9 @@ import {
   isImageUrl,
   isEventEndBeforeStart,
   normalizeEventDateRange,
-  getTriggeredEventsBetween
+  getTriggeredEventsBetween,
+  getCompletedEventsBetween,
+  applyEventCompletionActions
 } from "../eventsLogic";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../../domain/types";
 
@@ -438,3 +440,80 @@ describe("eventsLogic", () => {
     expect(getEventsForCurrentDay(project)).toEqual([]);
   });
 });
+
+it("getCompletedEventsBetween: événement normal sans endDate terminé au début", () => {
+    const project = buildProject();
+    project.events = [makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 0 })];
+    const completed = getCompletedEventsBetween(project, { absoluteDay: 0, hour: 11, minute: 55 }, { absoluteDay: 0, hour: 12, minute: 0 });
+    expect(completed.map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("getCompletedEventsBetween: événement avec endDate terminé à l'heure de fin", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 0 }), endDate: { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 14, minute: 0 } };
+    project.events = [event];
+    expect(getCompletedEventsBetween(project, { absoluteDay: 0, hour: 11, minute: 55 }, { absoluteDay: 0, hour: 12, minute: 0 })).toEqual([]);
+    expect(getCompletedEventsBetween(project, { absoluteDay: 0, hour: 13, minute: 55 }, { absoluteDay: 0, hour: 14, minute: 0 }).map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("getCompletedEventsBetween: all-day sans endDate terminé au début du jour suivant", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 0, minute: 0 }), allDay: true };
+    project.events = [event];
+    expect(getCompletedEventsBetween(project, { absoluteDay: 0, hour: 23, minute: 55 }, { absoluteDay: 1, hour: 0, minute: 0 })).toEqual([]);
+    expect(getCompletedEventsBetween(project, { absoluteDay: 1, hour: 23, minute: 55 }, { absoluteDay: 2, hour: 0, minute: 0 }).map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("getCompletedEventsBetween: all-day multi-jours terminé au lendemain de endDate", () => {
+    const project = buildProject();
+    const event = {
+      ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 0, minute: 0 }),
+      allDay: true,
+      endDate: { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 18, minute: 0 }
+    };
+    project.events = [event];
+    expect(getCompletedEventsBetween(project, { absoluteDay: 2, hour: 23, minute: 55 }, { absoluteDay: 3, hour: 0, minute: 0 })).toEqual([]);
+    expect(getCompletedEventsBetween(project, { absoluteDay: 3, hour: 23, minute: 55 }, { absoluteDay: 4, hour: 0, minute: 0 }).map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("applyEventCompletionActions: deleteAfterTrigger supprime seulement à la fin", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 0 }), endDate: { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 14, minute: 0 }, deleteAfterTrigger: true };
+    const withEvent = { ...project, events: [event] };
+    const beforeEnd = getCompletedEventsBetween(withEvent, { absoluteDay: 0, hour: 11, minute: 55 }, { absoluteDay: 0, hour: 12, minute: 0 });
+    expect(applyEventCompletionActions(withEvent, beforeEnd).events).toHaveLength(1);
+    const atEnd = getCompletedEventsBetween(withEvent, { absoluteDay: 0, hour: 13, minute: 55 }, { absoluteDay: 0, hour: 14, minute: 0 });
+    expect(applyEventCompletionActions(withEvent, atEnd).events).toHaveLength(0);
+  });
+
+  it("applyEventCompletionActions: archiveAfterTrigger archive seulement à la fin", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 0 }), endDate: { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 14, minute: 0 }, archiveAfterTrigger: true };
+    const withEvent = { ...project, events: [event] };
+    const beforeEnd = getCompletedEventsBetween(withEvent, { absoluteDay: 0, hour: 11, minute: 55 }, { absoluteDay: 0, hour: 12, minute: 0 });
+    expect(applyEventCompletionActions(withEvent, beforeEnd).events[0].status).toBe("active");
+    const atEnd = getCompletedEventsBetween(withEvent, { absoluteDay: 0, hour: 13, minute: 55 }, { absoluteDay: 0, hour: 14, minute: 0 });
+    expect(applyEventCompletionActions(withEvent, atEnd).events[0].status).toBe("archived");
+  });
+
+  it("événement déclenché mais pas terminé n'est pas supprimé", () => {
+    const project = buildProject();
+    const event = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 0, minute: 0 }), allDay: true, deleteAfterTrigger: true };
+    const withEvent = { ...project, events: [event] };
+    const completedOnStart = getCompletedEventsBetween(withEvent, { absoluteDay: 0, hour: 23, minute: 55 }, { absoluteDay: 1, hour: 0, minute: 0 });
+    expect(completedOnStart).toEqual([]);
+    expect(applyEventCompletionActions(withEvent, completedOnStart).events).toHaveLength(1);
+  });
+
+  it("événement récurrent reste actif après une occurrence sans suppression/archivage", () => {
+    const project = buildProject();
+    const event = {
+      ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 0 }),
+      recurrence: { type: "everyXDays" as const, interval: 1 }
+    };
+    const withEvent = { ...project, events: [event] };
+    const completed = getCompletedEventsBetween(withEvent, { absoluteDay: 0, hour: 11, minute: 55 }, { absoluteDay: 0, hour: 12, minute: 0 });
+    const nextProject = applyEventCompletionActions(withEvent, completed);
+    expect(nextProject.events).toHaveLength(1);
+    expect(nextProject.events[0].status).toBe("active");
+  });
