@@ -58,7 +58,7 @@ export const createDefaultSeasonWeatherProfile = (): SeasonWeatherProfile => ({
   rain: { min: 0, max: 10, average: 2 }
 });
 
-const normalizeRange = (value: { min: number; max: number; average: number }) => {
+const normalizeTemperatureRange = (value: { min: number; max: number; average: number }) => {
   const min = Number.isFinite(value.min) ? value.min : 0;
   let max = Number.isFinite(value.max) ? value.max : min;
   if (min > max) max = min;
@@ -68,10 +68,23 @@ const normalizeRange = (value: { min: number; max: number; average: number }) =>
   return { min, max, average };
 };
 
+const normalizePositiveWeatherRange = (value: { min: number; max: number; average: number }) => {
+  const minRaw = Number.isFinite(value.min) ? value.min : 0;
+  const min = Math.max(0, minRaw);
+  let max = Number.isFinite(value.max) ? value.max : min;
+  max = Math.max(0, max);
+  if (min > max) max = min;
+  let average = Number.isFinite(value.average) ? value.average : min;
+  average = Math.max(0, average);
+  if (average < min) average = min;
+  if (average > max) average = max;
+  return { min, max, average };
+};
+
 export const normalizeSeasonWeatherProfile = (profile: SeasonWeatherProfile): SeasonWeatherProfile => ({
-  temperature: normalizeRange(profile.temperature),
-  windSpeed: normalizeRange(profile.windSpeed),
-  rain: normalizeRange(profile.rain)
+  temperature: normalizeTemperatureRange(profile.temperature),
+  windSpeed: normalizePositiveWeatherRange(profile.windSpeed),
+  rain: normalizePositiveWeatherRange(profile.rain)
 });
 
 export const updateSeason = (project: CalendarProject, seasonId: string, patch: Partial<Season>): CalendarProject => ({

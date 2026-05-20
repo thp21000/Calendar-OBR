@@ -1,4 +1,5 @@
 import { createDefaultSeason, createDefaultSeasonWeatherProfile, deleteSeason, sortSeasonsByStartDate, updateSeason } from "../../calendar/seasonsLogic";
+import { getWeatherUnitLabels } from "../../calendar/weatherUnits";
 import type { CalendarProject, Season } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { CollapsibleSection } from "../CollapsibleSection";
@@ -6,6 +7,7 @@ import { CollapsibleSection } from "../CollapsibleSection";
 export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; inputStyle: React.CSSProperties }) => {
   const seasons = sortSeasonsByStartDate(project, project.seasons);
   const sortedMonths = [...project.calendarSystem.months].sort((a, b) => a.order - b.order);
+  const units = getWeatherUnitLabels(project.locale);
 
   const patchSeason = (season: Season, patch: Partial<Season>) => onProjectUpdate(updateSeason(project, season.id, patch));
 
@@ -35,21 +37,21 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
               const profile = season.weatherProfile ?? createDefaultSeasonWeatherProfile();
               return (
                 <>
-                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.temperature")} (°C)</div>
+                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.temperature")} ({units.temperature})</div>
                   <RangeEditor
                     locale={project.locale}
                     inputStyle={inputStyle}
                     value={profile.temperature}
                     onChange={(next) => patchSeason(season, { weatherProfile: { ...profile, temperature: next } })}
                   />
-                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.windSpeed")} (km/h)</div>
+                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.windSpeed")} ({units.windSpeed})</div>
                   <RangeEditor
                     locale={project.locale}
                     inputStyle={inputStyle}
                     value={profile.windSpeed}
                     onChange={(next) => patchSeason(season, { weatherProfile: { ...profile, windSpeed: next } })}
                   />
-                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.rain")} (mm)</div>
+                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.rain")} ({units.rain})</div>
                   <RangeEditor
                     locale={project.locale}
                     inputStyle={inputStyle}

@@ -147,6 +147,51 @@ describe("seasonsLogic", () => {
     expect(normalized.rain).toEqual({ min: 4, average: 4, max: 4 });
   });
 
+  it("température négative acceptée", () => {
+    const normalized = normalizeSeasonWeatherProfile({
+      temperature: { min: -15, average: -5, max: 4 },
+      windSpeed: { min: 0, average: 1, max: 2 },
+      rain: { min: 0, average: 1, max: 2 }
+    });
+    expect(normalized.temperature).toEqual({ min: -15, average: -5, max: 4 });
+  });
+
+  it("température moyenne corrigée si sous min", () => {
+    const normalized = normalizeSeasonWeatherProfile({
+      temperature: { min: -5, average: -20, max: 4 },
+      windSpeed: { min: 0, average: 1, max: 2 },
+      rain: { min: 0, average: 1, max: 2 }
+    });
+    expect(normalized.temperature).toEqual({ min: -5, average: -5, max: 4 });
+  });
+
+  it("température moyenne corrigée si au-dessus du max", () => {
+    const normalized = normalizeSeasonWeatherProfile({
+      temperature: { min: -5, average: 20, max: 4 },
+      windSpeed: { min: 0, average: 1, max: 2 },
+      rain: { min: 0, average: 1, max: 2 }
+    });
+    expect(normalized.temperature).toEqual({ min: -5, average: 4, max: 4 });
+  });
+
+  it("vent négatif corrigé à 0", () => {
+    const normalized = normalizeSeasonWeatherProfile({
+      temperature: { min: 0, average: 1, max: 2 },
+      windSpeed: { min: -10, average: -5, max: -1 },
+      rain: { min: 0, average: 1, max: 2 }
+    });
+    expect(normalized.windSpeed).toEqual({ min: 0, average: 0, max: 0 });
+  });
+
+  it("pluie négative corrigée à 0", () => {
+    const normalized = normalizeSeasonWeatherProfile({
+      temperature: { min: 0, average: 1, max: 2 },
+      windSpeed: { min: 0, average: 1, max: 2 },
+      rain: { min: -3, average: -1, max: -2 }
+    });
+    expect(normalized.rain).toEqual({ min: 0, average: 0, max: 0 });
+  });
+
   it("modifier le profil météo ne modifie pas les autres saisons", () => {
     const project = buildProject();
     project.seasons = [
