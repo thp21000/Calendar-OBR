@@ -35,16 +35,17 @@ export const MonthView = ({ project }: { project: CalendarProject }) => {
           const events = getEventsForDay(project, date);
           const seasonsStarting = getSeasonsStartingOnDate(project, date);
           const seasonStart = seasonsStarting[0];
+          const hasMarkers = events.length > 0 || seasonsStarting.length > 0;
           const firstEvent = events[0];
           const icon = firstEvent?.icon || FALLBACK_EVENT_ICON;
           return (
             <div
               key={day.absoluteDay}
               title={buildDayTooltip(day.dayOfMonth, seasonStart?.name, events)}
-              style={{ minHeight: 38, borderRadius: 6, border: day.isCurrentDay ? "1px solid #22c55e" : "1px solid #374151", background: day.isCurrentDay ? "#14532d" : "#1f2937", display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: 12, padding: "3px 2px" }}
+              style={{ minHeight: 38, borderRadius: 6, border: day.isCurrentDay ? "1px solid #22c55e" : "1px solid #374151", background: day.isCurrentDay ? "#14532d" : "#1f2937", display: "flex", flexDirection: "column", justifyContent: hasMarkers ? "center" : "space-between", alignItems: "center", fontSize: 12, padding: "3px 2px" }}
             >
-              <span>{day.dayOfMonth}</span>
-              <div style={{ display: "flex", alignItems: "center", gap: 2, minHeight: 16 }}>
+              {!hasMarkers ? <span>{day.dayOfMonth}</span> : null}
+              <div style={{ display: "flex", alignItems: "center", gap: 2, minHeight: hasMarkers ? 16 : 0 }}>
                 {events.length > 0 ? <EventIcon icon={icon} locale={project.locale} size={14} /> : null}
                 {seasonStart ? <EventIcon icon={seasonStart.icon} locale={project.locale} size={14} /> : null}
               </div>
