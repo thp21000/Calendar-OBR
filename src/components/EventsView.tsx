@@ -10,13 +10,17 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
   const events = sortEventsByDate(project.events, project);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "triggered" | "archived" | "disabled" | "all">("active");
-
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  
   const filteredEvents = events.filter((event) => {
     if (statusFilter === "all") return true;
     return event.status === statusFilter;
   });
 
-    const handleCreate = (event: CalendarEvent) => onProjectUpdate(addCalendarEvent(project, event));
+    const handleCreate = (event: CalendarEvent) => {
+    onProjectUpdate(addCalendarEvent(project, event));
+    setIsCreateFormOpen(false);
+  };
   const handleUpdate = (event: CalendarEvent) => {
     onProjectUpdate(updateCalendarEvent(project, event.id, event));
     setEditingEventId(null);
@@ -31,7 +35,14 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
   return (
     <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{t(project.locale, "events.title")}</div>
-      <EventForm project={project} mode="create" onSubmit={handleCreate} />
+      <button
+        type="button"
+        onClick={() => setIsCreateFormOpen((prev) => !prev)}
+        style={{ border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#f3f4f6", padding: "7px 10px", fontSize: 12, marginBottom: 8 }}
+      >
+        {isCreateFormOpen ? t(project.locale, "events.closeCreateForm") : t(project.locale, "events.openCreateForm")}
+      </button>
+      {isCreateFormOpen ? <EventForm project={project} mode="create" onSubmit={handleCreate} /> : null}
       <div style={{ marginBottom: 8 }}>
         <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "events.filter")}</label>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "active" | "triggered" | "archived" | "disabled" | "all")} style={{ width: "100%", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", fontSize: 12 }}>
