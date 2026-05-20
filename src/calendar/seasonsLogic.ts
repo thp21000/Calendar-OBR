@@ -33,6 +33,11 @@ export const getSeasonForDate = (project: CalendarProject, date: CalendarDate): 
 export const getCurrentSeason = (project: CalendarProject): Season | undefined =>
   getSeasonForDate(project, absoluteDayToCalendarDate(project.currentTime, project.calendarSystem));
 
+export const getSeasonsStartingOnDate = (project: CalendarProject, date: CalendarDate): Season[] =>
+  sortSeasonsByStartDate(project, project.seasons).filter(
+    (season) => season.start.monthId === date.monthId && season.start.dayOfMonth === date.dayOfMonth
+  );
+
 export const createDefaultSeason = (project: CalendarProject): Season => {
   const months = [...project.calendarSystem.months].sort((a, b) => a.order - b.order);
   const firstMonth = months[0];

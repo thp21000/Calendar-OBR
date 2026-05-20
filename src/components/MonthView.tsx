@@ -1,6 +1,7 @@
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { getEventsForDay } from "../calendar/eventsLogic";
 import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex, getCurrentMonthWeekdayNames } from "../calendar/monthView";
+import { getSeasonsStartingOnDate } from "../calendar/seasonsLogic";
 import type { MonthDayCell } from "../calendar/monthView";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
@@ -8,8 +9,12 @@ import { EventIcon } from "./EventIcon";
 
 const FALLBACK_EVENT_ICON = "◆";
 
-const buildDayTooltip = (dayOfMonth: number, events: CalendarEvent[]): string =>
-  events.length === 0 ? String(dayOfMonth) : `${dayOfMonth} — ${events.map((event) => event.name).join(", ")}`;
+const buildDayTooltip = (dayOfMonth: number, seasonName: string | undefined, events: CalendarEvent[]): string => {
+  const parts: string[] = [String(dayOfMonth)];
+  if (seasonName) parts.push(seasonName);
+  if (events.length > 0) parts.push(events.map((event) => event.name).join(", "));
+  return parts.join(" — ");
+};
 
 export const MonthView = ({ project }: { project: CalendarProject }) => {
   const current = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
@@ -26,20 +31,23 @@ export const MonthView = ({ project }: { project: CalendarProject }) => {
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${weekdays.length}, 1fr)`, gap: 4 }}>
        {leading.map((n) => <div key={`lead-${n}`} />)}
         {monthDays.map((day: MonthDayCell) => {
-          const events = getEventsForDay(project, { year: current.year, monthId: current.monthId, dayOfMonth: day.dayOfMonth, hour: 0, minute: 0 });
+          const date = { year: current.year, monthId: current.monthId, dayOfMonth: day.dayOfMonth, hour: 0, minute: 0 };
+          const events = getEventsForDay(project, date);
+          const seasonsStarting = getSeasonsStartingOnDate(project, date);
+          const seasonStart = seasonsStarting[0];
           const firstEvent = events[0];
           const icon = firstEvent?.icon || FALLBACK_EVENT_ICON;
           return (
             <div
               key={day.absoluteDay}
-              title={buildDayTooltip(day.dayOfMonth, events)}
-              style={{ minHeight: 34, borderRadius: 6, border: day.isCurrentDay ? "1px solid #22c55e" : "1px solid #374151", background: day.isCurrentDay ? "#14532d" : "#1f2937", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}
+              title={buildDayTooltip(day.dayOfMonth, seasonStart?.name, events)}
+              style={{ minHeight: 38, borderRadius: 6, border: day.isCurrentDay ? "1px solid #22c55e" : "1px solid #374151", background: day.isCurrentDay ? "#14532d" : "#1f2937", display: "flex", flexDirection: "column", justifyContent: "space-between", fontSize: 12, padding: "3px 2px" }}
             >
-              {events.length === 0 ? (
-                <span>{day.dayOfMonth}</span>
-                ) : (
-                <EventIcon icon={icon} locale={project.locale} size={18} />
-              )}
+              <span>{day.dayOfMonth}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 2, minHeight: 16 }}>
+                {events.length > 0 ? <EventIcon icon={icon} locale={project.locale} size={14} /> : null}
+                {seasonStart ? <EventIcon icon={seasonStart.icon} locale={project.locale} size={14} /> : null}
+              </div>
             </div>
           );
         })}

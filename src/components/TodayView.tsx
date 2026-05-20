@@ -85,7 +85,11 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
       </div>
 
       <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
-        <div>{t(project.locale, "calendar.season")}: {currentSeason ? `${currentSeason.icon ? `${currentSeason.icon} ` : ""}${currentSeason.name}` : t(project.locale, "calendar.noSeason")}</div><div>{t(project.locale, "calendar.weatherPlaceholder")}</div><div>{t(project.locale, "calendar.moonPlaceholder")}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span>{t(project.locale, "calendar.season")}:</span>
+          {currentSeason ? <><EventIcon icon={currentSeason.icon} locale={project.locale} size={16} /><span>{currentSeason.name}</span></> : <span>{t(project.locale, "calendar.noSeason")}</span>}
+        </div>
+        <div>{t(project.locale, "calendar.weatherPlaceholder")}</div><div>{t(project.locale, "calendar.moonPlaceholder")}</div>
       </div>
 
       <button type="button" onClick={onReset} style={{ border: "1px solid #7f1d1d", borderRadius: 6, background: "#991b1b", color: "#fff", padding: "7px 10px", fontSize: 12 }}>{t(project.locale, "settings.resetCalendar")}</button>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, Season } from "../../domain/types";
-import { createDefaultSeason, deleteSeason, getCurrentSeason, getSeasonForDate, seasonContainsDate, sortSeasonsByStartDate, updateSeason } from "../seasonsLogic";
+import { createDefaultSeason, deleteSeason, getCurrentSeason, getSeasonForDate, getSeasonsStartingOnDate, seasonContainsDate, sortSeasonsByStartDate, updateSeason } from "../seasonsLogic";
 
 const buildProject = (): CalendarProject => ({
   schemaVersion: 1,
@@ -77,6 +77,16 @@ describe("seasonsLogic", () => {
       { id: "s1", name: "Printemps", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }
     ];
     expect(sortSeasonsByStartDate(project, seasons).map((s) => s.id)).toEqual(["s1", "s2"]);
+  });
+
+  it("getSeasonsStartingOnDate retourne les saisons commençant ce jour", () => {
+    const project = buildProject();
+    project.seasons = [
+      { id: "s1", name: "Printemps", start: { monthId: "m1", dayOfMonth: 10 }, end: { monthId: "m2", dayOfMonth: 10 } },
+      { id: "s2", name: "Eté", start: { monthId: "m2", dayOfMonth: 1 }, end: { monthId: "m3", dayOfMonth: 1 } }
+    ];
+    const result = getSeasonsStartingOnDate(project, { year: 1000, monthId: "m1", dayOfMonth: 10, hour: 0, minute: 0 });
+    expect(result.map((s) => s.id)).toEqual(["s1"]);
   });
 
   it("createDefaultSeason utilise le premier mois", () => {
