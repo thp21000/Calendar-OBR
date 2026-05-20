@@ -58,6 +58,13 @@ export const createDefaultSeasonWeatherProfile = (): SeasonWeatherProfile => ({
   rain: { min: 0, max: 10, average: 2 }
 });
 
+export const parseWeatherInput = (value: string): number | null => {
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed === "-" || trimmed === "." || trimmed === "-.") return null;
+  const parsed = Number(trimmed.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
 const normalizeTemperatureRange = (value: { min: number; max: number; average: number }) => {
   const min = Number.isFinite(value.min) ? value.min : 0;
   let max = Number.isFinite(value.max) ? value.max : min;

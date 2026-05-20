@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, Season } from "../../domain/types";
-import { createDefaultSeason, createDefaultSeasonWeatherProfile, deleteSeason, getCurrentSeason, getSeasonForDate, getSeasonsStartingOnDate, normalizeSeasonWeatherProfile, seasonContainsDate, sortSeasonsByStartDate, updateSeason } from "../seasonsLogic";
+import { createDefaultSeason, createDefaultSeasonWeatherProfile, deleteSeason, getCurrentSeason, getSeasonForDate, getSeasonsStartingOnDate, normalizeSeasonWeatherProfile, parseWeatherInput, seasonContainsDate, sortSeasonsByStartDate, updateSeason } from "../seasonsLogic";
 
 const buildProject = (): CalendarProject => ({
   schemaVersion: 1,
@@ -190,6 +190,13 @@ describe("seasonsLogic", () => {
       rain: { min: -3, average: -1, max: -2 }
     });
     expect(normalized.rain).toEqual({ min: 0, average: 0, max: 0 });
+  });
+
+  it("parseWeatherInput gère les saisies temporaires et valides", () => {
+    expect(parseWeatherInput("-")).toBeNull();
+    expect(parseWeatherInput("-5")).toBe(-5);
+    expect(parseWeatherInput("12,5")).toBe(12.5);
+    expect(parseWeatherInput("abc")).toBeNull();
   });
 
   it("modifier le profil météo ne modifie pas les autres saisons", () => {

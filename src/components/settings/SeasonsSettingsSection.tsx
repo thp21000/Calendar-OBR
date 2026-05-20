@@ -1,4 +1,5 @@
-import { createDefaultSeason, createDefaultSeasonWeatherProfile, deleteSeason, sortSeasonsByStartDate, updateSeason } from "../../calendar/seasonsLogic";
+import { createDefaultSeason, createDefaultSeasonWeatherProfile, deleteSeason, parseWeatherInput, sortSeasonsByStartDate, updateSeason } from "../../calendar/seasonsLogic";
+import { useEffect, useState } from "react";
 import { getWeatherUnitLabels } from "../../calendar/weatherUnits";
 import type { CalendarProject, Season } from "../../domain/types";
 import { t } from "../../i18n/messages";
@@ -39,6 +40,7 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
                 <>
                   <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.temperature")} ({units.temperature})</div>
                   <RangeEditor
+                    allowNegative
                     locale={project.locale}
                     inputStyle={inputStyle}
                     value={profile.temperature}
@@ -46,6 +48,7 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
                   />
                   <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.windSpeed")} ({units.windSpeed})</div>
                   <RangeEditor
+                    allowNegative={false}
                     locale={project.locale}
                     inputStyle={inputStyle}
                     value={profile.windSpeed}
@@ -53,6 +56,7 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
                   />
                   <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.rain")} ({units.rain})</div>
                   <RangeEditor
+                    allowNegative={false}
                     locale={project.locale}
                     inputStyle={inputStyle}
                     value={profile.rain}
@@ -77,19 +81,38 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 const Action = ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button type="button" style={{ border: "1px solid #4b5563", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "5px 8px", fontSize: 12 }} {...props}>{children}</button>;
 
 const RangeEditor = ({
+  allowNegative = false,
   locale,
   inputStyle,
   value,
   onChange
 }: {
+  allowNegative?: boolean;
   locale: "fr" | "en";
   inputStyle: React.CSSProperties;
   value: { min: number; max: number; average: number };
   onChange: (next: { min: number; max: number; average: number }) => void;
-}) => (
-  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
-    <Field label={t(locale, "seasons.min")}><input type="number" value={value.min} onChange={(e) => onChange({ ...value, min: Number(e.target.value) })} style={inputStyle} /></Field>
-    <Field label={t(locale, "seasons.average")}><input type="number" value={value.average} onChange={(e) => onChange({ ...value, average: Number(e.target.value) })} style={inputStyle} /></Field>
-    <Field label={t(locale, "seasons.max")}><input type="number" value={value.max} onChange={(e) => onChange({ ...value, max: Number(e.target.value) })} style={inputStyle} /></Field>
-  </div>
-);
+}) => {
+  const [draft, setDraft] = useState({ min: String(value.min), average: String(value.average), max: String(value.max) });
+
+  useEffect(() => {
+    setDraft({ min: String(value.min), average: String(value.average), max: String(value.max) });
+  }, [value.min, value.average, value.max]);
+
+  const updateDraft = (key: "min" | "average" | "max", raw: string) => {
+    const nextDraft = { ...draft, [key]: raw };
+    setDraft(nextDraft);
+    const parsed = parseWeatherInput(raw);
+    if (parsed === null) return;
+    const safe = allowNegative ? parsed : Math.max(0, parsed);
+    onChange({ ...value, [key]: safe });
+  };
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
+      <Field label={t(locale, "seasons.min")}><input type="text" inputMode="decimal" value={draft.min} onChange={(e) => updateDraft("min", e.target.value)} style={inputStyle} /></Field>
+      <Field label={t(locale, "seasons.average")}><input type="text" inputMode="decimal" value={draft.average} onChange={(e) => updateDraft("average", e.target.value)} style={inputStyle} /></Field>
+      <Field label={t(locale, "seasons.max")}><input type="text" inputMode="decimal" value={draft.max} onChange={(e) => updateDraft("max", e.target.value)} style={inputStyle} /></Field>
+    </div>
+  );
+};
