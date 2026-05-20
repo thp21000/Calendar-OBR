@@ -6,7 +6,9 @@ import { t } from "../../i18n/messages";
 
 export type EventFormValue = {
   name: string; icon: string; summary: string; year: number; monthId: string; dayOfMonth: number; hour: number; minute: number;
-  visibility: CalendarEvent["visibility"]; allDay: boolean; hasEndDate: boolean; endYear: number; endMonthId: string; endDayOfMonth: number; endHour: number; endMinute: number;
+  visibility: CalendarEvent["visibility"]; allDay: boolean;
+  recurrenceType: CalendarEvent["recurrence"]["type"]; recurrenceInterval: number;
+  hasEndDate: boolean; endYear: number; endMonthId: string; endDayOfMonth: number; endHour: number; endMinute: number;
 };
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
@@ -24,6 +26,8 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent): EventForm
       minute: event.date.minute,
       visibility: event.visibility,
       allDay: event.allDay === true,
+      recurrenceType: event.recurrence.type,
+      recurrenceInterval: event.recurrence.type === "none" ? 1 : Math.max(1, event.recurrence.interval),
       hasEndDate: Boolean(event.endDate),
       endYear: event.endDate?.year ?? event.date.year,
       endMonthId: event.endDate?.monthId ?? event.date.monthId,
@@ -35,7 +39,7 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent): EventForm
   const now = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   return {
     name: "", icon: "", summary: "", year: now.year, monthId: now.monthId, dayOfMonth: now.dayOfMonth, hour: now.hour, minute: now.minute,
-    visibility: "gm", allDay: false, hasEndDate: false, endYear: now.year, endMonthId: now.monthId, endDayOfMonth: now.dayOfMonth, endHour: clamp(now.hour + 1, 0, 23), endMinute: now.minute
+    visibility: "gm", allDay: false, recurrenceType: "none", recurrenceInterval: 1, hasEndDate: false, endYear: now.year, endMonthId: now.monthId, endDayOfMonth: now.dayOfMonth, endHour: clamp(now.hour + 1, 0, 23), endMinute: now.minute
   };
 };
 
@@ -59,6 +63,10 @@ export const EventForm = ({ project, mode, initialEvent, onSubmit, onCancel }: {
       setEndError(endDate && compareCalendarDates(endDate, safeEnd, project) !== 0 ? t(project.locale, "events.endBeforeStart") : null);
     } else setEndError(null);
 
+    const recurrence = form.recurrenceType === "none"
+      ? ({ type: "none" } as const)
+      : ({ type: form.recurrenceType, interval: Math.max(1, form.recurrenceInterval) } as const);
+
     if (mode === "edit" && initialEvent) {
       onSubmit({
         ...initialEvent,
@@ -68,14 +76,15 @@ export const EventForm = ({ project, mode, initialEvent, onSubmit, onCancel }: {
         date: startDate,
         endDate,
         visibility: form.visibility,
-        allDay: form.allDay
+        allDay: form.allDay,
+        recurrence
       });
       setNameError(null);
       return;
     }
     
     const base = createCalendarEvent({ name, date: startDate, icon: form.icon.trim() || undefined, allDay: form.allDay, endDate });
-    onSubmit({ ...base, summary: form.summary, visibility: form.visibility, allDay: form.allDay, endDate });
+    onSubmit({ ...base, summary: form.summary, visibility: form.visibility, allDay: form.allDay, endDate, recurrence });
     setForm(toFormValue(project));
     setNameError(null);
   };
@@ -86,6 +95,19 @@ export const EventForm = ({ project, mode, initialEvent, onSubmit, onCancel }: {
     <label>{t(project.locale, "events.icon")}</label><input value={form.icon} onChange={(e)=>updateForm("icon", e.target.value)} style={inputStyle}/>
     <label>{t(project.locale, "events.summary")}</label><input value={form.summary} onChange={(e)=>updateForm("summary", e.target.value)} style={inputStyle}/>
     <label style={{ display: "flex", gap: 6 }}><input type="checkbox" checked={form.allDay} onChange={(e)=>updateForm("allDay", e.target.checked)}/>{t(project.locale, "events.allDay")}</label>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+      <div><label>{t(project.locale, "events.recurrence")}</label>
+        <select value={form.recurrenceType} onChange={(e)=>updateForm("recurrenceType", e.target.value as EventFormValue["recurrenceType"])} style={inputStyle}>
+          <option value="none">{t(project.locale, "events.recurrenceNone")}</option>
+          <option value="everyXDays">{t(project.locale, "events.recurrenceEveryXDays")}</option>
+          <option value="everyXMonths">{t(project.locale, "events.recurrenceEveryXMonths")}</option>
+          <option value="yearly">{t(project.locale, "events.recurrenceYearly")}</option>
+        </select>
+      </div>
+      {form.recurrenceType !== "none" ? <div><label>{t(project.locale, "events.recurrenceInterval")}</label>
+        <input type="number" min={1} value={form.recurrenceInterval} onChange={(e)=>updateForm("recurrenceInterval", Math.max(1, Number(e.target.value) || 1))} style={inputStyle} />
+      </div> : null}
+    </div>
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
       <div><label>{t(project.locale, "events.year")}</label><input type="number" value={form.year} onChange={(e)=>updateForm("year", Number(e.target.value))} style={inputStyle}/></div>
       <div><label>{t(project.locale, "events.month")}</label><select value={form.monthId} onChange={(e)=>updateForm("monthId", e.target.value)} style={inputStyle}>{sortedMonths.map((m)=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>

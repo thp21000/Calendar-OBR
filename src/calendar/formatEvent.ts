@@ -58,3 +58,17 @@ export const formatEventTimeShort = (project: CalendarProject, event: CalendarEv
   if (sameDay) return `${pad2(event.date.hour)}:${pad2(event.date.minute)} → ${pad2(event.endDate.hour)}:${pad2(event.endDate.minute)}`;
   return `${pad2(event.date.hour)}:${pad2(event.date.minute)} → ${formatDateLabel(project, event.endDate, true)}`;
 };
+
+export const formatEventRecurrence = (project: CalendarProject, event: CalendarEvent): string => {
+  const recurrence = event.recurrence;
+  if (recurrence.type === "none") return t(project.locale, "events.recurrenceNone");
+
+  const interval = "interval" in recurrence ? Math.max(1, recurrence.interval) : 1;
+  if (recurrence.type === "everyXDays") {
+    return t(project.locale, "events.recurrenceEveryDaysLabel").replace("{n}", String(interval));
+  }
+  if (recurrence.type === "everyXMonths") {
+    return t(project.locale, "events.recurrenceEveryMonthsLabel").replace("{n}", String(interval));
+  }
+  return t(project.locale, "events.recurrenceEveryYearsLabel").replace("{n}", String(interval));
+};

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { addCalendarEvent, deleteCalendarEvent, sortEventsByDate, updateCalendarEvent } from "../calendar/eventsLogic";
-import { formatEventDateTime, formatEventVisibility } from "../calendar/formatEvent";
+import { formatEventDateTime, formatEventRecurrence, formatEventVisibility } from "../calendar/formatEvent";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import { EventIcon } from "./EventIcon";
@@ -34,6 +34,7 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, overflow: "hidden" }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
                 <div style={{ fontSize: 12, marginBottom: 4 }}>{formatEventDateTime(project, event)}</div>
                 {event.summary ? <div style={{ fontSize: 12, marginBottom: 4, color: "#d1d5db" }}>{event.summary}</div> : null}
+                <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "events.recurrence")}: {formatEventRecurrence(project, event)}</div>
                 <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6 }}>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button type="button" onClick={() => setEditingEventId(event.id)} style={btn}>{t(project.locale, "events.edit")}</button>

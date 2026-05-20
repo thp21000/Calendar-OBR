@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatEventTimeShort } from "../formatEvent";
+import { formatEventRecurrence, formatEventTimeShort } from "../formatEvent";
 import type { CalendarEvent, CalendarProject } from "../../domain/types";
 
 const project: CalendarProject = {
@@ -54,5 +54,26 @@ describe("formatEventTimeShort", () => {
         endDate: { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 14, minute: 0 }
       })
     ).toBe("12:15 → 14:00");
+  });
+});
+
+describe("formatEventRecurrence", () => {
+  it("none -> Aucune", () => {
+    expect(formatEventRecurrence(project, baseEvent)).toBe("Aucune");
+  });
+  it("everyXDays 1 -> Tous les 1 jours", () => {
+    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "everyXDays", interval: 1 } })).toBe("Tous les 1 jours");
+  });
+  it("everyXDays 3 -> Tous les 3 jours", () => {
+    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "everyXDays", interval: 3 } })).toBe("Tous les 3 jours");
+  });
+  it("everyXMonths 1 -> Tous les 1 mois", () => {
+    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "everyXMonths", interval: 1 } })).toBe("Tous les 1 mois");
+  });
+  it("yearly 1 -> Tous les 1 ans", () => {
+    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "yearly", interval: 1 } })).toBe("Tous les 1 ans");
+  });
+  it("yearly 2 -> Tous les 2 ans", () => {
+    expect(formatEventRecurrence(project, { ...baseEvent, recurrence: { type: "yearly", interval: 2 } })).toBe("Tous les 2 ans");
   });
 });
