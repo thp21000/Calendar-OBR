@@ -94,6 +94,20 @@ export type Season = {
   id: string;
   name: string;
   icon?: string;
+  start: SeasonDate;
+  end: SeasonDate;
+  weatherProfile?: SeasonWeatherProfile;
+};
+
+export type SeasonDate = {
+  monthId: string;
+  dayOfMonth: number;
+};
+
+export type SeasonWeatherProfile = {
+  temperature: { min: number; max: number; average: number };
+  windSpeed: { min: number; max: number; average: number };
+  rain: { min: number; max: number; average: number };
 };
 
 export type Moon = {
