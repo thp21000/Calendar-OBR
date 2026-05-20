@@ -169,6 +169,7 @@ describe("eventsLogic", () => {
     const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 12, minute: 0 });
 
     expect(eventOccursOnDay(event, { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 0, minute: 0 }, buildProject())).toBe(true);
+  });
 
   it("eventOccursOnDay retourne false pour un autre jour", () => {
     const event = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 12, minute: 0 });
@@ -252,3 +253,4 @@ describe("eventsLogic", () => {
     expect(getEventsForDay(project, { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 0, minute: 0 })).toEqual([]);
     expect(getEventsForCurrentDay(project)).toEqual([]);
   });
+});
