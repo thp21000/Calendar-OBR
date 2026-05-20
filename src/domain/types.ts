@@ -125,11 +125,26 @@ export type Moon = {
   cycleLengthDays?: number;
 };
 
+export type WeatherConditionMetric = "temperature" | "windSpeed" | "rain";
+export type WeatherConditionOperator = "gte" | "lte";
+
+export type WeatherCondition = {
+  metric: WeatherConditionMetric;
+  operator: WeatherConditionOperator;
+  value: number;
+};
+
 export type WeatherEvent = {
   id: string;
   name: string;
+  icon?: string;
   summary?: string;
+  link?: string;
+  conditions: WeatherCondition[];
+  requireAllConditions: boolean;
+  enabled: boolean;
 };
+
 
 export type CalendarProject = {
   schemaVersion: number;
