@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, WeatherEvent, WeatherSnapshot } from "../../domain/types";
-import { getTriggeredWeatherEvents, isWeatherConditionMet, isWeatherEventTriggered } from "../weatherEventsLogic";
+import {
+  addWeatherCondition,
+  addWeatherEvent,
+  createDefaultWeatherEvent,
+  deleteWeatherCondition,
+  deleteWeatherEvent,
+  getTriggeredWeatherEvents,
+  isWeatherConditionMet,
+  isWeatherEventTriggered,
+  updateWeatherCondition,
+  updateWeatherEvent
+} from "../weatherEventsLogic";
 
 const weather: WeatherSnapshot = {
   temperature: 36,
@@ -131,5 +142,62 @@ describe("weatherEventsLogic", () => {
       enabled: true
     } as unknown as WeatherEvent;
     expect(isWeatherEventTriggered(weather, oldEvent)).toBe(false);
+  });
+  
+  it("createDefaultWeatherEvent crée un événement valide", () => {
+    const event = createDefaultWeatherEvent("fr");
+    expect(event.id.startsWith("weather-event-")).toBe(true);
+    expect(event.name).toBe("Nouvelle alerte météo");
+    expect(event.enabled).toBe(true);
+    expect(event.requireAllConditions).toBe(true);
+    expect(event.conditions).toHaveLength(1);
+  });
+
+  it("addWeatherEvent ajoute un événement", () => {
+    const project = buildProject([]);
+    const added = addWeatherEvent(project, createDefaultWeatherEvent("en"));
+    expect(added.weatherEvents).toHaveLength(1);
+  });
+
+  it("updateWeatherEvent modifie seulement l’événement ciblé", () => {
+    const e1 = { ...createDefaultWeatherEvent("fr"), id: "e1" };
+    const e2 = { ...createDefaultWeatherEvent("fr"), id: "e2", name: "B" };
+    const project = buildProject([e1, e2]);
+    const updated = updateWeatherEvent(project, "e1", { name: "A+" });
+    expect(updated.weatherEvents.find((event) => event.id === "e1")?.name).toBe("A+");
+    expect(updated.weatherEvents.find((event) => event.id === "e2")?.name).toBe("B");
+  });
+
+  it("deleteWeatherEvent supprime seulement l’événement ciblé", () => {
+    const e1 = { ...createDefaultWeatherEvent("fr"), id: "e1" };
+    const e2 = { ...createDefaultWeatherEvent("fr"), id: "e2" };
+    const project = buildProject([e1, e2]);
+    const updated = deleteWeatherEvent(project, "e1");
+    expect(updated.weatherEvents.map((event) => event.id)).toEqual(["e2"]);
+  });
+
+  it("addWeatherCondition ajoute une condition", () => {
+    const e1 = { ...createDefaultWeatherEvent("fr"), id: "e1" };
+    const project = buildProject([e1]);
+    const updated = addWeatherCondition(project, "e1");
+    expect(updated.weatherEvents[0]?.conditions).toHaveLength(2);
+  });
+
+  it("updateWeatherCondition modifie seulement la condition ciblée", () => {
+    const e1 = { ...createDefaultWeatherEvent("fr"), id: "e1" };
+    e1.conditions.push({ metric: "windSpeed", operator: "gte", value: 80 });
+    const project = buildProject([e1]);
+    const updated = updateWeatherCondition(project, "e1", 1, { value: 90 });
+    expect(updated.weatherEvents[0]?.conditions[0]?.value).toBe(35);
+    expect(updated.weatherEvents[0]?.conditions[1]?.value).toBe(90);
+  });
+
+  it("deleteWeatherCondition supprime seulement la condition ciblée", () => {
+    const e1 = { ...createDefaultWeatherEvent("fr"), id: "e1" };
+    e1.conditions.push({ metric: "windSpeed", operator: "gte", value: 80 });
+    const project = buildProject([e1]);
+    const updated = deleteWeatherCondition(project, "e1", 0);
+    expect(updated.weatherEvents[0]?.conditions).toHaveLength(1);
+    expect(updated.weatherEvents[0]?.conditions[0]?.metric).toBe("windSpeed");
   });
 });
