@@ -80,7 +80,7 @@ export type CalendarEvent = {
 };
 
 export type UiSettings = {
-  activeTab: "today" | "month" | "events" | "settings";
+  activeTab: "today" | "month" | "events" | "settings" | "player";
   compactMode: boolean;
   monthGridStartsOnWeekdayId?: string;
   defaultMoonSystemInitialized?: boolean;

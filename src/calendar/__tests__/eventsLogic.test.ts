@@ -5,6 +5,7 @@ import {
   deleteCalendarEvent,
   eventOccursOnDay,
   getEventsForCurrentDay,
+  getPlayerVisibleEventsForDay,
   getEventsForDay,
   sortEventsByDate,
   updateCalendarEvent,
@@ -246,6 +247,18 @@ describe("eventsLogic", () => {
     const project = { ...buildProject(), events: [active, triggered, archived, disabled] };
 
     expect(getEventsForDay(project, target).map((event) => event.id)).toEqual(["e1", "e2"]);
+  });
+
+  it("getPlayerVisibleEventsForDay filtre selon visibilité joueur", () => {
+    const target = { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 0, minute: 0 };
+    const playersEvent = { ...makeEvent("players", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 8, minute: 0 }), visibility: "players" as const };
+    const gmEvent = { ...makeEvent("gm", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 9, minute: 0 }), visibility: "gm" as const };
+    const revealHidden = { ...makeEvent("reveal-hidden", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 10, minute: 0 }), visibility: "revealOnTrigger" as const, status: "active" as const };
+    const revealShown = { ...makeEvent("reveal-shown", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 11, minute: 0 }), visibility: "revealOnTrigger" as const, status: "triggered" as const };
+    const archivedPlayers = { ...makeEvent("archived", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 12, minute: 0 }), visibility: "players" as const, status: "archived" as const };
+
+    const project = { ...buildProject(), events: [playersEvent, gmEvent, revealHidden, revealShown, archivedPlayers] };
+    expect(getPlayerVisibleEventsForDay(project, target).map((event) => event.id)).toEqual(["players", "reveal-shown"]);
   });
 
   it("getEventTimeBucket: non récurrent avant aujourd'hui => past", () => {

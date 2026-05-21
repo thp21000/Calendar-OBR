@@ -215,6 +215,23 @@ export const getEventsForCurrentDay = (project: CalendarProject): CalendarEvent[
   return getEventsForDay(project, currentDate);
 };
 
+export const getPlayerVisibleEventsForDay = (project: CalendarProject, date: CalendarDate): CalendarEvent[] =>
+  sortEventsByDate(
+    project.events.filter((event) => {
+      if (!isEventVisibleInActiveViews(event)) return false;
+      if (!eventOccursOnDay(event, date, project)) return false;
+      if (event.visibility === "players") return true;
+      if (event.visibility === "revealOnTrigger") return event.status === "triggered";
+      return false;
+    }),
+    project
+  );
+
+export const getPlayerVisibleEventsForCurrentDay = (project: CalendarProject): CalendarEvent[] => {
+  const currentDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+  return getPlayerVisibleEventsForDay(project, currentDate);
+};
+
 export const getEventTimeBucket = (
   project: CalendarProject,
   event: CalendarEvent
