@@ -112,4 +112,155 @@ describe("calendarImportExport", () => {
 
     vi.unstubAllGlobals();
   });
+
+  it("exports then imports and keeps moons", () => {
+    const project = createDefaultCalendarProject();
+    project.moons = [{ id: "moon-1", name: "Selene", icon: "🌙", cycleLengthDays: 33, cycleOffsetDays: -3 }];
+
+    const imported = importCalendarProject(exportCalendarProject(project), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.moons).toEqual(project.moons);
+  });
+
+  it("exports then imports and keeps defaultMoonSystemInitialized", () => {
+    const project = createDefaultCalendarProject();
+    project.uiSettings.defaultMoonSystemInitialized = true;
+
+    const imported = importCalendarProject(exportCalendarProject(project), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.uiSettings.defaultMoonSystemInitialized).toBe(true);
+  });
+
+  it("sanitizes invalid moon cycleLengthDays to 29.5", () => {
+    const project = createDefaultCalendarProject();
+    const payload = {
+      ...project,
+      moons: [{ id: "moon-1", name: "Selene", cycleLengthDays: 0, cycleOffsetDays: 2 }]
+    };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.moons[0].cycleLengthDays).toBe(29.5);
+  });
+
+  it("keeps negative moon cycleOffsetDays", () => {
+    const project = createDefaultCalendarProject();
+    const payload = {
+      ...project,
+      moons: [{ id: "moon-1", name: "Selene", cycleLengthDays: 27, cycleOffsetDays: -8 }]
+    };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.moons[0].cycleOffsetDays).toBe(-8);
+  });
+
+  it("exports then imports and keeps season weather profile", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [
+      {
+        id: "winter",
+        name: "Winter",
+        icon: "❄️",
+        start: { monthId: "month-1", dayOfMonth: 1 },
+        end: { monthId: "month-2", dayOfMonth: 30 },
+        weatherProfile: {
+          temperature: { min: -10, average: -2, max: 4 },
+          windSpeed: { min: 3, average: 12, max: 28 },
+          rain: { min: 0, average: 2, max: 8 }
+        }
+      }
+    ];
+
+    const imported = importCalendarProject(exportCalendarProject(project), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.seasons[0].weatherProfile).toEqual(project.seasons[0].weatherProfile);
+  });
+
+  it("exports then imports and keeps weatherSettings seed and forecastMode", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherSettings = { seed: "campaign-seed", forecastMode: "wide" };
+    const imported = importCalendarProject(exportCalendarProject(project), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherSettings.seed).toBe("campaign-seed");
+    expect(imported.project.weatherSettings.forecastMode).toBe("wide");
+  });
+
+  it("exports then imports and keeps weather event with conditions", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherEvents = [
+      {
+        id: "frost",
+        name: "Frost",
+        icon: "🥶",
+        summary: "Cold alert",
+        link: "https://example.com",
+        requireAllConditions: true,
+        enabled: true,
+        conditions: [{ metric: "temperature", operator: "lte", value: -5 }]
+      }
+    ];
+    const imported = importCalendarProject(exportCalendarProject(project), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherEvents).toEqual(project.weatherEvents);
+  });
+
+  it("keeps negative temperature condition value", () => {
+    const project = createDefaultCalendarProject();
+    const payload = {
+      ...project,
+      weatherEvents: [
+        {
+          id: "frost",
+          name: "Frost",
+          conditions: [{ metric: "temperature", operator: "lte", value: -15 }],
+          enabled: true,
+          requireAllConditions: true
+        }
+      ]
+    };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherEvents[0].conditions[0].value).toBe(-15);
+  });
+
+  it("imports weather event without enabled", () => {
+    const project = createDefaultCalendarProject();
+    const payload = {
+      ...project,
+      weatherEvents: [
+        {
+          id: "frost",
+          name: "Frost",
+          conditions: [{ metric: "temperature", operator: "lte", value: -1 }],
+          requireAllConditions: true
+        }
+      ]
+    };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+  });
+
+  it("imports weather event without requireAllConditions", () => {
+    const project = createDefaultCalendarProject();
+    const payload = {
+      ...project,
+      weatherEvents: [
+        {
+          id: "frost",
+          name: "Frost",
+          conditions: [{ metric: "temperature", operator: "lte", value: -1 }],
+          enabled: true
+        }
+      ]
+    };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+  });
 });

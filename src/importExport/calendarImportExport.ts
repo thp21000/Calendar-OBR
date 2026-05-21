@@ -1,5 +1,7 @@
 import type { CalendarProject, LocaleCode } from "../domain/types";
 import { assertCalendarSystem } from "../calendar/dateEngine";
+import { normalizeMoon } from "../calendar/moonLogic";
+import { normalizeSeasonWeatherProfile } from "../calendar/seasonsLogic";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -73,6 +75,88 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
 
   if (!isRecord(maybeCompat.weatherSettings)) {
     maybeCompat.weatherSettings = {};
+  }
+
+  if (!isRecord(maybeCompat.uiSettings)) {
+    maybeCompat.uiSettings = { activeTab: "today", compactMode: true };
+  }
+
+  if (isRecord(maybeCompat.uiSettings) && typeof maybeCompat.uiSettings.defaultMoonSystemInitialized !== "boolean") {
+    delete maybeCompat.uiSettings.defaultMoonSystemInitialized;
+  }
+
+  if (isRecord(maybeCompat.weatherSettings)) {
+    const ws = maybeCompat.weatherSettings as Record<string, unknown>;
+    if (typeof ws.seed !== "string") delete ws.seed;
+    if (ws.forecastMode !== "fine" && ws.forecastMode !== "wide") delete ws.forecastMode;
+  }
+
+  if (Array.isArray(maybeCompat.moons)) {
+    maybeCompat.moons = maybeCompat.moons
+      .filter(isRecord)
+      .filter((moon) => typeof moon.id === "string" && typeof moon.name === "string")
+      .map((moon) =>
+        normalizeMoon({
+          id: moon.id as string,
+          name: moon.name as string,
+          icon: typeof moon.icon === "string" ? moon.icon : undefined,
+          cycleLengthDays: typeof moon.cycleLengthDays === "number" ? moon.cycleLengthDays : 29.5,
+          cycleOffsetDays: typeof moon.cycleOffsetDays === "number" ? moon.cycleOffsetDays : 0
+        })
+      );
+  }
+
+  if (Array.isArray(maybeCompat.seasons)) {
+    maybeCompat.seasons = maybeCompat.seasons.map((season) => {
+      if (!isRecord(season)) return season;
+      const next = { ...season } as Record<string, unknown>;
+      if (isRecord(next.weatherProfile)) {
+        const wp = next.weatherProfile as Record<string, unknown>;
+        const numericRange = (value: unknown, fallback: { min: number; average: number; max: number }) =>
+          isRecord(value)
+            ? {
+                min: typeof value.min === "number" ? value.min : fallback.min,
+                average: typeof value.average === "number" ? value.average : fallback.average,
+                max: typeof value.max === "number" ? value.max : fallback.max
+              }
+            : fallback;
+        next.weatherProfile = normalizeSeasonWeatherProfile({
+          temperature: numericRange(wp.temperature, { min: 0, average: 10, max: 20 }),
+          windSpeed: numericRange(wp.windSpeed, { min: 0, average: 15, max: 40 }),
+          rain: numericRange(wp.rain, { min: 0, average: 2, max: 10 })
+        });
+      }
+      return next;
+    });
+  }
+
+  if (Array.isArray(maybeCompat.weatherEvents)) {
+    maybeCompat.weatherEvents = maybeCompat.weatherEvents
+      .filter(isRecord)
+      .filter((event) => typeof event.id === "string" && event.id.trim().length > 0)
+      .filter((event) => typeof event.name === "string" && event.name.trim().length > 0)
+      .map((event) => {
+        const next = { ...event } as Record<string, unknown>;
+        if (Array.isArray(next.conditions)) {
+          next.conditions = next.conditions
+            .filter(isRecord)
+            .filter(
+              (condition) =>
+                (condition.metric === "temperature" || condition.metric === "windSpeed" || condition.metric === "rain") &&
+                (condition.operator === "gte" || condition.operator === "lte") &&
+                typeof condition.value === "number" &&
+                Number.isFinite(condition.value)
+            );
+        } else {
+          next.conditions = [];
+        }
+        if (typeof next.enabled !== "boolean") delete next.enabled;
+        if (typeof next.requireAllConditions !== "boolean") delete next.requireAllConditions;
+        if (typeof next.summary !== "string") delete next.summary;
+        if (typeof next.link !== "string") delete next.link;
+        if (typeof next.icon !== "string") delete next.icon;
+        return next;
+      });
   }
 
   const validation = validateImportedCalendarProject(maybeCompat);
