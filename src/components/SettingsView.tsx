@@ -8,6 +8,7 @@ import { DataSettingsSection } from "./settings/DataSettingsSection";
 import { DisplaySettingsSection } from "./settings/DisplaySettingsSection";
 import { FutureSettingsSection } from "./settings/FutureSettingsSection";
 import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
+import { MoonsSettingsSection } from "./settings/MoonsSettingsSection";
 import { SeasonsSettingsSection } from "./settings/SeasonsSettingsSection";
 import { WeatherEventsSettingsSection } from "./settings/WeatherEventsSettingsSection";
 import { WeatherSettingsSection } from "./settings/WeatherSettingsSection";
@@ -47,6 +48,10 @@ export const SettingsView = ({
 
       <CollapsibleSection title={t(project.locale, "settings.section.seasons")}>
         <SeasonsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
+      </CollapsibleSection>
+
+      <CollapsibleSection title={t(project.locale, "settings.section.moons")}>
+        <MoonsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.weather")}>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, Moon } from "../../domain/types";
-import { getCurrentMoonPhases, getMoonPhaseForDate } from "../moonLogic";
+import { addMoon, createDefaultMoon, deleteMoon, getCurrentMoonPhases, getMoonPhaseForDate, normalizeMoon, updateMoon } from "../moonLogic";
 
 const buildProject = (moons: Moon[]): CalendarProject => ({
   schemaVersion: 1,
@@ -56,5 +56,47 @@ describe("moonLogic", () => {
 
   it("getCurrentMoonPhases retourne vide si aucune lune", () => {
     expect(getCurrentMoonPhases(buildProject([]))).toEqual([]);
+  });
+  
+  it("createDefaultMoon crée une lune valide", () => {
+    const moon = createDefaultMoon("fr");
+    expect(moon.id.startsWith("moon-")).toBe(true);
+    expect(moon.name).toBe("Nouvelle lune");
+    expect(moon.icon).toBe("🌕");
+    expect(moon.cycleLengthDays).toBe(29.5);
+    expect(moon.cycleOffsetDays).toBe(0);
+  });
+
+  it("addMoon ajoute une lune", () => {
+    const project = buildProject([]);
+    const updated = addMoon(project, createDefaultMoon("en"));
+    expect(updated.moons).toHaveLength(1);
+  });
+
+  it("updateMoon modifie seulement la lune ciblée", () => {
+    const m1: Moon = { id: "m1", name: "A", cycleLengthDays: 29.5, cycleOffsetDays: 0 };
+    const m2: Moon = { id: "m2", name: "B", cycleLengthDays: 30, cycleOffsetDays: 1 };
+    const project = buildProject([m1, m2]);
+    const updated = updateMoon(project, "m1", { name: "A+" });
+    expect(updated.moons.find((m) => m.id === "m1")?.name).toBe("A+");
+    expect(updated.moons.find((m) => m.id === "m2")?.name).toBe("B");
+  });
+
+  it("deleteMoon supprime seulement la lune ciblée", () => {
+    const m1: Moon = { id: "m1", name: "A", cycleLengthDays: 29.5, cycleOffsetDays: 0 };
+    const m2: Moon = { id: "m2", name: "B", cycleLengthDays: 30, cycleOffsetDays: 1 };
+    const project = buildProject([m1, m2]);
+    const updated = deleteMoon(project, "m1");
+    expect(updated.moons.map((m) => m.id)).toEqual(["m2"]);
+  });
+
+  it("normalizeMoon corrige cycleLengthDays invalide", () => {
+    const moon = normalizeMoon({ id: "m", name: "A", cycleLengthDays: 0, cycleOffsetDays: 0 });
+    expect(moon.cycleLengthDays).toBe(29.5);
+  });
+
+  it("normalizeMoon conserve cycleOffsetDays négatif", () => {
+    const moon = normalizeMoon({ id: "m", name: "A", cycleLengthDays: 29.5, cycleOffsetDays: -4 });
+    expect(moon.cycleOffsetDays).toBe(-4);
   });
 });
