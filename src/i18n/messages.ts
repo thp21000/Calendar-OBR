@@ -507,13 +507,13 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "seasons.max": "Max",
     "seasons.average": "Average",
     "moon.phase.new": "New moon",
-    ,"moon.phase.waxingCrescent": "Waxing crescent",
-    ,"moon.phase.firstQuarter": "First quarter",
-    ,"moon.phase.waxingGibbous": "Waxing gibbous",
-    ,"moon.phase.full": "Full moon",
-    ,"moon.phase.waningGibbous": "Waning gibbous",
-    ,"moon.phase.lastQuarter": "Last quarter",
-    ,"moon.phase.waningCrescent": "Waning crescent"
+    "moon.phase.waxingCrescent": "Waxing crescent",
+    "moon.phase.firstQuarter": "First quarter",
+    "moon.phase.waxingGibbous": "Waxing gibbous",
+    "moon.phase.full": "Full moon",
+    "moon.phase.waningGibbous": "Waning gibbous",
+    "moon.phase.lastQuarter": "Last quarter",
+    "moon.phase.waningCrescent": "Waning crescent"
   }
 };
 
