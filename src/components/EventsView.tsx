@@ -1,18 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { addCalendarEvent, deleteCalendarEvent, getEventTimeBucket, sortEventsByDate, updateCalendarEvent } from "../calendar/eventsLogic";
 import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEventTriggerOptions, formatEventVisibility } from "../calendar/formatEvent";
-import type { CalendarEvent, CalendarProject } from "../domain/types";
+import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import { EventIcon } from "./EventIcon";
 import { EventForm } from "./events/EventForm";
 
-export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void }) => {
+export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInitialCreateDateConsumed }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; onInitialCreateDateConsumed?: () => void }) => {
   const events = sortEventsByDate(project.events, project);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "triggered" | "archived" | "disabled" | "all">("active");
-  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(Boolean(initialCreateDate));
   const [searchQuery, setSearchQuery] = useState("");
   const [timeFilter, setTimeFilter] = useState<"all" | "past" | "today" | "future">("all");
+
+  useEffect(() => {
+    if (initialCreateDate) setIsCreateFormOpen(true);
+  }, [initialCreateDate]);
 
   const filteredByStatus = events.filter((event) => {
     if (statusFilter === "all") return true;
@@ -33,6 +37,7 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
     const handleCreate = (event: CalendarEvent) => {
     onProjectUpdate(addCalendarEvent(project, event));
     setIsCreateFormOpen(false);
+    onInitialCreateDateConsumed?.();
   };
   const handleUpdate = (event: CalendarEvent) => {
     onProjectUpdate(updateCalendarEvent(project, event.id, event));
@@ -55,7 +60,7 @@ export const EventsView = ({ project, onProjectUpdate }: { project: CalendarProj
       >
         {isCreateFormOpen ? t(project.locale, "events.closeCreateForm") : t(project.locale, "events.openCreateForm")}
       </button>
-      {isCreateFormOpen ? <EventForm project={project} mode="create" onSubmit={handleCreate} /> : null}
+      {isCreateFormOpen ? <EventForm project={project} mode="create" initialDate={initialCreateDate ?? undefined} onSubmit={handleCreate} onCancel={() => { setIsCreateFormOpen(false); onInitialCreateDateConsumed?.(); }} /> : null}
       <div style={{ marginBottom: 8 }}>
         <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "events.search")}</label>
         <div style={{ display: "flex", gap: 6 }}>

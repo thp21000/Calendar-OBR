@@ -16,7 +16,7 @@ export type EventFormValue = {
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
-const toFormValue = (project: CalendarProject, event?: CalendarEvent): EventFormValue => {
+const toFormValue = (project: CalendarProject, event?: CalendarEvent, initialDate?: CalendarDate): EventFormValue => {
   if (event) {
     return {
       name: event.name,
@@ -42,7 +42,9 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent): EventForm
       endMinute: event.endDate?.minute ?? event.date.minute
     };
   }
-  const now = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+  const now = initialDate
+    ? { ...initialDate, hour: 0, minute: 0 }
+    : absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   return {
     name: "", icon: "", summary: "", year: now.year, monthId: now.monthId, dayOfMonth: now.dayOfMonth, hour: now.hour, minute: now.minute,
     visibility: "gm", allDay: false, recurrenceType: "none", recurrenceInterval: 1,
@@ -51,9 +53,9 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent): EventForm
   };
 };
 
-export const EventForm = ({ project, mode, initialEvent, onSubmit, onCancel }: { project: CalendarProject; mode: "create"|"edit"; initialEvent?: CalendarEvent; onSubmit: (event: CalendarEvent)=>void; onCancel?: ()=>void; }) => {
+export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, onCancel }: { project: CalendarProject; mode: "create"|"edit"; initialEvent?: CalendarEvent; initialDate?: CalendarDate; onSubmit: (event: CalendarEvent)=>void; onCancel?: ()=>void; }) => {
   const sortedMonths = useMemo(() => [...project.calendarSystem.months].sort((a, b) => a.order - b.order), [project.calendarSystem.months]);
-  const [form, setForm] = useState<EventFormValue>(toFormValue(project, initialEvent));
+  const [form, setForm] = useState<EventFormValue>(toFormValue(project, initialEvent, initialDate));
   const [nameError, setNameError] = useState<string | null>(null);
   const [endError, setEndError] = useState<string | null>(null);
   const updateForm = <K extends keyof EventFormValue>(key: K, value: EventFormValue[K]) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -112,7 +114,7 @@ export const EventForm = ({ project, mode, initialEvent, onSubmit, onCancel }: {
       deleteAfterTrigger: form.deleteAfterTrigger,
       archiveAfterTrigger: form.archiveAfterTrigger
     });
-    setForm(toFormValue(project));
+    setForm(toFormValue(project, undefined, initialDate));
     setNameError(null);
   };
 
