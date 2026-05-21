@@ -182,6 +182,17 @@ export type CalendarProject = {
   uiSettings: UiSettings;
 };
 
+export type CalendarPack = {
+  schemaVersion: number;
+  packId: string;
+  packVersion: string;
+  name: string;
+  description?: string;
+  author?: string;
+  locale: LocaleCode;
+  project: CalendarProject;
+};
+
 export type TimePreset = {
   id:
     | "minus2h"

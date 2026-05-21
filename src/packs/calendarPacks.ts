@@ -1,0 +1,60 @@
+import type { CalendarPack, CalendarProject, LocaleCode } from "../domain/types";
+import { sanitizeCalendarProject, validateImportedCalendarProject } from "../importExport/calendarImportExport";
+import { defaultFantasyCalendarPackFr } from "./defaultFantasyCalendarPack";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isLocale = (value: unknown): value is LocaleCode => value === "fr" || value === "en";
+
+const BUILT_IN_PACKS: CalendarPack[] = [defaultFantasyCalendarPackFr];
+
+export const getBuiltInCalendarPacks = (locale: LocaleCode): CalendarPack[] =>
+  BUILT_IN_PACKS.filter((pack) => pack.locale === locale || pack.locale === "fr");
+
+export const validateCalendarPack = (
+  pack: unknown
+): { ok: true; pack: CalendarPack } | { ok: false; error: string } => {
+  if (!isRecord(pack)) return { ok: false, error: "Invalid pack payload." };
+  if (typeof pack.schemaVersion !== "number") return { ok: false, error: "pack.schemaVersion must be a number." };
+  if (typeof pack.packId !== "string" || pack.packId.trim().length === 0) {
+    return { ok: false, error: "pack.packId is required and must be a non-empty string." };
+  }
+  if (typeof pack.packVersion !== "string" || pack.packVersion.trim().length === 0) {
+    return { ok: false, error: "pack.packVersion is required and must be a non-empty string." };
+  }
+  if (typeof pack.name !== "string" || pack.name.trim().length === 0) {
+    return { ok: false, error: "pack.name is required and must be a non-empty string." };
+  }
+  if (!isLocale(pack.locale)) return { ok: false, error: "pack.locale must be 'fr' or 'en'." };
+
+  if (typeof pack.description !== "undefined" && typeof pack.description !== "string") {
+    return { ok: false, error: "pack.description must be a string when provided." };
+  }
+  if (typeof pack.author !== "undefined" && typeof pack.author !== "string") {
+    return { ok: false, error: "pack.author must be a string when provided." };
+  }
+
+  const sanitizedProject = sanitizeCalendarProject(pack.project);
+  if (!sanitizedProject.ok) return { ok: false, error: sanitizedProject.error };
+
+  const validation = validateImportedCalendarProject(sanitizedProject.project);
+  if (!validation.valid) return { ok: false, error: validation.error };
+
+  return {
+    ok: true,
+    pack: {
+      ...(pack as Omit<CalendarPack, "project">),
+      project: sanitizedProject.project
+    }
+  };
+};
+
+export const importCalendarPack = (
+  pack: unknown,
+  currentProject: CalendarProject
+): { ok: true; project: CalendarProject } | { ok: false; error: string; project: CalendarProject } => {
+  const validated = validateCalendarPack(pack);
+  if (!validated.ok) return { ok: false, error: validated.error, project: currentProject };
+  return { ok: true, project: validated.pack.project };
+};
