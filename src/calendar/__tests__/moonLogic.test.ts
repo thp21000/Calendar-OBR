@@ -147,6 +147,13 @@ describe("moonLogic", () => {
     expect(ensured.moons).toEqual([]);
   });
 
+  it("projet moons vide + flag true reste vide", () => {
+    const project = buildProject([]);
+    project.uiSettings.defaultMoonSystemInitialized = true;
+    const ensured = ensureDefaultMoonSystem(project);
+    expect(ensured.moons).toEqual([]);
+  });
+
   it("ensureDefaultMoonSystem ne modifie pas les lunes existantes", () => {
     const project = buildProject([{ id: "m1", name: "Sel", cycleLengthDays: 29.5, cycleOffsetDays: 0 }]);
     const ensured = ensureDefaultMoonSystem(project);

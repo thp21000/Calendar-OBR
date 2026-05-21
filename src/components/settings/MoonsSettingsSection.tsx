@@ -1,6 +1,7 @@
 import { addMoon, createDefaultMoon, deleteMoon, getMoonPhaseForDate, normalizeMoon, updateMoon } from "../../calendar/moonLogic";
 import { parseWeatherInput } from "../../calendar/seasonsLogic";
 import type { CalendarProject } from "../../domain/types";
+import { useEffect, useState } from "react";
 import { t } from "../../i18n/messages";
 
 type Props = {
@@ -32,30 +33,18 @@ export const MoonsSettingsSection = ({ project, onProjectUpdate, inputStyle }: P
               </label>
               <label style={{ display: "block" }}>
                 <div style={labelStyle}>{t(project.locale, "moons.cycleLengthDays")}</div>
-                <input
-                  type="text"
-                  inputMode="decimal"
+                <MoonNumberInput
                   value={moon.cycleLengthDays}
-                  onChange={(e) => {
-                    const parsed = parseWeatherInput(e.target.value);
-                    if (parsed === null) return;
-                    onProjectUpdate(updateMoon(project, moon.id, { cycleLengthDays: parsed }));
-                  }}
-                  style={inputStyle}
+                  inputStyle={inputStyle}
+                  onChange={(value) => onProjectUpdate(updateMoon(project, moon.id, { cycleLengthDays: value }))}
                 />
               </label>
               <label style={{ display: "block" }}>
                 <div style={labelStyle}>{t(project.locale, "moons.cycleOffsetDays")}</div>
-                <input
-                  type="text"
-                  inputMode="decimal"
+                <MoonNumberInput
                   value={moon.cycleOffsetDays ?? 0}
-                  onChange={(e) => {
-                    const parsed = parseWeatherInput(e.target.value);
-                    if (parsed === null) return;
-                    onProjectUpdate(updateMoon(project, moon.id, { cycleOffsetDays: parsed }));
-                  }}
-                  style={inputStyle}
+                  inputStyle={inputStyle}
+                  onChange={(value) => onProjectUpdate(updateMoon(project, moon.id, { cycleOffsetDays: value }))}
                 />
               </label>
               <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 8 }}>
@@ -85,3 +74,35 @@ export const MoonsSettingsSection = ({ project, onProjectUpdate, inputStyle }: P
 const labelStyle = { fontSize: 12, color: "#cbd5e1" };
 const buttonStyle = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "6px 10px", cursor: "pointer" };
 const smallButtonStyle = { ...buttonStyle, fontSize: 12, padding: "5px 8px" };
+
+const MoonNumberInput = ({
+  value,
+  inputStyle,
+  onChange
+}: {
+  value: number;
+  inputStyle: React.CSSProperties;
+  onChange: (value: number) => void;
+}) => {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={draft}
+      onChange={(e) => {
+        const nextDraft = e.target.value;
+        setDraft(nextDraft);
+        const parsed = parseWeatherInput(nextDraft);
+        if (parsed === null) return;
+        onChange(parsed);
+      }}
+      style={inputStyle}
+    />
+  );
+};

@@ -35,7 +35,7 @@ const defaultProject: CalendarProject = {
   moons: createDefaultMoonSystem("fr"),
   weatherSettings: {},
   weatherEvents: [],
-  uiSettings: { activeTab: "today", compactMode: true }
+  uiSettings: { activeTab: "today", compactMode: true, defaultMoonSystemInitialized: true }
 };
 
 export const createDefaultCalendarProject = (): CalendarProject => structuredClone(defaultProject);
