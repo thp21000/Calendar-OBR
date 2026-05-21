@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
+import { getDayDetails } from "../calendar/dayDetails";
 import { getEventsForDay } from "../calendar/eventsLogic";
 import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex, getCurrentMonthWeekdayNames } from "../calendar/monthView";
 import { getSeasonsStartingOnDate } from "../calendar/seasonsLogic";
 import type { MonthDayCell } from "../calendar/monthView";
-import type { CalendarEvent, CalendarProject } from "../domain/types";
+import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import { EventIcon } from "./EventIcon";
 
@@ -16,12 +18,14 @@ const buildDayTooltip = (dayOfMonth: number, seasonName: string | undefined, eve
   return parts.join(" — ");
 };
 
-export const MonthView = ({ project }: { project: CalendarProject }) => {
+export const MonthView = ({ project, onCreateEventForDate }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void }) => {
   const current = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
   const firstWeekday = getCurrentMonthFirstWeekdayIndex(project.currentTime, project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
   const monthDays: MonthDayCell[] = getCurrentMonthDays(project.currentTime, project.calendarSystem);
   const leading = Array.from({ length: firstWeekday }, (_, i) => i);
+  const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null);
+  const dayDetails = selectedDate ? getDayDetails(project, selectedDate) : null;
 
   return (
     <>
@@ -39,20 +43,46 @@ export const MonthView = ({ project }: { project: CalendarProject }) => {
           const firstEvent = events[0];
           const icon = firstEvent?.icon || FALLBACK_EVENT_ICON;
           return (
-            <div
+            <button
               key={day.absoluteDay}
+              type="button"
+              onClick={() => setSelectedDate(date)}
               title={buildDayTooltip(day.dayOfMonth, seasonStart?.name, events)}
-              style={{ minHeight: 38, borderRadius: 6, border: day.isCurrentDay ? "1px solid #22c55e" : "1px solid #374151", background: day.isCurrentDay ? "#14532d" : "#1f2937", display: "flex", flexDirection: "column", justifyContent: hasMarkers ? "center" : "space-between", alignItems: "center", fontSize: 12, padding: "3px 2px" }}
+              style={{ minHeight: 38, borderRadius: 6, border: day.isCurrentDay ? "1px solid #22c55e" : "1px solid #374151", background: day.isCurrentDay ? "#14532d" : "#1f2937", display: "flex", flexDirection: "column", justifyContent: hasMarkers ? "center" : "space-between", alignItems: "center", fontSize: 12, padding: "3px 2px", width: "100%", cursor: "pointer" }}
             >
               {!hasMarkers ? <span>{day.dayOfMonth}</span> : null}
               <div style={{ display: "flex", alignItems: "center", gap: 2, minHeight: hasMarkers ? 16 : 0 }}>
                 {events.length > 0 ? <EventIcon icon={icon} locale={project.locale} size={14} /> : null}
                 {seasonStart ? <EventIcon icon={seasonStart.icon} locale={project.locale} size={14} /> : null}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
+      {dayDetails ? (
+        <div style={{ marginTop: 10, border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <strong>{t(project.locale, "month.dayDetailsTitle")}</strong>
+            <button type="button" onClick={() => setSelectedDate(null)} style={{ fontSize: 11 }}>{t(project.locale, "month.closeDayDetails")}</button>
+          </div>
+          <div style={{ fontSize: 12, marginBottom: 6 }}>{dayDetails.formattedDate}</div>
+          <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "calendar.season")}:</strong> {dayDetails.seasonName ?? t(project.locale, "calendar.noSeason")}</div>
+          <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayWeather")}:</strong> {dayDetails.weather ? `${dayDetails.weather.temperature}° · ${t(project.locale, "calendar.wind")} ${dayDetails.weather.windSpeed} · ${t(project.locale, "calendar.rain")} ${dayDetails.weather.rain}` : t(project.locale, "calendar.noWeather")}</div>
+          <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayMoons")}:</strong> {dayDetails.moonPhases.length === 0 ? t(project.locale, "calendar.noMoon") : dayDetails.moonPhases.map((m) => `${m.phaseIcon} ${m.moonName}`).join(" · ")}</div>
+          <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayEvents")}:</strong></div>
+          {dayDetails.events.length === 0 ? <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "month.noEventsForDay")}</div> : (
+            <div style={{ display: "grid", gap: 4 }}>
+              {dayDetails.events.map((event) => (
+                <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={event.icon} locale={project.locale} size={14} /><strong>{event.name}</strong></div>
+                  {event.summary ? <div style={{ color: "#cbd5e1" }}>{event.summary}</div> : null}
+                </div>
+              ))}
+            </div>
+          )}
+          {onCreateEventForDate ? <button type="button" onClick={() => onCreateEventForDate(dayDetails.date)} style={{ marginTop: 8, width: "100%" }}>{t(project.locale, "month.createEventForDay")}</button> : null}
+        </div>
+      ) : null}
     </>
   );
 };
