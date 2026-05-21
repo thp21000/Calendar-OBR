@@ -40,6 +40,21 @@ export const createDefaultMoonSystem = (locale: CalendarProject["locale"]): Moon
   }
 ];
 
+export const ensureDefaultMoonSystem = (project: CalendarProject): CalendarProject => {
+  if (project.uiSettings.defaultMoonSystemInitialized === true) return project;
+  if (project.moons.length > 0) {
+    return {
+      ...project,
+      uiSettings: { ...project.uiSettings, defaultMoonSystemInitialized: true }
+    };
+  }
+  return {
+    ...project,
+    moons: createDefaultMoonSystem(project.locale),
+    uiSettings: { ...project.uiSettings, defaultMoonSystemInitialized: true }
+  };
+};
+
 export const addMoon = (project: CalendarProject, moon: Moon): CalendarProject => ({
   ...project,
   moons: [...project.moons, normalizeMoon(moon)]

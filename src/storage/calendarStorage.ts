@@ -1,5 +1,5 @@
 import type { CalendarProject } from "../domain/types";
-import { createDefaultMoonSystem } from "../calendar/moonLogic";
+import { createDefaultMoonSystem, ensureDefaultMoonSystem } from "../calendar/moonLogic";
 import { sanitizeCalendarProject, validateImportedCalendarProject } from "../importExport/calendarImportExport";
 
 const STORAGE_KEY = "calendar-obr.project.local-dev";
@@ -55,7 +55,11 @@ export const loadCalendarProject = (storageKey = STORAGE_KEY): CalendarProject =
     const parsed = JSON.parse(raw) as unknown;
     const sanitized = sanitizeCalendarProject(parsed);
     if (!sanitized.ok) return createDefaultCalendarProject();
-    return sanitized.project;
+    const ensured = ensureDefaultMoonSystem(sanitized.project);
+    if (JSON.stringify(ensured) !== JSON.stringify(sanitized.project)) {
+      storage.setItem(storageKey, JSON.stringify(ensured));
+    }
+    return ensured;
   } catch {
     return createDefaultCalendarProject();
   }

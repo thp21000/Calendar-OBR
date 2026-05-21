@@ -61,6 +61,9 @@ export const MoonsSettingsSection = ({ project, onProjectUpdate, inputStyle }: P
               <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 8 }}>
                 {t(project.locale, "moons.currentPhase")}: {phase.icon} {moon.name} — {t(project.locale, `moon.phase.${phase.id}`)} — {phase.illumination} %
               </div>
+              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>
+                {t(project.locale, "moons.fullCycle")}: 🌑 {t(project.locale, "moon.phase.new")} · 🌒 {t(project.locale, "moon.phase.waxingCrescent")} · 🌓 {t(project.locale, "moon.phase.firstQuarter")} · 🌔 {t(project.locale, "moon.phase.waxingGibbous")} · 🌕 {t(project.locale, "moon.phase.full")} · 🌖 {t(project.locale, "moon.phase.waningGibbous")} · 🌗 {t(project.locale, "moon.phase.lastQuarter")} · 🌘 {t(project.locale, "moon.phase.waningCrescent")}
+              </div>
               <button
                 type="button"
                 onClick={() => {

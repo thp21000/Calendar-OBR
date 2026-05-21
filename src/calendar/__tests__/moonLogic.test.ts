@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, Moon } from "../../domain/types";
-import { addMoon, createDefaultMoon, createDefaultMoonSystem, deleteMoon, getCurrentMoonPhases, getMoonPhaseForDate, normalizeMoon, updateMoon } from "../moonLogic";
+import { addMoon, createDefaultMoon, createDefaultMoonSystem, deleteMoon, ensureDefaultMoonSystem, getCurrentMoonPhases, getMoonPhaseForDate, normalizeMoon, updateMoon } from "../moonLogic";
 
 const buildProject = (moons: Moon[]): CalendarProject => ({
   schemaVersion: 1,
@@ -126,5 +126,31 @@ describe("moonLogic", () => {
   it("lune principale: pleine lune au milieu du cycle", () => {
     const [moon] = createDefaultMoonSystem("fr");
     expect(getMoonPhaseForDate(moon, 14.75).id).toBe("full");
+  });
+
+  it("ensureDefaultMoonSystem ajoute la lune principale si moons vide et flag absent", () => {
+    const project = buildProject([]);
+    const ensured = ensureDefaultMoonSystem(project);
+    expect(ensured.moons).toHaveLength(1);
+    expect(ensured.moons[0]?.id).toBe("moon-main");
+  });
+
+  it("ensureDefaultMoonSystem met defaultMoonSystemInitialized à true", () => {
+    const ensured = ensureDefaultMoonSystem(buildProject([]));
+    expect(ensured.uiSettings.defaultMoonSystemInitialized).toBe(true);
+  });
+
+  it("ensureDefaultMoonSystem ne rajoute pas de lune si flag déjà true", () => {
+    const project = buildProject([]);
+    project.uiSettings.defaultMoonSystemInitialized = true;
+    const ensured = ensureDefaultMoonSystem(project);
+    expect(ensured.moons).toEqual([]);
+  });
+
+  it("ensureDefaultMoonSystem ne modifie pas les lunes existantes", () => {
+    const project = buildProject([{ id: "m1", name: "Sel", cycleLengthDays: 29.5, cycleOffsetDays: 0 }]);
+    const ensured = ensureDefaultMoonSystem(project);
+    expect(ensured.moons).toHaveLength(1);
+    expect(ensured.moons[0]?.id).toBe("m1");
   });
 });

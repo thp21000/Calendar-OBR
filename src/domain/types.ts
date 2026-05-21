@@ -83,6 +83,7 @@ export type UiSettings = {
   activeTab: "today" | "month" | "events" | "settings";
   compactMode: boolean;
   monthGridStartsOnWeekdayId?: string;
+  defaultMoonSystemInitialized?: boolean;
 };
 
 export type WeatherSettings = {
