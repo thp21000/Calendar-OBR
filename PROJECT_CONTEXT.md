@@ -693,7 +693,6 @@ Les prochaines étapes doivent rester ciblées. La priorité immédiate recomman
 - Utiliser `EventForm` comme formulaire partagé création/édition.
 
 ### Session du 20 mai 2026
-
 #### sujets traités :
 
 - Finalisation progressive de l’onglet Événements :
