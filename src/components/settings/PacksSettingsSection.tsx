@@ -10,6 +10,16 @@ type Props = {
 };
 
 export const PacksSettingsSection = ({ project, onProjectUpdate }: Props) => {
+  const buttonStyle = {
+    border: "1px solid #4b5563",
+    borderRadius: 6,
+    background: "#1f2937",
+    color: "#e5e7eb",
+    padding: "5px 8px",
+    fontSize: 12,
+    width: "fit-content"
+  } as const;
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedPack, setSelectedPack] = useState<CalendarPack | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
