@@ -40,7 +40,7 @@ export const WeatherAndSeasonCard = ({
         <div style={{ display: "grid", gap: 2, fontSize: 12 }}>
           {hourlyForecast.map((entry) => (
             <div key={entry.offsetHours}>
-              +{entry.offsetHours} h · {entry.weather.temperature} {weatherUnits.temperature} · {entry.weather.windDirection}{" "}
+             +{entry.offsetHours} h · {getWeatherStateIcon(entry.weather.state ?? "clear")} {t(project.locale, `weather.state.${entry.weather.state ?? "clear"}`)} · {entry.weather.temperature} {weatherUnits.temperature} · {entry.weather.windDirection}{" "}
               {entry.weather.windSpeed} {weatherUnits.windSpeed} · {entry.weather.rain} {weatherUnits.rain}
             </div>
           ))}
@@ -55,7 +55,7 @@ export const WeatherAndSeasonCard = ({
         <div style={{ display: "grid", gap: 2, fontSize: 12 }}>
           {dailyForecast.map((entry) => (
             <div key={entry.offsetDays}>
-              +{entry.offsetDays} {project.locale === "fr" ? "j" : "d"} · {entry.weather.temperature} {weatherUnits.temperature} ·{" "}
+              +{entry.offsetDays} {project.locale === "fr" ? "j" : "d"} · {getWeatherStateIcon(entry.weather.state ?? "clear")} {t(project.locale, `weather.state.${entry.weather.state ?? "clear"}`)} · {entry.weather.temperature} {weatherUnits.temperature} ·{" "}
               {entry.weather.windDirection} {entry.weather.windSpeed} {weatherUnits.windSpeed} · {entry.weather.rain} {weatherUnits.rain}
             </div>
           ))}
