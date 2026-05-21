@@ -1,13 +1,13 @@
 import type { CalendarPack, CalendarProject, LocaleCode } from "../domain/types";
 import { sanitizeCalendarProject, validateImportedCalendarProject } from "../importExport/calendarImportExport";
-import { defaultFantasyCalendarPackFr } from "./defaultFantasyCalendarPack";
+import { defaultFantasyCalendarPackEn, defaultFantasyCalendarPackFr } from "./defaultFantasyCalendarPack";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const isLocale = (value: unknown): value is LocaleCode => value === "fr" || value === "en";
 
-const BUILT_IN_PACKS: CalendarPack[] = [defaultFantasyCalendarPackFr];
+const BUILT_IN_PACKS: CalendarPack[] = [defaultFantasyCalendarPackFr, defaultFantasyCalendarPackEn];
 
 const slugify = (value: string): string =>
   value
@@ -25,7 +25,11 @@ export type CalendarPackSummary = {
 };
 
 export const getBuiltInCalendarPacks = (locale: LocaleCode): CalendarPack[] =>
-  BUILT_IN_PACKS.filter((pack) => pack.locale === locale || pack.locale === "fr");
+  (() => {
+    const localized = BUILT_IN_PACKS.filter((pack) => pack.locale === locale);
+    if (localized.length > 0) return localized;
+    return BUILT_IN_PACKS.filter((pack) => pack.locale === "fr");
+  })();
 
 export const validateCalendarPack = (
   pack: unknown

@@ -8,15 +8,29 @@ import {
   importCalendarPack,
   validateCalendarPack
 } from "../calendarPacks";
-import { defaultFantasyCalendarPackFr } from "../defaultFantasyCalendarPack";
+import { defaultFantasyCalendarPackEn, defaultFantasyCalendarPackFr } from "../defaultFantasyCalendarPack";
 
 describe("calendarPacks", () => {
   it("getBuiltInCalendarPacks('fr') returns at least one pack", () => {
-    expect(getBuiltInCalendarPacks("fr").length).toBeGreaterThan(0);
+    const packs = getBuiltInCalendarPacks("fr");
+    expect(packs.length).toBeGreaterThan(0);
+    expect(packs.every((pack) => pack.locale === "fr")).toBe(true);
+  });
+
+  it("getBuiltInCalendarPacks('en') returns English packs only when available", () => {
+    const packs = getBuiltInCalendarPacks("en");
+    expect(packs.length).toBeGreaterThan(0);
+    expect(packs.every((pack) => pack.locale === "en")).toBe(true);
+    expect(packs.some((pack) => pack.packId === "fantasy-classic-fr")).toBe(false);
   });
 
   it("default fantasy pack is valid", () => {
     const result = validateCalendarPack(defaultFantasyCalendarPackFr);
+    expect(result.ok).toBe(true);
+  });
+
+  it("default English fantasy pack is valid", () => {
+    const result = validateCalendarPack(defaultFantasyCalendarPackEn);
     expect(result.ok).toBe(true);
   });
 
@@ -70,6 +84,26 @@ describe("calendarPacks", () => {
     expect(defaultFantasyCalendarPackFr.project.seasons.some((season) => season.weatherProfile)).toBe(true);
   });
 
+  it("English pack has 12 months", () => {
+    expect(defaultFantasyCalendarPackEn.project.calendarSystem.months).toHaveLength(12);
+  });
+
+  it("English pack has 4 seasons", () => {
+    expect(defaultFantasyCalendarPackEn.project.seasons).toHaveLength(4);
+  });
+
+  it("English pack has one main moon", () => {
+    expect(defaultFantasyCalendarPackEn.project.moons).toHaveLength(1);
+    expect(defaultFantasyCalendarPackEn.project.moons[0].name).toBe("Main moon");
+  });
+
+  it("English pack has weather profiles", () => {
+    expect(defaultFantasyCalendarPackEn.project.seasons.every((season) => season.weatherProfile)).toBe(true);
+  });
+
+  it("English pack has weather events", () => {
+    expect(defaultFantasyCalendarPackEn.project.weatherEvents.length).toBeGreaterThan(0);
+  });
   it("getCalendarPackSummary returns expected counts", () => {
     expect(getCalendarPackSummary(defaultFantasyCalendarPackFr)).toEqual({
       months: 12,

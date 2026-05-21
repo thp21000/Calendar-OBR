@@ -102,7 +102,7 @@ export const PacksSettingsSection = ({ project, onProjectUpdate }: Props) => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `pack-${validation.pack.packId}.json`;
+      link.download = `${validation.pack.packId}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
