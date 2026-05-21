@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CalendarProject } from "./domain/types";
 import { t } from "./i18n/messages";
 import { EventsView } from "./components/EventsView";
@@ -9,7 +9,17 @@ import { PlayerView } from "./components/PlayerView";
 import { getStorageScope, type StorageScope } from "./obr/roomScope";
 import { getViewerRole, type ViewerRole } from "./obr/playerRole";
 import { loadCalendarProject, resetCalendarProject, saveCalendarProject } from "./storage/calendarStorage";
-import { buildPublicCalendarIndex, readCachedPublicSnapshot, readPublicIndex, requestPublicSnapshot, setupGmSnapshotResponder, setupPlayerSnapshotListener, writeCachedPublicSnapshot, type PublicCalendarTodaySnapshot, publishPublicIndex } from "./obr/publicSync";
+import {
+  buildPublicCalendarIndex,
+  publishPublicIndex,
+  readCachedPublicSnapshot,
+  readPublicIndex,
+  requestPublicSnapshot,
+  setupGmSnapshotResponder,
+  setupPlayerSnapshotListener,
+  writeCachedPublicSnapshot,
+  type PublicCalendarTodaySnapshot
+} from "./obr/publicSync";
 
 export const App = () => {
   const [scope, setScope] = useState<StorageScope | null>(null);
@@ -18,21 +28,28 @@ export const App = () => {
   const [viewerRole, setViewerRole] = useState<ViewerRole | null>(null);
   const [revision, setRevision] = useState(0);
   const [publicSnapshot, setPublicSnapshot] = useState<PublicCalendarTodaySnapshot | null>(null);
+  const projectRef = useRef<CalendarProject | null>(null);
+  const revisionRef = useRef(0);
 
   useEffect(() => {
     getStorageScope().then(async (resolved) => {
       setScope(resolved);
       const loaded = loadCalendarProject(resolved.storageKey);
+      projectRef.current = loaded;
       setProject(loaded);
       const role = await getViewerRole();
       setViewerRole(role);
 
       if (role === "gm") {
-        setupGmSnapshotResponder(() => loaded, () => revision);
+        await publishPublicIndex(buildPublicCalendarIndex(loaded, revisionRef.current));
+        setupGmSnapshotResponder(
+          () => projectRef.current ?? loaded,
+          () => revisionRef.current
+        );
       } else {
         const cached = readCachedPublicSnapshot();
         if (cached) setPublicSnapshot(cached);
-        setupPlayerSnapshotListener((snapshot) => {
+        setupPlayerSnapshotListener((snapshot: PublicCalendarTodaySnapshot) => {
           setPublicSnapshot(snapshot);
           writeCachedPublicSnapshot(snapshot);
         });
@@ -42,12 +59,16 @@ export const App = () => {
     });
   }, []);
 
-  if (!scope || !project || !viewerRole) return <main style={{ width: 360, minHeight: 480, padding: 12, color: "#e5e7eb", background: "#10131a" }}>{t("fr", "common.loading")}</main>;
+  if (!scope || !project || !viewerRole) {
+    return <main style={{ width: 360, minHeight: 480, padding: 12, color: "#e5e7eb", background: "#10131a" }}>{t("fr", "common.loading")}</main>;
+  }
 
   const updateProject = (nextProject: CalendarProject) => {
     const result = saveCalendarProject(nextProject, scope.storageKey);
     if (result.ok) {
-      const nextRev = revision + 1;
+      const nextRev = revisionRef.current + 1;
+      revisionRef.current = nextRev;
+      projectRef.current = nextProject;
       setRevision(nextRev);
       setProject(nextProject);
       setSaveError(null);
@@ -56,7 +77,11 @@ export const App = () => {
   };
 
   const setActiveTab = (activeTab: "today" | "month" | "events" | "settings" | "player") => updateProject({ ...project, uiSettings: { ...project.uiSettings, activeTab } });
-  const handleReset = () => setProject(resetCalendarProject(scope.storageKey));
+  const handleReset = () => {
+    const reset = resetCalendarProject(scope.storageKey);
+    projectRef.current = reset;
+    setProject(reset);
+  };
 
   return <main style={{ width: "100%", maxWidth: 360, minHeight: 480, boxSizing: "border-box", fontFamily: "Inter, system-ui, sans-serif", fontSize: 13, background: "#10131a", color: "#e5e7eb", padding: 12, borderRadius: 8, overflowX: "hidden" }}>
     <h1 style={{ fontSize: 16, margin: "0 0 10px" }}>{t(project.locale, "app.title")}</h1>
