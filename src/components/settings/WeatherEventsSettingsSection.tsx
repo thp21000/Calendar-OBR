@@ -7,7 +7,9 @@ import {
   updateWeatherCondition,
   updateWeatherEvent
 } from "../../calendar/weatherEventsLogic";
+import { parseWeatherInput } from "../../calendar/seasonsLogic";
 import type { CalendarProject, WeatherConditionMetric, WeatherConditionOperator } from "../../domain/types";
+import { useEffect, useState } from "react";
 import { t } from "../../i18n/messages";
 
 type Props = {
@@ -36,6 +38,9 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
     ) : (
       <div style={{ display: "grid", gap: 10, marginTop: 8 }}>
         {project.weatherEvents.map((event) => (
+          (() => {
+            const requireAll = event.requireAllConditions ?? true;
+            return (
           <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8 }}>
             <label style={{ display: "block" }}>
               <div style={labelStyle}>{t(project.locale, "weatherEvents.name")}</div>
@@ -54,13 +59,17 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
               <input value={event.link ?? ""} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { link: e.target.value }))} style={inputStyle} />
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <input type="checkbox" checked={event.enabled} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { enabled: e.target.checked }))} />
+              <input
+                type="checkbox"
+                checked={event.enabled !== false}
+                onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { enabled: e.target.checked }))}
+              />
               <span>{t(project.locale, "weatherEvents.enabled")}</span>
             </label>
             <label style={{ display: "block" }}>
               <div style={labelStyle}>{t(project.locale, "weatherEvents.conditions")}</div>
               <select
-                value={event.requireAllConditions ? "all" : "any"}
+                value={requireAll ? "all" : "any"}
                 onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { requireAllConditions: e.target.value === "all" }))}
                 style={inputStyle}
               >
@@ -70,7 +79,7 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
             </label>
 
             <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 6 }}>
-              {event.requireAllConditions ? t(project.locale, "weatherEvents.requireAll") : t(project.locale, "weatherEvents.requireAny")}
+              {requireAll ? t(project.locale, "weatherEvents.requireAll") : t(project.locale, "weatherEvents.requireAny")}
             </div>
             {(event.conditions ?? []).map((condition, index) => (
               <div key={`${event.id}-${index}`} style={{ border: "1px dashed #374151", borderRadius: 6, padding: 6, marginBottom: 6 }}>
@@ -102,11 +111,10 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                 </label>
                 <label style={{ display: "block" }}>
                   <div style={labelStyle}>{t(project.locale, "weatherEvents.value")}</div>
-                  <input
-                    type="number"
+                  <WeatherConditionValueInput
                     value={condition.value}
-                    onChange={(e) => onProjectUpdate(updateWeatherCondition(project, event.id, index, { value: Number(e.target.value) }))}
-                    style={inputStyle}
+                    inputStyle={inputStyle}
+                    onChange={(nextValue) => onProjectUpdate(updateWeatherCondition(project, event.id, index, { value: nextValue }))}
                   />
                 </label>
                 <button type="button" onClick={() => onProjectUpdate(deleteWeatherCondition(project, event.id, index))} style={smallButtonStyle}>
@@ -135,11 +143,45 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
               </button>
             </div>
           </div>
+          );
+          })()
         ))}
       </div>
     )}
   </>
 );
+
+const WeatherConditionValueInput = ({
+  value,
+  inputStyle,
+  onChange
+}: {
+  value: number;
+  inputStyle: React.CSSProperties;
+  onChange: (value: number) => void;
+}) => {
+  const [draft, setDraft] = useState(String(value));
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={draft}
+      onChange={(e) => {
+        const nextDraft = e.target.value;
+        setDraft(nextDraft);
+        const parsed = parseWeatherInput(nextDraft);
+        if (parsed === null) return;
+        onChange(parsed);
+      }}
+      style={inputStyle}
+    />
+  );
+};
 
 const labelStyle = { fontSize: 12, color: "#cbd5e1" };
 const buttonStyle = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "6px 10px", cursor: "pointer" };
