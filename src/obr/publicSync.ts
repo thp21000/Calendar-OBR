@@ -80,7 +80,7 @@ export const writeCachedPublicSnapshot = (snapshot: PublicCalendarTodaySnapshot)
 export const setupPlayerSnapshotListener = (callback: (snapshot: PublicCalendarTodaySnapshot) => void): (() => void) => {
   if (!OBR.isAvailable) return () => undefined;
 
-  let unsubscribe = () => undefined;
+  let unsubscribe: () => void = () => undefined;
   OBR.onReady(() => {
     unsubscribe = OBR.broadcast.onMessage(SNAPSHOT_RESPONSE_CHANNEL, (event) => {
       const data = event.data;
@@ -105,7 +105,7 @@ export const setupGmSnapshotResponder = (
 ): (() => void) => {
   if (!OBR.isAvailable) return () => undefined;
 
-  let unsubscribe = () => undefined;
+  let unsubscribe: () => void = () => undefined;
   OBR.onReady(() => {
     unsubscribe = OBR.broadcast.onMessage(SNAPSHOT_REQUEST_CHANNEL, async (event) => {
       if (!isSnapshotRequestMessage(event.data)) return;
