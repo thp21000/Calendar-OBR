@@ -77,6 +77,30 @@ export const writeCachedPublicSnapshot = (snapshot: PublicCalendarTodaySnapshot)
   }
 };
 
+const getSnapshotCacheKey = (scopeId?: string): string =>
+  scopeId && scopeId.length > 0 ? `${SNAPSHOT_CACHE_KEY}.${scopeId}` : SNAPSHOT_CACHE_KEY;
+
+export const readScopedCachedPublicSnapshot = (scopeId?: string): PublicCalendarTodaySnapshot | null => {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(getSnapshotCacheKey(scopeId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    return isPublicCalendarTodaySnapshot(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+export const writeScopedCachedPublicSnapshot = (snapshot: PublicCalendarTodaySnapshot, scopeId?: string): void => {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(getSnapshotCacheKey(scopeId), JSON.stringify(snapshot));
+  } catch (error) {
+    console.warn("Calendar OBR public snapshot cache failed", error);
+  }
+};
+
 export const setupPlayerSnapshotListener = (callback: (snapshot: PublicCalendarTodaySnapshot) => void): (() => void) => {
   if (!OBR.isAvailable) return () => undefined;
 
@@ -97,6 +121,21 @@ export const requestPublicSnapshot = async (): Promise<void> => {
     const message: SnapshotRequestMessage = { type: "request-today-snapshot" };
     await OBR.broadcast.sendMessage(SNAPSHOT_REQUEST_CHANNEL, message, { destination: "REMOTE" });
   }, undefined);
+};
+
+export const subscribePublicIndex = (callback: (index: PublicCalendarIndex) => void): (() => void) => {
+  if (!OBR.isAvailable) return () => undefined;
+
+  let unsubscribe: () => void = () => undefined;
+  OBR.onReady(() => {
+    unsubscribe = OBR.room.onMetadataChange((metadata) => {
+      const value = metadata[PUBLIC_INDEX_KEY];
+      if (!isPublicCalendarIndex(value)) return;
+      callback(value);
+    });
+  });
+
+  return () => unsubscribe();
 };
 
 export const setupGmSnapshotResponder = (

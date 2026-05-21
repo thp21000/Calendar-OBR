@@ -12,12 +12,13 @@ import { loadCalendarProject, resetCalendarProject, saveCalendarProject } from "
 import {
   buildPublicCalendarIndex,
   publishPublicIndex,
-  readCachedPublicSnapshot,
+  readScopedCachedPublicSnapshot,
   readPublicIndex,
   requestPublicSnapshot,
   setupGmSnapshotResponder,
   setupPlayerSnapshotListener,
-  writeCachedPublicSnapshot,
+  subscribePublicIndex,
+  writeScopedCachedPublicSnapshot,
   type PublicCalendarTodaySnapshot
 } from "./obr/publicSync";
 
@@ -32,6 +33,10 @@ export const App = () => {
   const revisionRef = useRef(0);
 
   useEffect(() => {
+    let cleanupGmResponder: (() => void) | null = null;
+    let cleanupPlayerListener: (() => void) | null = null;
+    let cleanupPublicIndexSubscription: (() => void) | null = null;
+
     getStorageScope().then(async (resolved) => {
       setScope(resolved);
       const loaded = loadCalendarProject(resolved.storageKey);
@@ -42,21 +47,34 @@ export const App = () => {
 
       if (role === "gm") {
         await publishPublicIndex(buildPublicCalendarIndex(loaded, revisionRef.current));
-        setupGmSnapshotResponder(
+        cleanupGmResponder = setupGmSnapshotResponder(
           () => projectRef.current ?? loaded,
           () => revisionRef.current
         );
       } else {
-        const cached = readCachedPublicSnapshot();
+        const cacheScopeId = resolved.id;
+        const cached = readScopedCachedPublicSnapshot(cacheScopeId);
         if (cached) setPublicSnapshot(cached);
-        setupPlayerSnapshotListener((snapshot: PublicCalendarTodaySnapshot) => {
+        cleanupPlayerListener = setupPlayerSnapshotListener((snapshot: PublicCalendarTodaySnapshot) => {
           setPublicSnapshot(snapshot);
-          writeCachedPublicSnapshot(snapshot);
+          writeScopedCachedPublicSnapshot(snapshot, cacheScopeId);
         });
         const idx = await readPublicIndex();
         if (!cached || (idx && cached.revision < idx.revision)) await requestPublicSnapshot();
+        cleanupPublicIndexSubscription = subscribePublicIndex(async (index) => {
+          const latestCached = readScopedCachedPublicSnapshot(cacheScopeId);
+          if (!latestCached || latestCached.revision < index.revision) {
+            await requestPublicSnapshot();
+          }
+        });
       }
     });
+
+    return () => {
+      cleanupGmResponder?.();
+      cleanupPlayerListener?.();
+      cleanupPublicIndexSubscription?.();
+    };
   }, []);
 
   if (!scope || !project || !viewerRole) {
@@ -79,8 +97,12 @@ export const App = () => {
   const setActiveTab = (activeTab: "today" | "month" | "events" | "settings" | "player") => updateProject({ ...project, uiSettings: { ...project.uiSettings, activeTab } });
   const handleReset = () => {
     const reset = resetCalendarProject(scope.storageKey);
+    const nextRev = revisionRef.current + 1;
+    revisionRef.current = nextRev;
     projectRef.current = reset;
+    setRevision(nextRev);
     setProject(reset);
+    if (viewerRole === "gm") publishPublicIndex(buildPublicCalendarIndex(reset, nextRev));
   };
 
   return <main style={{ width: "100%", maxWidth: 360, minHeight: 480, boxSizing: "border-box", fontFamily: "Inter, system-ui, sans-serif", fontSize: 13, background: "#10131a", color: "#e5e7eb", padding: 12, borderRadius: 8, overflowX: "hidden" }}>
