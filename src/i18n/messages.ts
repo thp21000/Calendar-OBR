@@ -122,6 +122,8 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "calendar.triggeredWeatherAlertsCount": "Alertes météo :",
     "calendar.triggerTypeEvent": "Événement",
     "calendar.triggerTypeWeather": "Météo",
+    "calendar.moons": "Lunes",
+    "calendar.noMoon": "Aucune lune configurée",
     "calendar.moonPlaceholder": "Lune à venir",
     "time.current": "Heure actuelle",
     "time.minus2h": "-2 h",
@@ -247,6 +249,14 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "seasons.min": "Min",
     "seasons.max": "Max",
     "seasons.average": "Moyenne",
+    "moon.phase.new": "Nouvelle lune",
+    "moon.phase.waxingCrescent": "Premier croissant",
+    "moon.phase.firstQuarter": "Premier quartier",
+    "moon.phase.waxingGibbous": "Gibbeuse croissante",
+    "moon.phase.full": "Pleine lune",
+    "moon.phase.waningGibbous": "Gibbeuse décroissante",
+    "moon.phase.lastQuarter": "Dernier quartier",
+    "moon.phase.waningCrescent": "Dernier croissant"
   },
   en: {
     "app.title": "Living Calendar",
@@ -369,6 +379,8 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "calendar.triggeredWeatherAlertsCount": "Weather alerts:",
     "calendar.triggerTypeEvent": "Event",
     "calendar.triggerTypeWeather": "Weather",
+    "calendar.moons": "Moons",
+    "calendar.noMoon": "No moon configured",
     "calendar.moonPlaceholder": "Moon coming soon",
     "time.current": "Current time",
     "time.minus2h": "-2 h",
@@ -493,7 +505,15 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "seasons.rain": "Rain",
     "seasons.min": "Min",
     "seasons.max": "Max",
-    "seasons.average": "Average"
+    "seasons.average": "Average",
+    "moon.phase.new": "New moon",
+    ,"moon.phase.waxingCrescent": "Waxing crescent",
+    ,"moon.phase.firstQuarter": "First quarter",
+    ,"moon.phase.waxingGibbous": "Waxing gibbous",
+    ,"moon.phase.full": "Full moon",
+    ,"moon.phase.waningGibbous": "Waning gibbous",
+    ,"moon.phase.lastQuarter": "Last quarter",
+    ,"moon.phase.waningCrescent": "Waning crescent"
   }
 };
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
+import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getNewlyTriggeredWeatherEventsBetween, getTriggeredWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../calendar/weatherLogic";
@@ -26,6 +27,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
   const triggeredWeatherEvents = currentWeather ? getTriggeredWeatherEvents(project, currentWeather) : [];
+  const currentMoonPhases = getCurrentMoonPhases(project);
   const hourlyForecast = getHourlyWeatherForecast(project, 5);
   const dailyForecast = getDailyWeatherForecast(project, 5);
   const weatherUnits = getWeatherUnitLabels(project.locale);
@@ -81,6 +83,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
         dailyForecast={dailyForecast}
         triggeredWeatherEvents={triggeredWeatherEvents}
         weatherUnits={weatherUnits}
+        currentMoonPhases={currentMoonPhases}
       />
 
       <button type="button" onClick={onReset} style={{ border: "1px solid #7f1d1d", borderRadius: 6, background: "#991b1b", color: "#fff", padding: "7px 10px", fontSize: 12 }}>{t(project.locale, "settings.resetCalendar")}</button>

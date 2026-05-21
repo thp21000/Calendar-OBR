@@ -122,7 +122,25 @@ export type SeasonWeatherProfile = {
 export type Moon = {
   id: string;
   name: string;
-  cycleLengthDays?: number;
+  icon?: string;
+  cycleLengthDays: number;
+  cycleOffsetDays?: number;
+};
+
+export type MoonPhaseId =
+  | "new"
+  | "waxingCrescent"
+  | "firstQuarter"
+  | "waxingGibbous"
+  | "full"
+  | "waningGibbous"
+  | "lastQuarter"
+  | "waningCrescent";
+
+export type MoonPhase = {
+  id: MoonPhaseId;
+  icon: string;
+  illumination: number;
 };
 
 export type WeatherConditionMetric = "temperature" | "windSpeed" | "rain";

@@ -1,4 +1,4 @@
-import type { CalendarProject, Season, WeatherSnapshot } from "../../domain/types";
+import type { CalendarProject, MoonPhase, Season, WeatherSnapshot } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
 
@@ -9,7 +9,8 @@ export const WeatherAndSeasonCard = ({
   hourlyForecast,
   dailyForecast,
   triggeredWeatherEvents,
-  weatherUnits
+  weatherUnits,
+  currentMoonPhases
 }: {
   project: CalendarProject;
   currentSeason: Season | undefined;
@@ -18,6 +19,7 @@ export const WeatherAndSeasonCard = ({
   dailyForecast: Array<{ offsetDays: number; weather: WeatherSnapshot }>;
   triggeredWeatherEvents: CalendarProject["weatherEvents"];
   weatherUnits: { temperature: string; windSpeed: string; rain: string };
+  currentMoonPhases: Array<{ moon: CalendarProject["moons"][number]; phase: MoonPhase }>;
 }) => (
   <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -59,7 +61,20 @@ export const WeatherAndSeasonCard = ({
         </div>
       )}
     </div>
-    <div>{t(project.locale, "calendar.moonPlaceholder")}</div>
+    <div style={{ marginTop: 6 }}>
+      <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{t(project.locale, "calendar.moons")}</div>
+      {currentMoonPhases.length === 0 ? (
+        <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "calendar.noMoon")}</div>
+      ) : (
+        <div style={{ display: "grid", gap: 2, fontSize: 12 }}>
+          {currentMoonPhases.map(({ moon, phase }) => (
+            <div key={moon.id}>
+              {phase.icon} {moon.name} — {t(project.locale, `moon.phase.${phase.id}`)} — {phase.illumination} %
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
     <div style={{ marginTop: 8 }}>
       <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{t(project.locale, "calendar.weatherEvents")}</div>
       {triggeredWeatherEvents.length === 0 ? (
