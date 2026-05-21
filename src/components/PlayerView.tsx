@@ -93,4 +93,4 @@ const LocalPlayerPreview = ({ project }: { project: CalendarProject }) => {
       </div>
     </>
   );
-};
+}
