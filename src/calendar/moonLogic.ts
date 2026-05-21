@@ -30,6 +30,16 @@ export const createDefaultMoon = (locale: CalendarProject["locale"]): Moon => ({
   cycleOffsetDays: 0
 });
 
+export const createDefaultMoonSystem = (locale: CalendarProject["locale"]): Moon[] => [
+  {
+    id: "moon-main",
+    name: locale === "fr" ? "Lune principale" : "Main moon",
+    icon: "🌕",
+    cycleLengthDays: 29.5,
+    cycleOffsetDays: 0
+  }
+];
+
 export const addMoon = (project: CalendarProject, moon: Moon): CalendarProject => ({
   ...project,
   moons: [...project.moons, normalizeMoon(moon)]

@@ -30,43 +30,41 @@ export const SettingsView = ({
     <div style={{ maxHeight: 380, overflowY: "auto", overflowX: "hidden", paddingRight: 2 }}>
       {saveError ? <div style={{ color: "#fca5a5", marginBottom: 8 }}>{t(project.locale, "settings.saveError")}</div> : null}
 
-      <CollapsibleSection title={t(project.locale, "settings.section.general")} defaultOpen>
+      <CollapsibleSection title={t(project.locale, "settings.section.general")} storageKey="calendar-obr.settings.section.general">
         <GeneralSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
-      <CollapsibleSection title={t(project.locale, "settings.section.currentTime")} defaultOpen>
+      <CollapsibleSection title={t(project.locale, "settings.section.currentTime")} storageKey="calendar-obr.settings.section.currentTime">
         <CurrentTimeSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
-      <CollapsibleSection title={t(project.locale, "settings.section.calendarStructure")}>
+      <CollapsibleSection title={t(project.locale, "settings.section.calendarStructure")} storageKey="calendar-obr.settings.section.calendarStructure">
         <CalendarStructureSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
-      <CollapsibleSection title={t(project.locale, "settings.section.display")}>
+      <CollapsibleSection title={t(project.locale, "settings.section.display")} storageKey="calendar-obr.settings.section.display">
         <DisplaySettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
-      <CollapsibleSection title={t(project.locale, "settings.section.seasons")}>
+      <CollapsibleSection title={t(project.locale, "settings.section.seasons")} storageKey="calendar-obr.settings.section.seasons">
         <SeasonsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
-
-      <CollapsibleSection title={t(project.locale, "settings.section.moons")}>
+      <CollapsibleSection title={t(project.locale, "settings.section.moons")} storageKey="calendar-obr.settings.section.moons">
         <MoonsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
-      <CollapsibleSection title={t(project.locale, "settings.section.weather")}>
+      <CollapsibleSection title={t(project.locale, "settings.section.weather")} storageKey="calendar-obr.settings.section.weather">
         <WeatherSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
-
-      <CollapsibleSection title={t(project.locale, "settings.section.weatherEvents")}>
+      <CollapsibleSection title={t(project.locale, "settings.section.weatherEvents")} storageKey="calendar-obr.settings.section.weatherEvents">
         <WeatherEventsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
-      <CollapsibleSection title={t(project.locale, "settings.section.data")}>
+      <CollapsibleSection title={t(project.locale, "settings.section.data")} storageKey="calendar-obr.settings.section.data">
         <DataSettingsSection project={project} onProjectUpdate={onProjectUpdate} locale={project.locale} scope={scope} onReset={onReset} />
       </CollapsibleSection>
 
-      <CollapsibleSection title={t(project.locale, "settings.section.future")}>
+      <CollapsibleSection title={t(project.locale, "settings.section.future")} storageKey="calendar-obr.settings.section.future">
         <FutureSettingsSection locale={project.locale} />
       </CollapsibleSection>
     </div>

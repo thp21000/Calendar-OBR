@@ -1,4 +1,5 @@
 import type { CalendarProject } from "../domain/types";
+import { createDefaultMoonSystem } from "../calendar/moonLogic";
 import { sanitizeCalendarProject, validateImportedCalendarProject } from "../importExport/calendarImportExport";
 
 const STORAGE_KEY = "calendar-obr.project.local-dev";
@@ -31,7 +32,7 @@ const defaultProject: CalendarProject = {
   },
   events: [],
   seasons: [],
-  moons: [],
+  moons: createDefaultMoonSystem("fr"),
   weatherSettings: {},
   weatherEvents: [],
   uiSettings: { activeTab: "today", compactMode: true }

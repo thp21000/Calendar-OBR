@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, Moon } from "../../domain/types";
-import { addMoon, createDefaultMoon, deleteMoon, getCurrentMoonPhases, getMoonPhaseForDate, normalizeMoon, updateMoon } from "../moonLogic";
+import { addMoon, createDefaultMoon, createDefaultMoonSystem, deleteMoon, getCurrentMoonPhases, getMoonPhaseForDate, normalizeMoon, updateMoon } from "../moonLogic";
 
 const buildProject = (moons: Moon[]): CalendarProject => ({
   schemaVersion: 1,
@@ -98,5 +98,33 @@ describe("moonLogic", () => {
   it("normalizeMoon conserve cycleOffsetDays négatif", () => {
     const moon = normalizeMoon({ id: "m", name: "A", cycleLengthDays: 29.5, cycleOffsetDays: -4 });
     expect(moon.cycleOffsetDays).toBe(-4);
+  });
+
+  it("createDefaultMoonSystem(fr) retourne Lune principale", () => {
+    const moons = createDefaultMoonSystem("fr");
+    expect(moons).toHaveLength(1);
+    expect(moons[0]?.name).toBe("Lune principale");
+  });
+
+  it("createDefaultMoonSystem(en) retourne Main moon", () => {
+    const moons = createDefaultMoonSystem("en");
+    expect(moons).toHaveLength(1);
+    expect(moons[0]?.name).toBe("Main moon");
+  });
+
+  it("lune par défaut: cycleLengthDays 29.5 et cycleOffsetDays 0", () => {
+    const [moon] = createDefaultMoonSystem("fr");
+    expect(moon?.cycleLengthDays).toBe(29.5);
+    expect(moon?.cycleOffsetDays).toBe(0);
+  });
+
+  it("lune principale: nouvelle lune au début du cycle", () => {
+    const [moon] = createDefaultMoonSystem("fr");
+    expect(getMoonPhaseForDate(moon, 0).id).toBe("new");
+  });
+
+  it("lune principale: pleine lune au milieu du cycle", () => {
+    const [moon] = createDefaultMoonSystem("fr");
+    expect(getMoonPhaseForDate(moon, 14.75).id).toBe("full");
   });
 });
