@@ -1,5 +1,6 @@
 import type { CalendarProject, MoonPhase, Season, WeatherSnapshot } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { getWeatherStateIcon } from "../../calendar/weatherState";
 import { EventIcon } from "../EventIcon";
 
 export const WeatherAndSeasonCard = ({
@@ -28,7 +29,7 @@ export const WeatherAndSeasonCard = ({
     </div>
     <div>
       {t(project.locale, "calendar.weather")}: {currentWeather
-        ? `${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
+        ? `${getWeatherStateIcon(currentWeather.state ?? "clear")} ${t(project.locale, `weather.state.${currentWeather.state ?? "clear"}`)} · ${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
         : t(project.locale, "calendar.noWeather")}
     </div>
     <div style={{ marginTop: 4 }}>

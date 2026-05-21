@@ -8,6 +8,7 @@ import { getCurrentWeather } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import type { CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
+import { getWeatherStateIcon } from "../calendar/weatherState";
 import type { PublicCalendarTodaySnapshot } from "../obr/publicSnapshot";
 import { EventIcon } from "./EventIcon";
 
@@ -31,11 +32,7 @@ const PlayerSnapshotView = ({ project, snapshot }: { project: CalendarProject; s
           {snapshot.season ? <><EventIcon icon={snapshot.season.icon} locale={locale} size={16} /><span>{snapshot.season.name}</span></> : <span>{t(locale, "calendar.noSeason")}</span>}
         </div>
         <div>
-          <strong>{t(locale, "calendar.weather")}:</strong>{" "}
-          {snapshot.weather
-            ? `${snapshot.weather.temperature} ${snapshot.weather.units.temperature} · ${t(locale, "calendar.wind")} ${snapshot.weather.windDirection} ${snapshot.weather.windSpeed} ${snapshot.weather.units.windSpeed} · ${t(locale, "calendar.rain")} ${snapshot.weather.rain} ${snapshot.weather.units.rain}`
-            : t(locale, "calendar.noWeather")}
-        </div>
+          <div><strong>{t(project.locale, "calendar.weather")}:</strong> {snapshot.weather ? `${getWeatherStateIcon(snapshot.weather.state ?? "clear")} ${t(project.locale, `weather.state.${snapshot.weather.state ?? "clear"}`)} · ${snapshot.weather.temperature} ${snapshot.weather.units.temperature}` : t(project.locale, "calendar.noWeather")}</div>
         <div style={{ marginTop: 6 }}>
           <strong>{t(locale, "calendar.moons")}:</strong>
           {snapshot.moons.length === 0 ? (

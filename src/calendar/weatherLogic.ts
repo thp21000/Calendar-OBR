@@ -1,4 +1,5 @@
 import { createDefaultSeasonWeatherProfile, getCurrentSeason } from "./seasonsLogic";
+import { getWeatherState } from "./weatherState";
 import type { CalendarProject, WeatherSnapshot, WindDirection } from "../domain/types";
 
 const WIND_DIRECTIONS: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -43,7 +44,7 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
   const rain = Math.max(0, aroundAverage(profile.rain.min, profile.rain.max, profile.rain.average, seed, "r"));
   const windDirection = WIND_DIRECTIONS[Math.floor(seeded(seed, "dir") * WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
 
-  return { temperature, windSpeed, windDirection, rain };
+  return { temperature, windSpeed, windDirection, rain, state: getWeatherState({ temperature, windSpeed, rain }) };
 };
 
 export const getCurrentWeather = (project: CalendarProject): WeatherSnapshot | undefined =>
@@ -82,7 +83,7 @@ export const getForecastWeatherForTime = (
     }
   }
 
-  return { temperature, windSpeed, windDirection, rain };
+  return { temperature, windSpeed, windDirection, rain, state: getWeatherState({ temperature, windSpeed, rain }) };
 };
 
 export const getHourlyWeatherForecast = (

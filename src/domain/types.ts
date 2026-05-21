@@ -93,11 +93,14 @@ export type WeatherSettings = {
 
 export type WindDirection = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 
+export type WeatherState = "clear" | "cloudy" | "overcast" | "fog" | "lightRain" | "heavyRain" | "storm" | "snow" | "strongWind" | "tempest";
+
 export type WeatherSnapshot = {
   temperature: number;
   windSpeed: number;
   windDirection: WindDirection;
   rain: number;
+  state?: WeatherState;
 };
 
 export type Season = {

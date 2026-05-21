@@ -84,7 +84,13 @@ describe("weatherLogic", () => {
     expect(a).toEqual(b);
   });
 
-  it("retourne un résultat potentiellement différent pour une autre heure", () => {
+  it("generateWeatherForTime retourne bien un state", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const weather = generateWeatherForTime(project, 4, 12)!;
+    expect(weather.state).toBeDefined();
+  });
+it("retourne un résultat potentiellement différent pour une autre heure", () => {
     const project = buildProject();
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
     const a = generateWeatherForTime(project, 4, 12)!;

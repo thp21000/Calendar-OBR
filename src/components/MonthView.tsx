@@ -7,6 +7,7 @@ import { getSeasonsStartingOnDate } from "../calendar/seasonsLogic";
 import type { MonthDayCell } from "../calendar/monthView";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
+import { getWeatherStateIcon } from "../calendar/weatherState";
 import { EventIcon } from "./EventIcon";
 
 const FALLBACK_EVENT_ICON = "◆";
@@ -67,7 +68,7 @@ export const MonthView = ({ project, onCreateEventForDate }: { project: Calendar
           </div>
           <div style={{ fontSize: 12, marginBottom: 6 }}>{dayDetails.formattedDate}</div>
           <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "calendar.season")}:</strong> {dayDetails.seasonName ?? t(project.locale, "calendar.noSeason")}</div>
-          <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayWeather")}:</strong> {dayDetails.weather ? `${dayDetails.weather.temperature}° · ${t(project.locale, "calendar.wind")} ${dayDetails.weather.windSpeed} · ${t(project.locale, "calendar.rain")} ${dayDetails.weather.rain}` : t(project.locale, "calendar.noWeather")}</div>
+          <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayWeather")}:</strong> {dayDetails.weather ? `${getWeatherStateIcon(dayDetails.weather.state ?? "clear")} ${t(project.locale, `weather.state.${dayDetails.weather.state ?? "clear"}`)} · ${dayDetails.weather.temperature}° · ${t(project.locale, "calendar.wind")} ${dayDetails.weather.windSpeed} · ${t(project.locale, "calendar.rain")} ${dayDetails.weather.rain}` : t(project.locale, "calendar.noWeather")}</div>
           <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayMoons")}:</strong> {dayDetails.moonPhases.length === 0 ? t(project.locale, "calendar.noMoon") : dayDetails.moonPhases.map((m) => `${m.phaseIcon} ${m.moonName}`).join(" · ")}</div>
           <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayEvents")}:</strong></div>
           {dayDetails.events.length === 0 ? <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "month.noEventsForDay")}</div> : (
