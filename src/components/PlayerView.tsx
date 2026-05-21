@@ -31,7 +31,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
       </>
     );
   }
-
+}
 const LocalPlayerPreview = ({ project }: { project: CalendarProject }) => {
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const visibleEvents = getPlayerVisibleEventsForCurrentDay(project);
@@ -93,4 +93,4 @@ const LocalPlayerPreview = ({ project }: { project: CalendarProject }) => {
       </div>
     </>
   );
-}
+},
