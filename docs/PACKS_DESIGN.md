@@ -1,8 +1,12 @@
-# Packs Design — OBR Living Calendar
+# Packs Design — Calendar OBR
+
+## Statut actuel
+
+Le MVP est terminé et validé.
 
 ## Objectif
 
-Le projet doit permettre de créer et distribuer des packs prêts à l’emploi.
+Le système de packs permet de créer, importer, exporter et distribuer des calendriers prêts à l’emploi.
 
 Ces packs pourront être proposés via Patreon ou partagés gratuitement.
 
@@ -14,17 +18,348 @@ Ils doivent permettre à un MJ d’importer rapidement :
 - des événements météo ;
 - des lunes ;
 - des profils météo ;
+- des paramètres météo ;
 - ou un ensemble complet prêt à jouer.
 
 ## Important
 
-Les packs Patreon ne sont PAS à implémenter complètement dans le MVP.
+Les packs Patreon avancés ne sont pas encore implémentés.
 
-Cependant, la structure JSON du projet doit être pensée dès le début pour ne pas bloquer cette fonctionnalité plus tard.
+Non implémenté actuellement :
 
-Le MVP doit surtout avoir un import/export JSON propre et fiable.
+- marketplace ;
+- authentification Patreon ;
+- gestion de droits ;
+- téléchargement distant ;
+- packs distants par URL ;
+- import partiel ;
+- fusion intelligente ;
+- mise à jour incrémentale d’un pack.
 
-## Types de packs possibles
+Le MVP possède toutefois une base solide :
+
+- packs intégrés ;
+- import local de pack JSON ;
+- export du calendrier courant comme pack JSON ;
+- validation des packs ;
+- remplacement complet du calendrier courant après confirmation.
+
+## Format actuel d’un CalendarPack
+
+Le format utilisé actuellement est `CalendarPack`.
+
+```ts
+export type CalendarPack = {
+  schemaVersion: number;
+  packId: string;
+  packVersion: string;
+  name: string;
+  description?: string;
+  author?: string;
+  locale: LocaleCode;
+  project: CalendarProject;
+};
+```
+
+Un pack contient donc un `CalendarProject` complet.
+
+Cela signifie qu’un pack peut contenir :
+
+- système de calendrier ;
+- mois ;
+- jours de semaine ;
+- date et heure de départ ;
+- événements ;
+- saisons ;
+- profils météo ;
+- lunes ;
+- paramètres météo ;
+- événements météo ;
+- paramètres UI utiles.
+
+## Packs intégrés actuels
+
+Les packs intégrés sont définis dans :
+
+```txt
+src/packs/defaultFantasyCalendarPack.ts
+```
+
+Packs disponibles :
+
+- `fantasy-classic-fr`
+  - nom : Calendrier fantasy classique ;
+  - langue : français ;
+  - contenu : calendrier fantasy générique avec saisons, lune principale et météo de base.
+
+- `fantasy-classic-en`
+  - nom : Classic fantasy calendar ;
+  - langue : anglais ;
+  - contenu : calendrier fantasy générique avec saisons, lune principale et météo de base.
+
+Chaque pack intégré contient :
+
+- 12 mois ;
+- 7 jours de semaine ;
+- 4 saisons ;
+- profils météo de saison ;
+- 1 lune principale ;
+- événements météo de base ;
+- paramètres météo.
+
+## Sélection des packs par langue
+
+La fonction :
+
+```ts
+getBuiltInCalendarPacks(locale)
+```
+
+retourne les packs intégrés correspondant à la langue demandée.
+
+Comportement attendu :
+
+- si `locale = "fr"` :
+  - retourner les packs FR ;
+- si `locale = "en"` :
+  - retourner les packs EN ;
+- si aucun pack n’existe dans la langue demandée :
+  - utiliser un fallback FR.
+
+Actuellement :
+
+- l’interface FR voit `fantasy-classic-fr` ;
+- l’interface EN voit `fantasy-classic-en` ;
+- l’interface EN ne doit pas voir le pack FR tant qu’un pack EN existe.
+
+## Logique des packs
+
+La logique pure est dans :
+
+```txt
+src/packs/calendarPacks.ts
+```
+
+Fonctions principales :
+
+```ts
+getBuiltInCalendarPacks(locale)
+validateCalendarPack(pack)
+importCalendarPack(pack, currentProject)
+createCalendarPackFromProject(project, metadata)
+exportCalendarPack(pack)
+getCalendarPackSummary(pack)
+```
+
+### getBuiltInCalendarPacks
+
+Retourne les packs intégrés disponibles pour une langue.
+
+### validateCalendarPack
+
+Valide la structure du pack et le `CalendarProject` inclus.
+
+Cette fonction vérifie notamment :
+
+- `schemaVersion` ;
+- `packId` ;
+- `packVersion` ;
+- `name` ;
+- `locale` ;
+- `description` si présent ;
+- `author` si présent ;
+- validité du projet inclus.
+
+Le projet inclus est validé et assaini avec la logique existante de calendrier.
+
+### importCalendarPack
+
+Importe un pack valide.
+
+Comportement :
+
+- si le pack est valide :
+  - retourne le projet du pack ;
+- si le pack est invalide :
+  - conserve le projet courant ;
+  - retourne une erreur.
+
+Important :
+
+- l’import de pack remplace le calendrier courant ;
+- il ne fait pas de fusion ;
+- il ne fait pas d’import partiel.
+
+### createCalendarPackFromProject
+
+Crée un `CalendarPack` à partir du calendrier courant.
+
+Métadonnées utilisées :
+
+- `packId` ;
+- `packVersion` ;
+- `name` ;
+- `description` ;
+- `author`.
+
+Règles :
+
+- si `packId` est vide, générer un identifiant simple à partir du nom ;
+- si `packVersion` est vide, utiliser `1.0.0` ;
+- si `name` est vide, utiliser le nom du calendrier ;
+- ne pas modifier le projet original ;
+- cloner le projet dans le pack.
+
+### exportCalendarPack
+
+Convertit un pack en JSON formaté.
+
+```ts
+JSON.stringify(pack, null, 2)
+```
+
+### getCalendarPackSummary
+
+Retourne un résumé simple :
+
+- nombre de mois ;
+- nombre de saisons ;
+- nombre de lunes ;
+- nombre d’événements météo.
+
+Ce résumé est affiché dans l’interface.
+
+## Interface Packs
+
+L’interface est dans :
+
+```txt
+src/components/settings/PacksSettingsSection.tsx
+```
+
+Elle est accessible dans :
+
+```txt
+Paramètres > Packs
+```
+
+Fonctions disponibles :
+
+- afficher les packs intégrés ;
+- afficher nom, description, auteur, version ;
+- afficher un résumé du contenu ;
+- appliquer un pack intégré ;
+- importer un pack JSON externe ;
+- exporter le calendrier actuel comme pack JSON.
+
+## Application d’un pack intégré
+
+L’application d’un pack intégré doit :
+
+- demander confirmation ;
+- remplacer le calendrier courant si l’utilisateur confirme ;
+- ne rien modifier si l’utilisateur annule ;
+- afficher une erreur si le pack est invalide.
+
+Texte attendu :
+
+```txt
+Appliquer ce pack remplacera le calendrier actuel de cette room. Continuer ?
+```
+
+En anglais :
+
+```txt
+Applying this pack will replace the current calendar for this room. Continue?
+```
+
+## Import d’un pack JSON externe
+
+L’import de pack JSON externe utilise un fichier local `.json`.
+
+Comportement :
+
+1. L’utilisateur choisit un fichier.
+2. Le fichier est lu.
+3. Le JSON est parsé.
+4. Le pack est validé avec `validateCalendarPack`.
+5. Si le pack est valide :
+   - afficher le pack sélectionné ;
+   - demander confirmation ;
+   - remplacer le calendrier courant si confirmé.
+6. Si le pack est invalide :
+   - afficher une erreur ;
+   - ne pas modifier le calendrier courant.
+
+Le fichier doit contenir un objet `CalendarPack`.
+
+## Export du calendrier actuel comme pack JSON
+
+L’export permet de transformer le calendrier courant en pack.
+
+Champs demandés :
+
+- ID du pack ;
+- version du pack ;
+- nom du pack ;
+- description ;
+- auteur.
+
+Comportement :
+
+1. Créer le pack avec `createCalendarPackFromProject`.
+2. Valider le pack avec `validateCalendarPack`.
+3. Exporter avec `exportCalendarPack`.
+4. Télécharger le fichier JSON.
+
+Nom de fichier actuel :
+
+```txt
+<packId>.json
+```
+
+Le JSON exporté doit être réimportable comme pack.
+
+## Résumé de pack
+
+`getCalendarPackSummary(pack)` retourne :
+
+- nombre de mois ;
+- nombre de saisons ;
+- nombre de lunes ;
+- nombre d’événements météo.
+
+Ce résumé est affiché dans la section Packs.
+
+## Tests
+
+Les tests des packs sont dans :
+
+```txt
+src/packs/__tests__/calendarPacks.test.ts
+```
+
+Ils couvrent :
+
+- disponibilité des packs intégrés ;
+- filtrage FR/EN ;
+- validité des packs intégrés ;
+- rejet des packs invalides ;
+- import valide remplaçant le projet ;
+- import invalide conservant le projet courant ;
+- résumé de pack ;
+- création d’un pack depuis le projet courant ;
+- absence de mutation du projet original ;
+- génération de `packId` ;
+- version par défaut ;
+- export JSON ;
+- revalidation du JSON exporté.
+
+## Types de packs possibles à terme
+
+Le système actuel utilise surtout des packs de calendrier complet.
+
+À terme, on pourra prévoir plusieurs types de packs.
 
 ### Calendrier complet
 
@@ -86,8 +421,9 @@ Utilisation :
 Contient :
 
 - une ou plusieurs lunes ;
-- phases ;
-- événements liés aux lunes.
+- cycles lunaires ;
+- phases calculées ;
+- événements liés aux lunes à terme.
 
 Utilisation :
 
@@ -109,116 +445,27 @@ Utilisation :
 
 - pack premium prêt à l’emploi.
 
-## Exemples de packs Patreon
+## Modes d’import prévus à terme
 
-Idées de packs possibles :
-
-- Fantasy Classic Calendar ;
-- Dark Winter Calendar ;
-- Desert Survival Weather ;
-- Maritime Campaign Weather ;
-- Sacred Days & Festivals ;
-- Occult Moon Cycles ;
-- Dangerous Weather Events ;
-- Medieval Rural Calendar ;
-- Exploration Campaign Calendar ;
-- Kingmaker-like Exploration Pack non officiel.
-
-## Structure générale d’un pack
-
-Un pack doit contenir des métadonnées claires.
-
-Exemple conceptuel :
-
-```json
-{
-  "packType": "calendar-pack",
-  "schemaVersion": 1,
-  "packVersion": "1.0.0",
-  "name": "Fantasy Classic Calendar",
-  "author": "GM Tools & Resources",
-  "description": "Calendrier fantasy générique avec saisons, lunes et événements.",
-  "language": "fr",
-  "compatibility": {
-    "minimumAppVersion": "0.1.0",
-    "maximumSchemaVersion": 1
-  },
-  "content": {
-    "calendarSystem": {},
-    "seasons": [],
-    "moons": [],
-    "events": [],
-    "weatherSettings": {},
-    "weatherEvents": []
-  }
-}
-```
-
-## Types de packs
-
-Prévoir une valeur `packType`.
-
-Valeurs possibles :
-
-```ts
-type CalendarPackType =
-  | "full-calendar"
-  | "calendar-system"
-  | "seasons"
-  | "events"
-  | "weather"
-  | "weather-events"
-  | "moons"
-  | "campaign-pack";
-```
-
-## Métadonnées recommandées
-
-```ts
-type CalendarPackMetadata = {
-  packType: CalendarPackType;
-  schemaVersion: number;
-  packVersion: string;
-  name: string;
-  author: string;
-  description: string;
-  language: "fr" | "en" | "multi";
-  tags?: string[];
-  compatibility: {
-    minimumAppVersion?: string;
-    maximumSchemaVersion?: number;
-  };
-};
-```
-
-## Contenu du pack
-
-```ts
-type CalendarPackContent = {
-  calendarSystem?: CalendarSystem;
-  seasons?: Season[];
-  moons?: Moon[];
-  events?: CalendarEvent[];
-  weatherSettings?: WeatherSettings;
-  weatherEvents?: WeatherEvent[];
-};
-```
-
-## Modes d’import prévus
-
-L’utilisateur doit pouvoir choisir comment importer un pack.
+Actuellement, seul le remplacement complet existe.
 
 ### Remplacer
 
-Remplace les données existantes.
+Remplace le calendrier courant.
 
-À utiliser avec prudence.
+Statut :
 
-Doit demander confirmation.
+- déjà fait pour les packs complets.
+
+Doit toujours demander confirmation.
 
 ### Ajouter
 
 Ajoute les nouvelles données aux données actuelles.
+
+Statut :
+
+- non implémenté.
 
 Risque de doublons.
 
@@ -226,28 +473,15 @@ Risque de doublons.
 
 Ajoute les nouvelles données, mais tente d’éviter les doublons via les identifiants.
 
-Plus avancé.
+Statut :
+
+- non implémenté.
 
 Peut être prévu en V2.
 
-### Créer un nouveau calendrier
+### Import sélectif
 
-Crée un calendrier séparé à partir du pack.
-
-Très utile pour les packs complets.
-
-## Import sélectif
-
-À prévoir pour V2.
-
-Lorsqu’un pack contient plusieurs types de données, le MJ doit pouvoir choisir :
-
-- importer le calendrier ;
-- importer les saisons ;
-- importer les événements ;
-- importer les lunes ;
-- importer les événements météo ;
-- importer la configuration météo.
+Permet de choisir quoi importer.
 
 Exemple :
 
@@ -259,6 +493,10 @@ Ce pack contient :
 [x] Lunes
 [ ] Événements météo
 ```
+
+Statut :
+
+- non implémenté.
 
 ## Identifiants
 
@@ -274,7 +512,7 @@ event-spring-festival
 weather-event-muddy-roads
 ```
 
-Les identifiants permettent :
+Les identifiants permettent à terme :
 
 - la fusion ;
 - la détection de doublons ;
@@ -299,15 +537,15 @@ if (schemaVersion === 1) {
 }
 ```
 
-## App version
+## App version et pack version
 
-Les exports complets du calendrier doivent aussi inclure :
+Les exports complets du calendrier utilisent :
 
 ```json
 "appVersion": "0.1.0"
 ```
 
-Pour les packs, utiliser :
+Les packs utilisent :
 
 ```json
 "packVersion": "1.0.0"
@@ -318,149 +556,107 @@ Pour les packs, utiliser :
 L’import doit vérifier :
 
 - que le JSON est valide ;
-- que schemaVersion existe ;
-- que le type de pack est reconnu ;
-- que les données principales sont présentes ;
+- que `schemaVersion` existe ;
+- que `packId` existe ;
+- que `packVersion` existe ;
+- que `name` existe ;
+- que `locale` est valide ;
+- que le `CalendarProject` inclus est valide ;
 - que les tableaux attendus sont bien des tableaux ;
-- que les identifiants ne sont pas vides.
+- que les identifiants importants ne sont pas vides.
 
-En cas d’erreur, afficher un message clair.
+En cas d’erreur :
 
-Ne pas écraser les données existantes si l’import échoue.
+- afficher un message clair ;
+- ne pas écraser les données existantes ;
+- conserver le calendrier courant.
 
-## Exports du MVP
+## Priorités post-MVP packs
 
-Dans le MVP, priorité à :
+### Priorité 1 — UX
 
-- export calendrier complet ;
-- import calendrier complet.
+- rendre la section Packs plus compacte si elle devient trop longue ;
+- améliorer la distinction entre packs intégrés, import et export ;
+- améliorer la prévisualisation avant import ;
+- afficher plus clairement le contenu d’un pack.
 
-Le format doit déjà contenir des sections vides ou optionnelles pour les futures fonctionnalités :
+### Priorité 2 — Contenu
 
-```json
-{
-  "schemaVersion": 1,
-  "appVersion": "0.1.0",
-  "id": "calendar-id",
-  "name": "Calendrier de campagne",
-  "calendarSystem": {},
-  "currentTime": {},
-  "events": [],
-  "seasons": [],
-  "moons": [],
-  "weatherSettings": {},
-  "weatherEvents": [],
-  "uiSettings": {}
-}
-```
+- ajouter des packs intégrés supplémentaires ;
+- préparer des packs JSON téléchargeables manuellement ;
+- préparer des packs Patreon sans authentification intégrée ;
+- créer des exemples FR/EN cohérents.
 
-Même si seasons, moons, weatherSettings et weatherEvents ne sont pas encore utilisés, leur présence ou leur prise en charge optionnelle aidera pour la V1.
+### Priorité 3 — Import partiel
 
-## Exports V1
+- importer seulement les saisons ;
+- importer seulement les événements ;
+- importer seulement la météo ;
+- importer seulement les lunes ;
+- importer seulement les événements météo.
 
-En V1, ajouter :
+### Priorité 4 — Fusion
 
-- export saisons ;
-- import saisons ;
-- export lune ;
-- import lune ;
-- export météo ;
-- import météo.
+- fusionner les contenus par identifiants ;
+- éviter les doublons ;
+- proposer un aperçu des conflits ;
+- permettre de remplacer ou conserver les éléments existants.
 
-## Exports V1.5
+### Priorité 5 — Distribution avancée
 
-En V1.5, ajouter :
+Seulement plus tard :
 
-- export événements météo ;
-- import événements météo ;
-- export événements lunaires ;
-- import événements lunaires.
+- téléchargement distant ;
+- index de packs ;
+- marketplace ;
+- authentification Patreon ;
+- gestion de droits.
 
-## Exports V2
+## Exemples de packs Patreon
 
-En V2, ajouter :
+Idées de packs possibles :
 
-- packs complets ;
-- import sélectif ;
+- Fantasy Classic Calendar ;
+- Dark Winter Calendar ;
+- Desert Survival Weather ;
+- Maritime Campaign Weather ;
+- Sacred Days & Festivals ;
+- Occult Moon Cycles ;
+- Dangerous Weather Events ;
+- Medieval Rural Calendar ;
+- Exploration Campaign Calendar ;
+- Kingmaker-like Exploration Pack non officiel.
+
+## Limites actuelles
+
+Non implémenté actuellement :
+
+- marketplace ;
+- authentification Patreon ;
+- gestion de droits ;
+- téléchargement distant ;
+- packs distants par URL ;
+- import partiel ;
 - fusion intelligente ;
-- prévisualisation du contenu du pack ;
-- affichage du nom, auteur, version et description du pack.
+- mise à jour incrémentale d’un pack ;
+- tags de pack ;
+- compatibilité minimum/maximum d’app ;
+- aperçu détaillé de tous les contenus d’un pack.
 
-## Exemple de pack simple : saisons
+## Évolutions futures possibles
 
-```json
-{
-  "packType": "seasons",
-  "schemaVersion": 1,
-  "packVersion": "1.0.0",
-  "name": "Saisons fantasy tempérées",
-  "author": "GM Tools & Resources",
-  "description": "Quatre saisons tempérées pour une campagne fantasy classique.",
-  "language": "fr",
-  "compatibility": {
-    "minimumAppVersion": "0.1.0",
-    "maximumSchemaVersion": 1
-  },
-  "content": {
-    "seasons": [
-      {
-        "id": "spring",
-        "name": "Printemps",
-        "icon": "🌱"
-      },
-      {
-        "id": "summer",
-        "name": "Été",
-        "icon": "☀️"
-      },
-      {
-        "id": "autumn",
-        "name": "Automne",
-        "icon": "🍂"
-      },
-      {
-        "id": "winter",
-        "name": "Hiver",
-        "icon": "❄️"
-      }
-    ]
-  }
-}
-```
+Idées futures :
 
-## Exemple de pack simple : événements météo
-
-```json
-{
-  "packType": "weather-events",
-  "schemaVersion": 1,
-  "packVersion": "1.0.0",
-  "name": "Événements météo dangereux",
-  "author": "GM Tools & Resources",
-  "description": "Événements conditionnels pour rendre la météo plus utile en exploration.",
-  "language": "fr",
-  "compatibility": {
-    "minimumAppVersion": "0.1.0",
-    "maximumSchemaVersion": 1
-  },
-  "content": {
-    "weatherEvents": [
-      {
-        "id": "muddy-roads",
-        "name": "Routes boueuses",
-        "icon": "🌧️",
-        "summary": "Les chemins deviennent lourds et collants."
-      },
-      {
-        "id": "sudden-flood",
-        "name": "Crue soudaine",
-        "icon": "🌊",
-        "summary": "Les eaux montent rapidement."
-      }
-    ]
-  }
-}
-```
+- importer seulement les saisons ;
+- importer seulement les événements ;
+- importer seulement la météo ;
+- importer seulement les lunes ;
+- fusionner les contenus par identifiants ;
+- prévisualiser les mois/saisons/événements avant import ;
+- ajouter des tags ;
+- ajouter une compatibilité par version d’app ;
+- proposer des packs Patreon téléchargeables manuellement ;
+- proposer plus de packs intégrés gratuits.
 
 ## Philosophie des packs Patreon
 
@@ -483,18 +679,22 @@ Exemple de présentation Patreon :
 
 ## Règle importante pour Codex
 
-Ne pas implémenter tout le système de packs dès le MVP.
+Ne pas implémenter tout le système de packs avancé maintenant.
 
-Pour le MVP :
+Pour le post-MVP proche :
 
-- créer un export/import complet fiable ;
-- prévoir schemaVersion ;
-- prévoir des champs optionnels pour les futures données ;
-- ne pas coder l’import sélectif avancé maintenant.
+- garder l’import/export complet fiable ;
+- garder la validation de pack ;
+- garder l’import de pack comme remplacement complet ;
+- garder l’export du calendrier courant comme pack JSON ;
+- améliorer l’UX ;
+- ajouter éventuellement des packs intégrés supplémentaires.
 
-Pour la V2 :
+Ne pas coder sans demande explicite :
 
-- ajouter les vrais packs ;
-- ajouter la prévisualisation ;
-- ajouter la fusion ;
-- ajouter l’import sélectif.
+- import sélectif avancé ;
+- fusion ;
+- marketplace ;
+- authentification Patreon ;
+- téléchargement distant ;
+- gestion de droits.
