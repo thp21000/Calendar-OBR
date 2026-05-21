@@ -2,6 +2,7 @@ import { useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
+import { createNotificationsFromTriggers, type CalendarNotification } from "../calendar/notifications";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getNewlyTriggeredWeatherEventsBetween, getTriggeredWeatherEvents } from "../calendar/weatherEventsLogic";
@@ -23,6 +24,7 @@ const quickActions: QuickAction[] = [
 const buttonStyle = { border: "1px solid #8b5cf6", borderRadius: 8, background: "#1a1530", color: "#c4b5fd", padding: "8px 6px", fontSize: 12, fontWeight: 700, textTransform: "uppercase" as const, cursor: "pointer" };
 
 export const TodayView = ({ project, onProjectUpdate, onReset }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; onReset: () => void; }) => {
+  const dismissedStorageKey = `calendar-obr.notifications.dismissed.${project.id}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
@@ -34,6 +36,26 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
   const eventsToday = getEventsForCurrentDay(project);
   const [lastTriggeredEvents, setLastTriggeredEvents] = useState<CalendarEvent[]>([]);
   const [lastTriggeredWeatherEvents, setLastTriggeredWeatherEvents] = useState<CalendarProject["weatherEvents"]>([]);
+  const [notifications, setNotifications] = useState<CalendarNotification[]>([]);
+
+  const readDismissed = (): Set<string> => {
+    try {
+      const raw = sessionStorage.getItem(dismissedStorageKey);
+      if (!raw) return new Set<string>();
+      const parsed = JSON.parse(raw) as unknown;
+      return Array.isArray(parsed) ? new Set(parsed.filter((v): v is string => typeof v === "string")) : new Set<string>();
+    } catch {
+      return new Set<string>();
+    }
+  };
+
+  const persistDismissed = (values: Set<string>) => {
+    try {
+      sessionStorage.setItem(dismissedStorageKey, JSON.stringify([...values]));
+    } catch {
+      // noop
+    }
+  };
 
   const applyTimeDelta = (deltaMinutes: number) => {
     const previousTime = project.currentTime;
@@ -45,6 +67,15 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
       const completed = getCompletedEventsBetween(project, previousTime, nextTime);
       setLastTriggeredEvents(triggered);
       setLastTriggeredWeatherEvents(triggeredWeather);
+      const dismissed = readDismissed();
+      const created = createNotificationsFromTriggers(triggered, triggeredWeather, nextTime).filter((item) => !dismissed.has(item.id));
+      setNotifications((prev) => {
+        const merged = new Map<string, CalendarNotification>();
+        [...prev, ...created].forEach((item) => {
+          if (!dismissed.has(item.id)) merged.set(item.id, item);
+        });
+        return [...merged.values()];
+      });
       onProjectUpdate(applyEventCompletionActions({ ...project, currentTime: nextTime }, completed));
       return;
     } else {
@@ -64,11 +95,12 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
 
       <TriggerSummaryCard
         locale={project.locale}
-        triggeredEvents={lastTriggeredEvents}
-        triggeredWeatherEvents={lastTriggeredWeatherEvents}
-        onDismiss={() => {
-          setLastTriggeredEvents([]);
-          setLastTriggeredWeatherEvents([]);
+        notifications={notifications}
+        onDismiss={(id) => {
+          setNotifications((prev) => prev.filter((item) => item.id !== id));
+          const dismissed = readDismissed();
+          dismissed.add(id);
+          persistDismissed(dismissed);
         }}
       />
 
