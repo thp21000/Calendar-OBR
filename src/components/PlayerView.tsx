@@ -21,6 +21,7 @@ export const PlayerView = ({
 }) => {
   if (snapshot) {
     const locale = snapshot.locale;
+    const weatherState = snapshot.weather?.state ?? "clear";
 
     return (
       <>
@@ -44,7 +45,7 @@ export const PlayerView = ({
           <div>
             <strong>{t(locale, "calendar.weather")}:</strong>{" "}
             {snapshot.weather
-              ? `${getWeatherStateIcon(snapshot.weather.state ?? "clear")} ${t(locale, `weather.state.${snapshot.weather.state ?? "clear"`)} · ${snapshot.weather.temperature} ${snapshot.weather.units.temperature} · ${t(locale, "calendar.wind")} ${snapshot.weather.windDirection} ${snapshot.weather.windSpeed} ${snapshot.weather.units.windSpeed} · ${t(locale, "calendar.rain")} ${snapshot.weather.rain} ${snapshot.weather.units.rain}`
+              ? `${getWeatherStateIcon(weatherState)} ${t(locale, `weather.state.${weatherState}`)} · ${snapshot.weather.temperature} ${snapshot.weather.units.temperature} · ${t(locale, "calendar.wind")} ${snapshot.weather.windDirection} ${snapshot.weather.windSpeed} ${snapshot.weather.units.windSpeed} · ${t(locale, "calendar.rain")} ${snapshot.weather.rain} ${snapshot.weather.units.rain}`
               : t(locale, "calendar.noWeather")}
           </div>
 
@@ -94,6 +95,7 @@ export const PlayerView = ({
   const currentWeather = getCurrentWeather(project);
   const currentMoonPhases = getCurrentMoonPhases(project);
   const weatherUnits = getWeatherUnitLabels(project.locale);
+  const weatherState = currentWeather?.state ?? "clear";
 
   return (
     <>
@@ -117,7 +119,7 @@ export const PlayerView = ({
         <div>
           <strong>{t(project.locale, "calendar.weather")}:</strong>{" "}
           {currentWeather
-            ? `${getWeatherStateIcon(currentWeather.state ?? "clear")} ${t(project.locale, `weather.state.${currentWeather.state ?? "clear"`)} · ${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
+            ? `${getWeatherStateIcon(weatherState)} ${t(project.locale, `weather.state.${weatherState}`)} · ${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
             : t(project.locale, "calendar.noWeather")}
         </div>
 
