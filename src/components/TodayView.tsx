@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
+import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getNewlyTriggeredWeatherEventsBetween, getTriggeredWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
-import { formatEventDateTime, formatEventTimeShort, formatEventVisibility } from "../calendar/formatEvent";
-import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
-import { EventIcon } from "./EventIcon";
+import { TodayEventsCard } from "./today/TodayEventsCard";
+import { TriggerSummaryCard } from "./today/TriggerSummaryCard";
+import { TriggeredEventsCard } from "./today/TriggeredEventsCard";
+import { TriggeredWeatherAlertsCard } from "./today/TriggeredWeatherAlertsCard";
+import { WeatherAndSeasonCard } from "./today/WeatherAndSeasonCard";
 
 type QuickAction = { key: string; deltaMinutes: number };
 const quickActions: QuickAction[] = [
@@ -56,167 +59,29 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
       <div style={{ marginBottom: 10, fontSize: 14, fontWeight: 700 }}>{formatDisplayDate(displayDate, project.locale)}</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>{quickActions.map((action) => <button key={action.key} type="button" onClick={() => applyTimeDelta(action.deltaMinutes)} style={buttonStyle}>{t(project.locale, action.key)}</button>)}</div>
       <button type="button" onClick={() => applyTimeDelta(480)} style={{ ...buttonStyle, width: "100%", marginBottom: 10, textTransform: "none" }}>🛌 {t(project.locale, "time.longRest")}</button>
-      {lastTriggeredEvents.length > 0 || lastTriggeredWeatherEvents.length > 0 ? (
-        <div style={{ border: "1px solid #7c3aed", borderRadius: 8, padding: 8, marginBottom: 10, background: "#1f1147" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <strong style={{ fontSize: 13 }}>{t(project.locale, "calendar.newTriggers")}</strong>
-            <button
-              type="button"
-              onClick={() => {
-                setLastTriggeredEvents([]);
-                setLastTriggeredWeatherEvents([]);
-              }}
-              style={{ border: "1px solid #6d28d9", borderRadius: 6, background: "#2e1065", color: "#ddd6fe", padding: "3px 8px", fontSize: 11, cursor: "pointer" }}
-            >
-              {t(project.locale, "common.dismiss")}
-            </button>
-          </div>
-          {lastTriggeredEvents.length > 0 ? <div style={{ fontSize: 12, color: "#ddd6fe", marginTop: 5 }}>{t(project.locale, "calendar.triggeredEventsCount")} {lastTriggeredEvents.length}</div> : null}
-          {lastTriggeredWeatherEvents.length > 0 ? <div style={{ fontSize: 12, color: "#ddd6fe", marginTop: 2 }}>{t(project.locale, "calendar.triggeredWeatherAlertsCount")} {lastTriggeredWeatherEvents.length}</div> : null}
-          <div style={{ display: "grid", gap: 4, marginTop: 6 }}>
-            {lastTriggeredWeatherEvents.map((event) => (
-              <div key={`weather-${event.id}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#f3e8ff" }}>
-                <EventIcon icon={event.icon} locale={project.locale} size={16} />
-                <span>⚠️ {t(project.locale, "calendar.triggerTypeWeather")} — {event.name}</span>
-              </div>
-            ))}
-            {lastTriggeredEvents.map((event) => (
-              <div key={`event-${event.id}`} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#f3e8ff" }}>
-                <EventIcon icon={event.icon} locale={project.locale} size={16} />
-                <span>📅 {t(project.locale, "calendar.triggerTypeEvent")} — {event.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      
-      <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(project.locale, "events.eventsToday")}</div>
-        {eventsToday.length === 0 ? <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "events.noEventsToday")}</div> : <div style={{ display: "grid", gap: 6 }}>
-          {eventsToday.map((event) => <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
-              <EventIcon icon={event.icon} locale={project.locale} />
-              <strong>{event.name}</strong>
-              <span style={{ marginLeft: "auto", fontSize: 12, color: "#cbd5e1" }}>{formatEventTimeShort(project, event)}</span>
-            </div>
-            {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
-            <div style={{ marginTop: 3, fontSize: 11, color: "#9ca3af" }}>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</div>
-          </div>)}
-        </div>}
-      </div>
 
-      <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(project.locale, "calendar.triggeredWeatherAlerts")}</div>
-        {lastTriggeredWeatherEvents.length === 0 ? (
-          <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "calendar.noTriggeredWeatherAlerts")}</div>
-        ) : (
-          <div style={{ display: "grid", gap: 6 }}>
-            {lastTriggeredWeatherEvents.map((event) => (
-              <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <EventIcon icon={event.icon} locale={project.locale} />
-                  <strong>{event.name}</strong>
-                </div>
-                {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
-                {event.link?.trim() ? (
-                  <a href={event.link} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 4, fontSize: 12, color: "#93c5fd" }}>
-                    {t(project.locale, "common.openLink")}
-                  </a>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <TriggerSummaryCard
+        locale={project.locale}
+        triggeredEvents={lastTriggeredEvents}
+        triggeredWeatherEvents={lastTriggeredWeatherEvents}
+        onDismiss={() => {
+          setLastTriggeredEvents([]);
+          setLastTriggeredWeatherEvents([]);
+        }}
+      />
 
-      <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(project.locale, "events.triggered")}</div>
-        {lastTriggeredEvents.length === 0 ? (
-          <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "events.noTriggeredEvents")}</div>
-        ) : (
-          <>
-            <div style={{ fontSize: 11, color: "#93c5fd", marginBottom: 6 }}>{t(project.locale, "events.triggeredRecently")}</div>
-            <div style={{ display: "grid", gap: 6 }}>
-              {lastTriggeredEvents.map((event) => (
-                <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
-                    <EventIcon icon={event.icon} locale={project.locale} />
-                    <strong>{event.name}</strong>
-                  </div>
-                  <div style={{ marginTop: 3, fontSize: 12, color: "#cbd5e1" }}>{formatEventDateTime(project, event)}</div>
-                  {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span>{t(project.locale, "calendar.season")}:</span>
-          {currentSeason ? <><EventIcon icon={currentSeason.icon} locale={project.locale} size={16} /><span>{currentSeason.name}</span></> : <span>{t(project.locale, "calendar.noSeason")}</span>}
-        </div>
-        <div style={{ marginTop: 4 }}>
-          <div style={{ fontSize: 12, fontWeight: 700 }}>{t(project.locale, "calendar.hourlyForecast")}</div>
-          {hourlyForecast.length === 0 ? (
-            <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "calendar.noForecast")}</div>
-          ) : (
-            <div style={{ display: "grid", gap: 2, fontSize: 12 }}>
-              {hourlyForecast.map((entry) => (
-                <div key={entry.offsetHours}>
-                  +{entry.offsetHours} h · {entry.weather.temperature} {weatherUnits.temperature} · {entry.weather.windDirection}{" "}
-                  {entry.weather.windSpeed} {weatherUnits.windSpeed} · {entry.weather.rain} {weatherUnits.rain}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div>
-          {t(project.locale, "calendar.weather")}: {currentWeather
-            ? `${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
-            : t(project.locale, "calendar.noWeather")}
-        </div>
-        <div style={{ marginTop: 6 }}>
-          <div style={{ fontSize: 12, fontWeight: 700 }}>{t(project.locale, "calendar.dailyForecast")}</div>
-          {dailyForecast.length === 0 ? (
-            <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "calendar.noForecast")}</div>
-          ) : (
-            <div style={{ display: "grid", gap: 2, fontSize: 12 }}>
-              {dailyForecast.map((entry) => (
-                <div key={entry.offsetDays}>
-                  +{entry.offsetDays} {project.locale === "fr" ? "j" : "d"} · {entry.weather.temperature} {weatherUnits.temperature} ·{" "}
-                  {entry.weather.windDirection} {entry.weather.windSpeed} {weatherUnits.windSpeed} · {entry.weather.rain} {weatherUnits.rain}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div>{t(project.locale, "calendar.moonPlaceholder")}</div>
-        <div style={{ marginTop: 8 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{t(project.locale, "calendar.weatherEvents")}</div>
-          {triggeredWeatherEvents.length === 0 ? (
-            <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "calendar.noActiveWeatherEvent")}</div>
-          ) : (
-            <div style={{ display: "grid", gap: 6 }}>
-              {triggeredWeatherEvents.map((event) => (
-                <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <EventIcon icon={event.icon} locale={project.locale} />
-                    <strong>{event.name}</strong>
-                  </div>
-                  {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
-                  {event.link?.trim() ? (
-                    <a href={event.link} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 4, fontSize: 12, color: "#93c5fd" }}>
-                      {t(project.locale, "common.openLink")}
-                    </a>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      <TodayEventsCard project={project} eventsToday={eventsToday} />
+      <TriggeredEventsCard project={project} lastTriggeredEvents={lastTriggeredEvents} />
+      <TriggeredWeatherAlertsCard locale={project.locale} weatherEvents={lastTriggeredWeatherEvents} />
+      <WeatherAndSeasonCard
+        project={project}
+        currentSeason={currentSeason}
+        currentWeather={currentWeather}
+        hourlyForecast={hourlyForecast}
+        dailyForecast={dailyForecast}
+        triggeredWeatherEvents={triggeredWeatherEvents}
+        weatherUnits={weatherUnits}
+      />
 
       <button type="button" onClick={onReset} style={{ border: "1px solid #7f1d1d", borderRadius: 6, background: "#991b1b", color: "#fff", padding: "7px 10px", fontSize: 12 }}>{t(project.locale, "settings.resetCalendar")}</button>
     </>
