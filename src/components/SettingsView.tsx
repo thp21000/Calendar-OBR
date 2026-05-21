@@ -9,6 +9,7 @@ import { DisplaySettingsSection } from "./settings/DisplaySettingsSection";
 import { FutureSettingsSection } from "./settings/FutureSettingsSection";
 import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
 import { MoonsSettingsSection } from "./settings/MoonsSettingsSection";
+import { PacksSettingsSection } from "./settings/PacksSettingsSection";
 import { SeasonsSettingsSection } from "./settings/SeasonsSettingsSection";
 import { WeatherEventsSettingsSection } from "./settings/WeatherEventsSettingsSection";
 import { WeatherSettingsSection } from "./settings/WeatherSettingsSection";
@@ -49,6 +50,7 @@ export const SettingsView = ({
       <CollapsibleSection title={t(project.locale, "settings.section.seasons")} storageKey="calendar-obr.settings.section.seasons">
         <SeasonsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
+      
       <CollapsibleSection title={t(project.locale, "settings.section.moons")} storageKey="calendar-obr.settings.section.moons">
         <MoonsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
@@ -56,8 +58,13 @@ export const SettingsView = ({
       <CollapsibleSection title={t(project.locale, "settings.section.weather")} storageKey="calendar-obr.settings.section.weather">
         <WeatherSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
+
       <CollapsibleSection title={t(project.locale, "settings.section.weatherEvents")} storageKey="calendar-obr.settings.section.weatherEvents">
         <WeatherEventsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
+      </CollapsibleSection>
+
+      <CollapsibleSection title={t(project.locale, "settings.section.packs")} storageKey="calendar-obr.settings.section.packs">
+        <PacksSettingsSection project={project} onProjectUpdate={onProjectUpdate} />
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.data")} storageKey="calendar-obr.settings.section.data">
