@@ -3,30 +3,10 @@
 ## Projet
 
 - **Nom** : Calendar OBR — Calendrier vivant pour Owlbear Rodeo
-- **Type** : extension Owlbear Rodeo, frontend web + manifest Owlbear
+- **Type** : extension Owlbear Rodeo, frontend React/TypeScript + manifest OBR
 - **Objectif** : permettre au MJ de gérer un calendrier de campagne vivant directement dans Owlbear Rodeo.
 
-Fonctions visées ou déjà en place :
-
-- date et heure actuelles ;
-- mois personnalisés ;
-- jours de semaine personnalisés ;
-- vue Aujourd’hui ;
-- vue Mois ;
-- vue Événements ;
-- vue Paramètres ;
-- événements de campagne ;
-- récurrences simples ;
-- déclenchement d’événements au passage du temps ;
-- saisons ;
-- météo actuelle ;
-- prévisions météo horaires et journalières ;
-- événements météo automatiques côté logique métier ;
-- import/export JSON ;
-- stockage indépendant par room OBR ;
-- base technique préparée pour lunes, packs Patreon et affichage joueur.
-
-L’addon doit rester utilisable dans un popover OBR compact. Les fonctionnalités doivent être ajoutées progressivement, par petites étapes testables.
+Le projet doit rester utilisable dans un popover OBR compact. Les fonctionnalités doivent être ajoutées par petites étapes testables, avec une séparation claire entre logique métier et interface React.
 
 ## URLs importantes
 
@@ -38,12 +18,11 @@ L’addon doit rester utilisable dans un popover OBR compact. Les fonctionnalit�
 ## Stack
 
 - **Frontend** : React + TypeScript + Vite
-- **Backend** : aucun backend dédié
-- **Base de données serveur** : aucune
-- **Stockage** : localStorage navigateur, avec clé scopée par room OBR quand disponible
-- **Tests** : Vitest
 - **SDK** : `@owlbear-rodeo/sdk`
+- **Tests** : Vitest
+- **Stockage** : localStorage navigateur, avec clé scopée par room OBR quand disponible
 - **Déploiement** : GitHub Pages via GitHub Actions
+- **Backend** : aucun
 
 ## Commandes utiles
 
@@ -55,538 +34,255 @@ npm run test
 npm run preview
 ```
 
-Le projet est surtout travaillé directement via GitHub/Codex. Les commandes `npm run build` et `npm run test` doivent toujours rester valides, car le workflow GitHub Pages en dépend.
+Le projet est surtout travaillé directement via GitHub/Codex. `npm run build` et `npm run test` doivent rester valides.
 
 ## Décisions validées
 
-- Utiliser une date interne absolue :
-  - `absoluteDay` ;
-  - `hour` ;
-  - `minute`.
-- Convertir cette date interne vers une date affichée selon le calendrier personnalisé.
-- Conserver une architecture modulaire :
-  - moteur de date ;
-  - logique événements ;
-  - logique saisons ;
-  - logique météo ;
-  - logique événements météo ;
-  - formatage ;
-  - stockage ;
-  - import/export ;
-  - i18n ;
-  - composants UI.
-- Garder les fonctions de calcul pures et testables.
-- Garder une séparation claire entre logique métier et interface React.
-- Avancer par petites étapes MVP.
-- Ne pas mélanger météo, lunes, événements, saisons et calendrier dans un seul gros fichier.
+- Utiliser une date interne absolue : `absoluteDay`, `hour`, `minute`.
+- Convertir la date interne vers une date affichée selon le calendrier personnalisé.
+- Garder les fonctions de calcul pures et testables dans `src/calendar/*` ou `src/packs/*`.
+- Garder la logique métier hors des composants React autant que possible.
 - Tout texte visible doit passer par l’i18n FR/EN.
-- Les exports JSON doivent contenir `schemaVersion` et `appVersion`.
+- Les exports JSON de calendrier doivent contenir `schemaVersion` et `appVersion`.
+- Les packs doivent contenir un `CalendarProject` complet et remplacer le calendrier courant après confirmation.
 - Le stockage doit être indépendant par room OBR.
-- Les icônes texte/emoji/URL image doivent passer autant que possible par un composant d’affichage commun.
-- La météo doit être déterministe : même projet, même seed, même jour et même heure doivent produire le même résultat.
-- La météo réelle simulée doit rester séparée des prévisions imparfaites.
-- Les prévisions utilisent `forecastMode` :
-  - `fine` : prévision proche de la météo réelle ;
-  - `wide` : prévision plus incertaine.
-- Les valeurs météo sont saisies dans les unités affichées, sans conversion automatique pour le moment :
-  - FR : °C, km/h, mm/h ;
-  - EN : °F, mi/h, in/h.
-- Le MVP ne doit pas encore inclure :
-  - lunes fonctionnelles ;
-  - événements météo visibles dans l’interface ;
-  - notifications météo automatiques ;
-  - packs Patreon complets ;
-  - synchronisation joueur avancée.
+- La météo doit être déterministe : même projet, même seed, même jour et même heure donnent le même résultat.
+- La météo réelle simulée est séparée des prévisions imparfaites.
+- Les prévisions utilisent `forecastMode` : `fine` ou `wide`.
+- Les valeurs météo sont saisies dans les unités affichées, sans conversion automatique pour le moment : FR `°C`, `km/h`, `mm/h`; EN `°F`, `mi/h`, `in/h`.
+- Les lunes sont affichées dans Aujourd’hui uniquement pour le MVP. Pas d’affichage lunaire dans la vue Mois pour le moment.
+- Les paramètres sont en sections repliables fermées par défaut, avec état ouvert/fermé mémorisé en `sessionStorage`.
 
 ## État actuel
 
-### Ce qui fonctionne
+### Fonctionnel
 
-- Extension frontend fonctionnelle dans Owlbear Rodeo.
-- GitHub Pages fonctionne.
+- Extension chargeable dans Owlbear Rodeo via GitHub Pages.
 - Manifest OBR fonctionnel.
-- Navigation principale :
-  - Aujourd’hui ;
-  - Mois ;
-  - Événements ;
-  - Paramètres.
-- Moteur calendrier :
-  - conversion date interne ↔ date calendrier ;
-  - mois personnalisés ;
-  - jours de semaine personnalisés ;
-  - offset de semaine ;
-  - ajout/retrait de minutes, heures et jours.
-- Sauvegarde :
-  - localStorage ;
-  - clé de stockage indépendante par room OBR quand la room est disponible ;
-  - fallback local hors OBR.
-- Vue Aujourd’hui :
-  - nom du calendrier ;
-  - date actuelle formatée ;
-  - boutons rapides de temps ;
-  - pause longue +8 h ;
-  - événements du jour ;
-  - événements déclenchés récemment ;
-  - saison actuelle ;
-  - météo actuelle ;
-  - prévisions météo 5 h ;
-  - prévisions météo 5 jours ;
-  - placeholder lune.
-- Vue Mois :
-  - grille mensuelle ;
-  - jours de semaine personnalisés ;
-  - premier jour affiché configurable ;
-  - jour actuel mis en évidence ;
-  - icône du premier événement du jour ;
-  - icône du début de saison ;
-  - masquage du numéro du jour si un marqueur événement/saison est affiché ;
-  - tooltip avec numéro du jour, saison et noms d’événements.
-- Vue Événements :
-  - formulaire de création replié par défaut ;
-  - formulaire partagé création/édition ;
-  - sections repliables dans le formulaire ;
-  - liste complète des événements ;
-  - édition ;
-  - suppression avec confirmation ;
-  - actions manuelles de statut ;
-  - filtre par statut ;
-  - filtre temporel ;
-  - recherche textuelle.
-- Événements de campagne :
-  - création ;
-  - édition ;
-  - suppression ;
-  - tri ;
-  - filtrage par jour ;
-  - filtrage du jour courant ;
-  - événement toute la journée ;
-  - date de fin optionnelle ;
-  - icône texte/emoji ;
-  - icône image via URL ;
-  - visibilité `gm`, `players`, `revealOnTrigger` ;
-  - statut `active`, `triggered`, `archived`, `disabled` ;
-  - options de déclenchement ;
-  - suppression/archivage après fin effective ;
-  - récurrence simple.
-- Récurrences événementielles :
-  - aucune ;
-  - tous les X jours ;
-  - tous les X mois ;
-  - tous les X ans ;
-  - affichage dans les cartes ;
-  - prise en compte dans Aujourd’hui et Mois ;
-  - prise en compte dans la détection de déclenchement.
-- Déclenchement au passage du temps :
-  - détection des événements dont le début tombe entre deux moments ;
-  - affichage dans Aujourd’hui ;
-  - all-day déclenché à 00:00 ;
-  - détection séparée de la fin effective ;
-  - suppression/archivage seulement à la fin de l’événement.
-- Saisons :
-  - type enrichi avec début, fin et profil météo ;
-  - logique de saison courante ;
-  - saisons traversant la fin d’année ;
-  - interface de gestion dans Paramètres ;
-  - ajout, modification, suppression ;
-  - icône texte/emoji/URL image ;
-  - affichage dans Aujourd’hui ;
-  - marqueur de début de saison dans Mois.
-- Profil météo des saisons :
-  - température min/moyenne/max ;
-  - vent min/moyenne/max ;
-  - pluie min/moyenne/max ;
-  - température négative autorisée ;
-  - vent/pluie forcés en non négatif ;
-  - saisie texte permettant le signe `-` ;
-  - normalisation `min <= average <= max`.
-- Météo :
-  - météo actuelle déterministe ;
-  - prévisions horaires sur 5 h ;
-  - prévisions journalières sur 5 jours ;
-  - mode de prévision `fine` / `wide` ;
-  - seed météo configurable ;
-  - bouton de génération de seed ;
-  - unités FR/EN adaptées.
-- Événements météo automatiques :
-  - types enrichis ;
-  - conditions météo ;
-  - opérateurs `gte` et `lte` ;
-  - logique pure de détection ;
-  - compatibilité partielle avec anciennes données ;
-  - tests unitaires.
-- Import/export :
-  - logique JSON ;
-  - validation ;
-  - sanitation ;
-  - `schemaVersion` ;
-  - `appVersion` ;
-  - interface export JSON ;
-  - interface import JSON avec confirmation.
-- Paramètres :
-  - sections repliables ;
-  - configuration générale ;
-  - date et heure actuelles ;
-  - structure du calendrier ;
-  - mois ;
-  - jours de semaine ;
-  - référence du calendrier ;
-  - années ;
-  - affichage ;
-  - saisons ;
-  - météo ;
-  - données/sauvegarde ;
-  - fonctions futures.
+- Navigation principale : Aujourd’hui, Mois, Événements, Paramètres.
+- Sauvegarde localStorage avec scope par room OBR et fallback local hors OBR.
 - i18n FR/EN active.
-- Tests unitaires sur les parties principales :
-  - moteur calendrier ;
-  - événements ;
-  - formatage ;
-  - vue mois logique ;
-  - paramètres ;
-  - stockage ;
-  - import/export ;
-  - scope OBR ;
-  - saisons ;
-  - unités météo ;
-  - météo ;
-  - événements météo.
+- Import/export JSON complet du calendrier avec sanitation et validation.
+- Packs intégrés et packs JSON externes.
 
-### Ce qui est en cours
+### Calendrier
 
-- Stabilisation UX dans le popover OBR.
-- Amélioration progressive de l’onglet Événements.
-- Consolidation progressive de la météo.
-- Préparation de l’interface des événements météo.
-- Préparation future des lunes.
-
-### Limites connues
-
-- Les événements météo automatiques existent seulement côté logique métier ; il n’y a pas encore d’interface de création/édition.
-- Les événements météo ne sont pas encore affichés dans Aujourd’hui.
-- Les événements météo ne déclenchent pas encore de notification visuelle.
-- Les événements météo ne sont pas encore liés au passage du temps.
-- Les lunes ne sont pas encore fonctionnelles.
-- Pas encore d’affichage joueur différencié.
-- Pas encore de synchronisation avancée OBR entre MJ/joueurs.
-- Les packs Patreon ne sont pas encore implémentés.
-- La météo reste une simulation MVP simple : pas encore de météo matin/après-midi/nuit, pas encore d’icônes météo détaillées, pas encore de min/max journaliers.
-- L’UI doit rester surveillée pour éviter les débordements dans le popover.
-
-## Architecture du projet
-
-### Domaine et logique calendrier
-
-- `src/domain/types.ts`
-  - Types centraux :
-    - `CalendarProject` ;
-    - `CalendarSystem` ;
-    - `CalendarDate` ;
-    - `CalendarEvent` ;
-    - `UiSettings` ;
-    - `Season` ;
-    - `SeasonWeatherProfile` ;
-    - `WeatherSnapshot` ;
-    - `WeatherEvent` ;
-    - `WeatherCondition` ;
-    - types lunes placeholders.
-
-- `src/calendar/dateEngine.ts`
-  - Logique pure de date/heure :
-    - conversion date interne → date affichée ;
-    - conversion date affichée → date interne ;
-    - ajout minutes/heures/jours ;
-    - récupération mois/jour ;
-    - calcul weekday.
-
-- `src/calendar/monthView.ts`
-  - Helpers pour construire la vue mensuelle :
-    - jours du mois ;
-    - premier jour de la grille ;
-    - ordre d’affichage des jours de semaine ;
-    - prise en compte de `monthGridStartsOnWeekdayId`.
-
-- `src/calendar/settingsLogic.ts`
-  - Normalisation et manipulation de la structure du calendrier :
-    - ajout/suppression mois ;
-    - ajout/suppression jours de semaine ;
-    - réordonnancement ;
-    - validation des tailles ;
-    - normalisation des offsets.
+- Moteur de date interne : conversion date interne ↔ date affichée.
+- Mois personnalisés.
+- Jours de semaine personnalisés.
+- Offset de semaine.
+- Date/heure actuelle modifiable.
+- Boutons rapides de temps : -2 h, -1 h, -15 min, -5 min, +5 min, +15 min, +1 h, +2 h, pause longue +8 h.
+- Vue Mois avec grille mensuelle, jour actuel, événements et débuts de saison.
 
 ### Événements de campagne
 
+- Création, édition, suppression.
+- Événement toute la journée.
+- Date de fin optionnelle.
+- Icône texte/emoji/image URL.
+- Visibilité `gm`, `players`, `revealOnTrigger`.
+- Statuts `active`, `triggered`, `archived`, `disabled`.
+- Récurrence : aucune, tous les X jours, tous les X mois, tous les X ans.
+- Déclenchement au passage du temps.
+- All-day déclenché à 00:00.
+- Suppression/archivage après fin effective, pas au début.
+- Filtres, recherche et actions manuelles de statut.
+- Affichage dans Aujourd’hui et Mois.
+
+### Saisons
+
+- Interface de gestion dans Paramètres.
+- Ajout, modification, suppression.
+- Début et fin de saison.
+- Saisons traversant la fin d’année.
+- Icône texte/emoji/image URL.
+- Affichage de la saison actuelle dans Aujourd’hui.
+- Marqueur de début de saison dans Mois.
+- Profil météo par saison.
+
+### Météo
+
+- Profil météo par saison : température, vent, pluie avec min/moyenne/max.
+- Températures négatives autorisées.
+- Vent/pluie forcés en non négatif.
+- Saisie texte permettant `-` pour valeurs négatives.
+- Météo actuelle déterministe.
+- Prévisions météo 5 h.
+- Prévisions météo 5 jours.
+- Mode de prévision `fine` / `wide`.
+- Seed météo configurable et générable.
+- Événements météo configurables avec conditions.
+- Événements météo actifs affichés dans Aujourd’hui.
+- Alertes météo nouvellement déclenchées au passage du temps affichées séparément.
+- Encart de synthèse des nouveaux déclenchements avec bouton Masquer.
+
+### Lunes
+
+- Type `Moon` enrichi : nom, icône, durée de cycle, décalage de cycle.
+- Système lunaire principal par défaut : 1 lune, cycle complet de 29,5 jours, 8 phases calculées.
+- Phase actuelle affichée dans Aujourd’hui.
+- Interface de gestion des lunes dans Paramètres.
+- Ajout, modification, suppression.
+- Prévisualisation de la phase actuelle.
+- Résumé du cycle complet affiché dans les paramètres.
+- Initialisation douce des anciens calendriers sans lune via `ensureDefaultMoonSystem`.
+- Flag `uiSettings.defaultMoonSystemInitialized` pour éviter que la lune supprimée volontairement revienne.
+
+### Packs
+
+- Type `CalendarPack` ajouté.
+- Packs intégrés :
+  - `fantasy-classic-fr` — Calendrier fantasy classique.
+  - `fantasy-classic-en` — Classic fantasy calendar.
+- Filtrage des packs selon la langue de l’interface : FR voit le pack FR, EN voit le pack EN.
+- Validation des packs via `validateCalendarPack`.
+- Import de pack intégré depuis Paramètres.
+- Import de pack JSON externe depuis fichier local.
+- Export du calendrier actuel comme pack JSON.
+- Résumé de pack : mois, saisons, lunes, événements météo.
+- Import d’un pack = remplacement du calendrier courant après confirmation.
+- Pas encore d’import partiel ni de fusion.
+
+## Architecture principale
+
+### Domaine
+
+- `src/domain/types.ts`
+  - Types centraux : `CalendarProject`, `CalendarSystem`, `CalendarDate`, `CalendarEvent`, `UiSettings`, `Season`, `WeatherSnapshot`, `WeatherEvent`, `WeatherCondition`, `Moon`, `MoonPhase`, `CalendarPack`.
+
+### Calendrier et événements
+
+- `src/calendar/dateEngine.ts`
+  - Conversion et manipulation de date/heure.
+- `src/calendar/monthView.ts`
+  - Construction de la grille mensuelle.
+- `src/calendar/settingsLogic.ts`
+  - Normalisation et manipulation de la structure du calendrier.
 - `src/calendar/eventsLogic.ts`
-  - Logique pure événements :
-    - création ;
-    - ajout ;
-    - mise à jour ;
-    - suppression ;
-    - tri ;
-    - filtrage par jour ;
-    - filtrage jour courant ;
-    - récurrences simples ;
-    - déclenchement ;
-    - fin effective ;
-    - actions après fin ;
-    - statuts ;
-    - gestion all-day ;
-    - date de fin.
-
+  - Logique pure des événements de campagne.
 - `src/calendar/formatEvent.ts`
-  - Formatage partagé des événements :
-    - date/heure longue ;
-    - date/heure courte ;
-    - visibilité ;
-    - récurrence ;
-    - options de déclenchement ;
-    - statut ;
-    - affichage all-day ;
-    - affichage fin même jour / autre jour.
+  - Formatage partagé des événements.
 
-- `src/calendar/__tests__/eventsLogic.test.ts`
-  - Tests de la logique événementielle.
-
-- `src/calendar/__tests__/formatEvent.test.ts`
-  - Tests de formatage événementiel.
-
-### Saisons et météo
+### Saisons, météo, lunes
 
 - `src/calendar/seasonsLogic.ts`
-  - Logique pure saisons :
-    - saison courante ;
-    - saison contenant une date ;
-    - saisons qui traversent la fin d’année ;
-    - saisons commençant à une date ;
-    - création/suppression/mise à jour ;
-    - profil météo par défaut ;
-    - normalisation profil météo ;
-    - parsing des valeurs météo saisies.
-
+  - Logique pure des saisons et profils météo.
 - `src/calendar/weatherUnits.ts`
-  - Libellés d’unités météo selon la langue :
-    - FR : °C, km/h, mm/h ;
-    - EN : °F, mi/h, in/h.
-
+  - Unités météo selon la langue.
 - `src/calendar/weatherLogic.ts`
-  - Logique pure météo :
-    - génération météo réelle simulée ;
-    - météo actuelle ;
-    - prévisions horaires ;
-    - prévisions journalières ;
-    - mode `fine` / `wide` ;
-    - variation déterministe ;
-    - direction du vent.
-
+  - Météo actuelle, prévisions, mode fine/wide, variation déterministe.
 - `src/calendar/weatherEventsLogic.ts`
-  - Logique pure événements météo :
-    - condition météo ;
-    - événement météo déclenché ;
-    - récupération des événements météo déclenchés.
+  - Conditions météo, événements météo actifs, alertes nouvellement déclenchées.
+- `src/calendar/moonLogic.ts`
+  - Cycle lunaire, phases, système lunaire par défaut, initialisation douce.
 
-- `src/calendar/__tests__/seasonsLogic.test.ts`
-  - Tests de la logique saisons.
+### Packs
 
-- `src/calendar/__tests__/weatherUnits.test.ts`
-  - Tests des unités météo.
+- `src/packs/defaultFantasyCalendarPack.ts`
+  - Packs intégrés FR/EN.
+- `src/packs/calendarPacks.ts`
+  - `getBuiltInCalendarPacks`
+  - `validateCalendarPack`
+  - `importCalendarPack`
+  - `createCalendarPackFromProject`
+  - `exportCalendarPack`
+  - `getCalendarPackSummary`
+- `src/packs/__tests__/calendarPacks.test.ts`
+  - Tests de validation, import, export, résumé et filtrage par langue.
 
-- `src/calendar/__tests__/weatherLogic.test.ts`
-  - Tests de la météo et des prévisions.
-
-- `src/calendar/__tests__/weatherEventsLogic.test.ts`
-  - Tests de la logique des événements météo.
-
-### UI principale
+### UI
 
 - `src/App.tsx`
-  - Point d’entrée React principal :
-    - chargement scope OBR ;
-    - chargement projet ;
-    - sauvegarde projet ;
-    - navigation onglets ;
-    - routage interne Aujourd’hui / Mois / Événements / Paramètres.
-
+  - Chargement scope OBR, chargement/sauvegarde projet, navigation principale.
 - `src/components/TodayView.tsx`
-  - Vue Aujourd’hui :
-    - date courante ;
-    - boutons de temps ;
-    - pause longue ;
-    - événements du jour ;
-    - événements déclenchés ;
-    - saison actuelle ;
-    - météo actuelle ;
-    - prévisions 5 h ;
-    - prévisions 5 jours ;
-    - placeholder lune.
-
+  - Calculs et actions de la vue Aujourd’hui.
+- `src/components/today/*`
+  - Cartes extraites de TodayView : déclenchements, événements, météo/saison/lunes.
 - `src/components/MonthView.tsx`
-  - Vue Mois :
-    - grille mensuelle ;
-    - jour actuel ;
-    - icône d’événement ;
-    - icône de début de saison ;
-    - tooltip événements/saison.
-
+  - Vue mensuelle.
 - `src/components/EventsView.tsx`
-  - Vue Événements :
-    - formulaire de création repliable ;
-    - liste des événements ;
-    - édition ;
-    - suppression ;
-    - filtres ;
-    - recherche ;
-    - actions de statut.
-
+  - Liste, filtres, recherche, création/édition/suppression des événements.
 - `src/components/events/EventForm.tsx`
   - Formulaire partagé création/édition événement.
-
 - `src/components/EventIcon.tsx`
-  - Affichage unifié des icônes :
-    - emoji ;
-    - texte ;
-    - URL image ;
-    - fallback image.
-
-### Paramètres
-
+  - Affichage emoji/texte/image URL.
 - `src/components/SettingsView.tsx`
   - Assemblage des sections de paramètres.
-
 - `src/components/CollapsibleSection.tsx`
-  - Section repliable réutilisable.
-
-- `src/components/settings/*`
-  - Sous-sections de paramètres :
-    - général ;
-    - date/heure ;
-    - structure calendrier ;
-    - mois ;
-    - jours de semaine ;
-    - référence calendrier ;
-    - années ;
-    - affichage ;
-    - saisons ;
-    - météo ;
-    - données/sauvegarde ;
-    - fonctions futures.
+  - Section repliable avec état en `sessionStorage`.
+- `src/components/settings/PacksSettingsSection.tsx`
+  - Packs intégrés, import pack JSON, export calendrier actuel comme pack JSON.
 
 ### Stockage / OBR / import-export
 
 - `src/storage/calendarStorage.ts`
-  - Chargement ;
-  - sauvegarde ;
-  - reset ;
-  - gestion localStorage ;
-  - clé personnalisée par scope.
-
+  - Chargement, sauvegarde, reset, localStorage, initialisation douce des lunes.
 - `src/obr/roomScope.ts`
-  - Détection du scope OBR :
-    - room OBR si disponible ;
-    - fallback `local-dev` hors OBR.
-
+  - Détection room OBR ou fallback local.
 - `src/importExport/calendarImportExport.ts`
-  - Export JSON ;
-  - import JSON ;
-  - validation ;
-  - sanitation.
-
-### i18n
-
+  - Export/import JSON de calendrier, validation et sanitation.
 - `src/i18n/messages.ts`
-  - Dictionnaires FR/EN.
-  - Helper `t(locale, key)`.
+  - Dictionnaires FR/EN et helper `t`.
 
-## Fonctionnalités
+## Fonctionnalités terminées
 
-### Déjà faites
-
-- [x] Socle TypeScript / React / Vite.
-- [x] Manifest OBR.
-- [x] GitHub Pages.
+- [x] Socle React/TypeScript/Vite.
+- [x] Manifest OBR et GitHub Pages.
 - [x] Moteur calendrier interne.
 - [x] Vue Aujourd’hui.
 - [x] Vue Mois.
 - [x] Vue Événements.
 - [x] Vue Paramètres.
-- [x] Navigation principale.
-- [x] Sauvegarde localStorage.
-- [x] Sauvegarde scopée par room OBR.
+- [x] Paramètres repliables avec mémoire de session.
+- [x] Sauvegarde localStorage scopée par room OBR.
 - [x] i18n FR/EN.
-- [x] Import/export JSON logique.
-- [x] Interface import/export JSON.
+- [x] Import/export JSON calendrier.
 - [x] Validation/sanitation import JSON.
-- [x] Création d’événement.
-- [x] Édition d’événement.
-- [x] Suppression d’événement.
-- [x] Événement toute la journée.
-- [x] Date de fin optionnelle.
-- [x] Récurrrences simples.
+- [x] Événements ponctuels et récurrents.
 - [x] Déclenchement au passage du temps.
 - [x] Actions après fin d’événement.
-- [x] Statuts et filtres d’événements.
-- [x] Recherche d’événements.
-- [x] Icône événement texte/emoji.
-- [x] Icône événement image URL.
-- [x] Événements du jour dans Aujourd’hui.
-- [x] Icône événement dans Mois.
-- [x] Tooltip événements dans Mois.
-- [x] Saisons fonctionnelles.
-- [x] Interface de gestion des saisons.
-- [x] Profil météo des saisons.
-- [x] Icônes saisons dans Aujourd’hui et Mois.
+- [x] Saisons configurables.
+- [x] Profil météo saisonnier.
 - [x] Météo actuelle.
-- [x] Prévisions météo 5 h.
-- [x] Prévisions météo 5 jours.
-- [x] Mode de prévision fine/large.
+- [x] Prévisions météo 5 h et 5 jours.
+- [x] Mode prévision fine/large.
 - [x] Seed météo configurable.
-- [x] Base logique des événements météo automatiques.
+- [x] Événements météo configurables.
+- [x] Alertes météo actives et nouvellement déclenchées.
+- [x] Lunes et phase actuelle dans Aujourd’hui.
+- [x] Système lunaire complet par défaut.
+- [x] Packs intégrés FR/EN.
+- [x] Import de packs JSON externes.
+- [x] Export du calendrier actuel comme pack JSON.
 - [x] Tests unitaires principaux.
 
-### En cours
+## Limites connues / hors scope actuel
 
-- [ ] Polish UI compact popover OBR.
-- [ ] Consolidation ergonomique de l’onglet Événements.
-- [ ] Consolidation ergonomique de la section météo/saisons.
-- [ ] Préparation de l’interface des événements météo.
-- [ ] Préparation des lunes.
+- Pas d’affichage des lunes dans la vue Mois pour le MVP.
+- Pas d’événements lunaires.
+- Pas d’effets mécaniques des lunes.
+- Pas d’import partiel de pack.
+- Pas de fusion de pack avec le calendrier actuel.
+- Pas de marketplace.
+- Pas d’authentification Patreon.
+- Pas de téléchargement distant de packs.
+- Pas de gestion de droits.
+- Pas encore de vue joueur différenciée.
+- Pas encore de synchronisation avancée MJ/joueurs via OBR.
+- Météo encore simple : pas de matin/après-midi/nuit, pas d’icônes météo avancées, pas de min/max journaliers.
 
-### À faire ensuite
+## Prochaines étapes possibles
 
-Priorité probable :
+Priorités utiles :
 
-1. Ajouter l’interface de création/édition/suppression des événements météo.
-2. Afficher les événements météo déclenchés dans Aujourd’hui.
-3. Brancher les événements météo au passage du temps.
-4. Ajouter des notifications météo simples.
-5. Ajouter les lunes fonctionnelles.
-6. Préparer les packs Patreon.
-7. Ajouter une vraie vue joueur / visibilité joueur.
-8. Ajouter une synchronisation OBR plus avancée si nécessaire.
-
-## Bugs / points de vigilance connus
-
-- L’édition d’événement a eu un bug lié à la régénération d’id via `createCalendarEvent`. Le principe à respecter :
-  - en création : générer un nouvel id ;
-  - en édition : conserver l’id existant.
-- À chaque évolution du formulaire événement, vérifier que :
-  - l’id de l’événement édité reste identique ;
-  - l’événement est bien modifié ;
-  - aucun doublon n’est créé ;
-  - le tri reste correct.
-- Les formulaires deviennent longs dans le popover. Il faut privilégier :
-  - sections repliables ;
-  - sous-composants ;
-  - champs groupés ;
-  - pas de scroll horizontal.
-- Le rendu compact du popover OBR doit rester une contrainte prioritaire.
-- La vue Mois ne doit pas être surchargée par les événements/saisons.
-- La logique métier doit rester hors des composants React autant que possible.
-- Toute nouvelle fonctionnalité doit être testée si elle ajoute une logique pure.
-- Toute chaîne visible doit passer par `messages.ts`.
-- Les événements météo ont une logique de compatibilité avec les anciennes données :
-  - `enabled` absent = actif ;
-  - `requireAllConditions` absent = `true` ;
-  - `conditions` absent ou vide = non déclenché.
-- Les événements météo ne sont pas encore exposés dans l’interface ; ne pas les considérer terminés côté UX.
+1. Améliorer l’ergonomie de la section Packs si l’UI devient trop longue.
+2. Ajouter des packs intégrés supplémentaires.
+3. Ajouter un meilleur formatage/aperçu des packs avant import.
+4. Préparer une vraie stratégie Patreon sans coder l’authentification.
+5. Ajouter une vue joueur ou un mode visibilité joueur.
+6. Améliorer les notifications sans spam.
+7. Ajouter des événements lunaires plus tard si nécessaire.
 
 ## Règles de reprise pour Codex
 
@@ -601,214 +297,36 @@ Règles :
 
 - Ne pas faire de grosse refonte sans demande explicite.
 - Ne pas mélanger plusieurs grosses fonctionnalités dans une même étape.
-- Ne pas coder lunes/packs tant que la tâche demandée ne les concerne pas.
+- Ne pas coder de marketplace, Patreon, import partiel ou fusion de packs sans demande explicite.
 - Ne pas dupliquer la logique métier dans les composants React.
-- Préférer les helpers purs dans `src/calendar/*`.
+- Préférer les helpers purs dans `src/calendar/*` ou `src/packs/*`.
 - Garder l’UI compatible avec un popover OBR compact.
-- Lancer `npm run build`.
-- Lancer `npm run test`.
-- Résumer clairement :
-  - fichiers créés ;
-  - fichiers modifiés ;
-  - résultat build ;
-  - résultat tests ;
-  - comportement ajouté ;
-  - limites restantes.
-
-## Décisions techniques à ne pas re-discuter à chaque reprise
-
-- Conserver le principe de date interne absolue + conversion affichée.
-- Conserver le stockage local scopé par room OBR.
-- Conserver la séparation logique métier / UI.
-- Conserver les fonctions de calcul pures et testables.
-- Conserver React + TypeScript + Vite.
-- Conserver GitHub Pages pour l’hébergement.
-- Conserver l’i18n FR/EN.
-- Conserver le découpage en petites étapes MVP.
-- Conserver la météo déterministe.
-- Conserver les prévisions imparfaites via `forecastMode`.
-
-## État actuel précis
-
-Le MVP calendrier est déjà utilisable dans Owlbear Rodeo avec :
-
-- calendrier personnalisable ;
-- date et heure courantes ;
-- navigation Aujourd’hui / Mois / Événements / Paramètres ;
-- gestion d’événements simples et récurrents ;
-- déclenchement d’événements au passage du temps ;
-- affichage des événements dans Aujourd’hui ;
-- repères visuels dans Mois ;
-- gestion des saisons ;
-- météo actuelle ;
-- prévisions météo ;
-- stockage par room ;
-- i18n ;
-- import/export JSON ;
-- tests ;
-- base logique des événements météo.
-
-Les prochaines étapes doivent rester ciblées. La priorité immédiate recommandée est l’interface des événements météo, puis leur affichage dans Aujourd’hui.
+- Toute nouvelle chaîne visible doit passer par `messages.ts`.
+- Toute nouvelle logique pure doit avoir des tests.
+- Lancer `npm run build` et `npm run test` avant de répondre.
 
 ## Journal de session
 
 ### Session du 19 mai 2026
 
-#### sujets traités :
-
-- Préparation et consolidation du socle technique du projet : types principaux, moteur de date, stockage local, import/export JSON et tests unitaires.
-- Mise en place de la base React + Vite + TypeScript.
-- Intégration minimale Owlbear Rodeo.
-- Ajout du manifest OBR.
-- Correction des chemins pour GitHub Pages / OBR.
-- Mise en ligne GitHub Pages.
-- Mise en place de la sauvegarde indépendante par room OBR.
-- Création et amélioration de la vue Aujourd’hui.
-- Création de la vue Mois.
-- Création puis refonte de la page Paramètres.
-- Nettoyage progressif de l’architecture des paramètres.
-- Implémentation de la logique métier événements.
-- Ajout des tests unitaires de la logique événements.
-- Ajout de l’onglet Événements.
-- Ajout du formulaire de création d’événement.
-- Enrichissement des événements : all-day, date de fin, icône image URL.
-- Factorisation du formatage des événements.
-- Affichage des événements dans Aujourd’hui.
-- Affichage des événements dans Mois.
-- Ajout des actions Modifier / Supprimer.
-- Identification et correction du problème d’id en édition.
-- Mise à jour initiale de `PROJECT_CONTEXT.md`.
-
-#### décisions prises :
-
-- Avancer en petites étapes MVP.
-- Garder la logique métier dans `src/calendar/*`.
-- Éviter de dupliquer la logique dans les composants React.
-- Garder les composants UI simples pour le popover OBR.
-- Utiliser une date interne absolue comme source de vérité.
-- Garder le stockage local, mais scopé par room OBR.
-- Utiliser GitHub Pages pour héberger l’extension et le manifest.
-- Centraliser le formatage des événements dans `src/calendar/formatEvent.ts`.
-- Centraliser l’affichage des icônes dans `EventIcon`.
-- Utiliser `EventForm` comme formulaire partagé création/édition.
+- Mise en place du socle React/Vite/TypeScript.
+- Intégration OBR minimale.
+- Manifest OBR et GitHub Pages.
+- Moteur de date, stockage, navigation et premières vues.
+- Premiers événements de campagne.
+- Début de structuration de `PROJECT_CONTEXT.md`.
 
 ### Session du 20 mai 2026
 
-#### sujets traités :
-
-- Finalisation progressive de l’onglet Événements :
-  - récurrences simples ;
-  - options de déclenchement ;
-  - statuts ;
-  - filtres ;
-  - recherche ;
-  - actions manuelles de statut ;
-  - formulaire de création repliable ;
-  - sections repliables dans `EventForm`.
-- Déclenchement au passage du temps :
-  - détection des événements déclenchés ;
-  - affichage dans Aujourd’hui ;
-  - normalisation all-day à 00:00 ;
-  - distinction début / fin effective ;
-  - suppression et archivage seulement à la fin de l’événement.
-- Import/export JSON branché dans l’interface Paramètres.
-- Saisons :
-  - enrichissement du type `Season` ;
-  - logique `seasonsLogic.ts` ;
-  - interface de gestion des saisons ;
-  - affichage de la saison actuelle ;
-  - icône de début de saison dans Mois ;
-  - tooltip Mois enrichi.
-- Profil météo de saison :
-  - min/moyenne/max température ;
-  - min/moyenne/max vent ;
-  - min/moyenne/max pluie ;
-  - unités FR/EN ;
-  - températures négatives ;
-  - parsing météo texte.
-- Météo :
-  - type `WeatherSnapshot` ;
-  - météo actuelle déterministe ;
-  - prévisions 5 h ;
-  - prévisions 5 jours ;
-  - mode de prévision fine/large ;
-  - seed météo configurable.
-- Événements météo :
-  - enrichissement des types ;
-  - ajout de `WeatherCondition` ;
-  - ajout de `weatherEventsLogic.ts` ;
-  - tests de conditions et déclenchement météo.
-- Mise à jour complète de `PROJECT_CONTEXT.md`.
-
-#### fichiers modifiés ou créés pendant la session :
-
-- `PROJECT_CONTEXT.md`
-- `src/domain/types.ts`
-- `src/calendar/eventsLogic.ts`
-- `src/calendar/formatEvent.ts`
-- `src/calendar/seasonsLogic.ts`
-- `src/calendar/weatherUnits.ts`
-- `src/calendar/weatherLogic.ts`
-- `src/calendar/weatherEventsLogic.ts`
-- `src/calendar/__tests__/eventsLogic.test.ts`
-- `src/calendar/__tests__/formatEvent.test.ts`
-- `src/calendar/__tests__/seasonsLogic.test.ts`
-- `src/calendar/__tests__/weatherUnits.test.ts`
-- `src/calendar/__tests__/weatherLogic.test.ts`
-- `src/calendar/__tests__/weatherEventsLogic.test.ts`
-- `src/components/TodayView.tsx`
-- `src/components/MonthView.tsx`
-- `src/components/EventsView.tsx`
-- `src/components/EventIcon.tsx`
-- `src/components/events/EventForm.tsx`
-- `src/components/settings/DataSettingsSection.tsx`
-- `src/components/settings/SeasonsSettingsSection.tsx`
-- `src/components/settings/WeatherSettingsSection.tsx`
-- `src/components/SettingsView.tsx`
-- `src/i18n/messages.ts`
-
-#### décisions prises :
-
-- La météo actuelle est la météo réelle simulée.
-- Les prévisions météo peuvent être imparfaites.
-- Le mode `fine` est proche de la météo réelle.
-- Le mode `wide` est plus incertain.
-- La seed météo doit être configurable.
-- Les températures négatives doivent être acceptées.
-- Le vent et la pluie ne doivent jamais rester négatifs.
-- Les événements météo doivent d’abord être posés côté logique métier avant l’interface.
-- Les événements météo avec ancienne structure doivent être tolérés autant que possible.
-
-#### problèmes corrigés pendant la session :
-
-- All-day qui ne se déclenchait pas correctement à 00:00.
-- Suppression/archivage appliqués trop tôt au début au lieu de la fin.
-- Événements archivés/désactivés visibles dans les vues actives.
-- Formulaire événement trop long dans le popover.
-- Recherche et filtres manquants dans l’onglet Événements.
-- Icône de saison URL affichée comme lien au lieu d’image.
-- Numéro du jour encore visible dans Mois malgré icône événement/saison.
-- Températures négatives impossibles à saisir à cause du signe `-`.
-- Unités anglaises météo incorrectes.
-
-#### problèmes restants / points de vigilance :
-
-- Les événements météo sont encore uniquement côté logique métier.
-- Il faut encore créer l’interface de gestion des événements météo.
-- Il faut encore afficher les événements météo déclenchés dans Aujourd’hui.
-- Il faut encore décider comment éviter les répétitions de notifications météo à chaque changement d’heure.
-- Les lunes restent à implémenter.
-- La vue joueur / visibilité joueur reste à implémenter.
-- Les packs Patreon restent à implémenter.
-
-#### état final de la session :
-
-- L’extension se charge dans Owlbear Rodeo.
-- Le calendrier est utilisable avec date, heure, mois, paramètres et événements.
-- Les événements peuvent être créés, modifiés, supprimés, filtrés et recherchés.
-- Les événements peuvent être récurrents.
-- Les événements peuvent se déclencher au passage du temps.
-- Les saisons sont configurables et affichées.
-- La météo actuelle et les prévisions sont affichées.
-- La configuration météo permet de choisir le mode de prévision et la seed.
-- La base des événements météo automatiques est en place côté logique métier.
+- Événements enrichis : récurrences, statuts, filtres, recherche, déclenchement, actions après fin.
+- Saisons configurables.
+- Profils météo de saison.
+- Météo actuelle et prévisions.
+- Événements météo et alertes.
+- Lunes et phase actuelle.
+- Paramètres repliables avec mémoire de session.
+- Import/export JSON renforcé.
+- Packs intégrés FR/EN.
+- Import de packs JSON externes.
+- Export du calendrier actuel comme pack JSON.
+- Mise à jour complète de la documentation projet.
