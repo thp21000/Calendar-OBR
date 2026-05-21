@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
-import { getBuiltInCalendarPacks, getCalendarPackSummary, importCalendarPack, validateCalendarPack } from "../calendarPacks";
+import {
+  createCalendarPackFromProject,
+  exportCalendarPack,
+  getBuiltInCalendarPacks,
+  getCalendarPackSummary,
+  importCalendarPack,
+  validateCalendarPack
+} from "../calendarPacks";
 import { defaultFantasyCalendarPackFr } from "../defaultFantasyCalendarPack";
 
 describe("calendarPacks", () => {
@@ -70,5 +77,55 @@ describe("calendarPacks", () => {
       moons: 1,
       weatherEvents: 2
     });
+  });
+
+  it("createCalendarPackFromProject creates a valid pack", () => {
+    const project = createDefaultCalendarProject();
+    const pack = createCalendarPackFromProject(project, { packId: "my-pack", packVersion: "2.1.0", name: "My Pack" });
+    const validation = validateCalendarPack(pack);
+    expect(validation.ok).toBe(true);
+  });
+
+  it("createCalendarPackFromProject uses project locale", () => {
+    const project = createDefaultCalendarProject();
+    project.locale = "en";
+    const pack = createCalendarPackFromProject(project, { packId: "my-pack", packVersion: "1.0.0", name: "My Pack" });
+    expect(pack.locale).toBe("en");
+  });
+
+  it("createCalendarPackFromProject does not mutate original project", () => {
+    const project = createDefaultCalendarProject();
+    const original = structuredClone(project);
+    const pack = createCalendarPackFromProject(project, { packId: "my-pack", packVersion: "1.0.0", name: "My Pack" });
+    pack.project.name = "Changed in pack";
+    expect(project).toEqual(original);
+  });
+
+  it("createCalendarPackFromProject generates packId when empty", () => {
+    const project = createDefaultCalendarProject();
+    const pack = createCalendarPackFromProject(project, { packId: "", packVersion: "1.0.0", name: "Calendrier de campagne" });
+    expect(pack.packId).toBe("pack-calendrier-de-campagne");
+  });
+
+  it("createCalendarPackFromProject defaults packVersion to 1.0.0 when empty", () => {
+    const project = createDefaultCalendarProject();
+    const pack = createCalendarPackFromProject(project, { packId: "my-pack", packVersion: "", name: "My Pack" });
+    expect(pack.packVersion).toBe("1.0.0");
+  });
+
+  it("exportCalendarPack returns valid JSON", () => {
+    const project = createDefaultCalendarProject();
+    const pack = createCalendarPackFromProject(project, { packId: "my-pack", packVersion: "1.0.0", name: "My Pack" });
+    const json = exportCalendarPack(pack);
+    const parsed = JSON.parse(json) as unknown;
+    expect(typeof parsed).toBe("object");
+  });
+
+  it("exported pack JSON can be validated", () => {
+    const project = createDefaultCalendarProject();
+    const pack = createCalendarPackFromProject(project, { packId: "my-pack", packVersion: "1.0.0", name: "My Pack" });
+    const json = exportCalendarPack(pack);
+    const parsed = JSON.parse(json) as unknown;
+    expect(validateCalendarPack(parsed).ok).toBe(true);
   });
 });

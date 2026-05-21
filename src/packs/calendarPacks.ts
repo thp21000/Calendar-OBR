@@ -9,6 +9,14 @@ const isLocale = (value: unknown): value is LocaleCode => value === "fr" || valu
 
 const BUILT_IN_PACKS: CalendarPack[] = [defaultFantasyCalendarPackFr];
 
+const slugify = (value: string): string =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 export type CalendarPackSummary = {
   months: number;
   seasons: number;
@@ -72,3 +80,32 @@ export const importCalendarPack = (
   if (!validated.ok) return { ok: false, error: validated.error, project: currentProject };
   return { ok: true, project: validated.pack.project };
 };
+
+export const createCalendarPackFromProject = (
+  project: CalendarProject,
+  metadata: {
+    packId?: string;
+    packVersion?: string;
+    name?: string;
+    description?: string;
+    author?: string;
+  }
+): CalendarPack => {
+  const rawName = metadata.name?.trim() || project.name.trim() || "Calendar Pack";
+  const generatedIdBase = slugify(rawName) || slugify(project.name) || "calendar-pack";
+  const packId = metadata.packId?.trim() || `pack-${generatedIdBase}`;
+  const packVersion = metadata.packVersion?.trim() || "1.0.0";
+
+  return {
+    schemaVersion: 1,
+    packId,
+    packVersion,
+    name: rawName,
+    description: metadata.description?.trim() || undefined,
+    author: metadata.author?.trim() || undefined,
+    locale: project.locale,
+    project: structuredClone(project)
+  };
+};
+
+export const exportCalendarPack = (pack: CalendarPack): string => JSON.stringify(pack, null, 2);
