@@ -9,7 +9,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   const isLocale = (value: unknown): value is LocaleCode => value === "fr" || value === "en";
   
   const isValidUiTab = (value: unknown): value is CalendarProject["uiSettings"]["activeTab"] =>
-  value === "today" || value === "month" || value === "events" || value === "settings";
+  value === "today" || value === "month" || value === "events" || value === "settings" || value === "player";
 
 export const validateImportedCalendarProject = (
   data: unknown

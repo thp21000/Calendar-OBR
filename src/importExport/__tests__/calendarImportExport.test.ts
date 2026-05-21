@@ -88,6 +88,15 @@ describe("calendarImportExport", () => {
     expect(validateImportedCalendarProject(project).valid).toBe(false);
   });
 
+  it("accepts uiSettings.activeTab = player on import", () => {
+    const project = createDefaultCalendarProject();
+    const payload = { ...project, uiSettings: { ...project.uiSettings, activeTab: "player" as const } };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.uiSettings.activeTab).toBe("player");
+  });
+
   it("loadCalendarProject returns default project with invalid localStorage JSON", () => {
     const getItem = vi.fn(() => "{invalid json");
     vi.stubGlobal("localStorage", { getItem, setItem: vi.fn(), removeItem: vi.fn() });

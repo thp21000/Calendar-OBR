@@ -14,7 +14,7 @@ export const App = () => {
   const [scope, setScope] = useState<StorageScope | null>(null);
   const [project, setProject] = useState<CalendarProject | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [viewerRole, setViewerRole] = useState<ViewerRole>("gm");
+  const [viewerRole, setViewerRole] = useState<ViewerRole | null>(null);
 
   useEffect(() => {
     getStorageScope().then((resolved) => {
@@ -24,7 +24,7 @@ export const App = () => {
     });
   }, []);
 
-  if (!scope || !project) {
+  if (!scope || !project || !viewerRole) {
     return <main style={{ width: 360, minHeight: 480, padding: 12, color: "#e5e7eb", background: "#10131a" }}>{t("fr", "common.loading")}</main>;
   }
 
