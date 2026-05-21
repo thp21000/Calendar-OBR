@@ -9,6 +9,13 @@ const isLocale = (value: unknown): value is LocaleCode => value === "fr" || valu
 
 const BUILT_IN_PACKS: CalendarPack[] = [defaultFantasyCalendarPackFr];
 
+export type CalendarPackSummary = {
+  months: number;
+  seasons: number;
+  moons: number;
+  weatherEvents: number;
+};
+
 export const getBuiltInCalendarPacks = (locale: LocaleCode): CalendarPack[] =>
   BUILT_IN_PACKS.filter((pack) => pack.locale === locale || pack.locale === "fr");
 
@@ -49,6 +56,13 @@ export const validateCalendarPack = (
     }
   };
 };
+
+export const getCalendarPackSummary = (pack: CalendarPack): CalendarPackSummary => ({
+  months: pack.project.calendarSystem.months.length,
+  seasons: pack.project.seasons.length,
+  moons: pack.project.moons.length,
+  weatherEvents: pack.project.weatherEvents.length
+});
 
 export const importCalendarPack = (
   pack: unknown,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
-import { importCalendarPack, getBuiltInCalendarPacks, validateCalendarPack } from "../calendarPacks";
+import { getBuiltInCalendarPacks, getCalendarPackSummary, importCalendarPack, validateCalendarPack } from "../calendarPacks";
 import { defaultFantasyCalendarPackFr } from "../defaultFantasyCalendarPack";
 
 describe("calendarPacks", () => {
@@ -61,5 +61,14 @@ describe("calendarPacks", () => {
 
   it("built-in pack contains weather profiles", () => {
     expect(defaultFantasyCalendarPackFr.project.seasons.some((season) => season.weatherProfile)).toBe(true);
+  });
+
+  it("getCalendarPackSummary returns expected counts", () => {
+    expect(getCalendarPackSummary(defaultFantasyCalendarPackFr)).toEqual({
+      months: 12,
+      seasons: 4,
+      moons: 1,
+      weatherEvents: 2
+    });
   });
 });
