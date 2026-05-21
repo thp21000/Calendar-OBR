@@ -2,6 +2,7 @@ import { useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
+import { getTriggeredWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import { formatEventDateTime, formatEventTimeShort, formatEventVisibility } from "../calendar/formatEvent";
@@ -21,6 +22,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
+  const triggeredWeatherEvents = currentWeather ? getTriggeredWeatherEvents(project, currentWeather) : [];
   const hourlyForecast = getHourlyWeatherForecast(project, 5);
   const dailyForecast = getDailyWeatherForecast(project, 5);
   const weatherUnits = getWeatherUnitLabels(project.locale);
@@ -131,6 +133,29 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
           )}
         </div>
         <div>{t(project.locale, "calendar.moonPlaceholder")}</div>
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 4 }}>{t(project.locale, "calendar.weatherEvents")}</div>
+          {triggeredWeatherEvents.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "calendar.noActiveWeatherEvent")}</div>
+          ) : (
+            <div style={{ display: "grid", gap: 6 }}>
+              {triggeredWeatherEvents.map((event) => (
+                <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <EventIcon icon={event.icon} locale={project.locale} />
+                    <strong>{event.name}</strong>
+                  </div>
+                  {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
+                  {event.link?.trim() ? (
+                    <a href={event.link} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 4, fontSize: 12, color: "#93c5fd" }}>
+                      {t(project.locale, "common.openLink")}
+                    </a>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <button type="button" onClick={onReset} style={{ border: "1px solid #7f1d1d", borderRadius: 6, background: "#991b1b", color: "#fff", padding: "7px 10px", fontSize: 12 }}>{t(project.locale, "settings.resetCalendar")}</button>
