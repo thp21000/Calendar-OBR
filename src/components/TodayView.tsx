@@ -2,7 +2,7 @@ import { useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
-import { getTriggeredWeatherEvents } from "../calendar/weatherEventsLogic";
+import { getNewlyTriggeredWeatherEventsBetween, getTriggeredWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import { formatEventDateTime, formatEventTimeShort, formatEventVisibility } from "../calendar/formatEvent";
@@ -28,6 +28,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
   const weatherUnits = getWeatherUnitLabels(project.locale);
   const eventsToday = getEventsForCurrentDay(project);
   const [lastTriggeredEvents, setLastTriggeredEvents] = useState<CalendarEvent[]>([]);
+  const [lastTriggeredWeatherEvents, setLastTriggeredWeatherEvents] = useState<CalendarProject["weatherEvents"]>([]);
 
   const applyTimeDelta = (deltaMinutes: number) => {
     const previousTime = project.currentTime;
@@ -35,12 +36,15 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
 
     if (deltaMinutes > 0) {
       const triggered = getTriggeredEventsBetween(project, previousTime, nextTime);
+      const triggeredWeather = getNewlyTriggeredWeatherEventsBetween(project, previousTime, nextTime);
       const completed = getCompletedEventsBetween(project, previousTime, nextTime);
       setLastTriggeredEvents(triggered);
+      setLastTriggeredWeatherEvents(triggeredWeather);
       onProjectUpdate(applyEventCompletionActions({ ...project, currentTime: nextTime }, completed));
       return;
     } else {
       setLastTriggeredEvents([]);
+      setLastTriggeredWeatherEvents([]);
     }
 
     onProjectUpdate({ ...project, currentTime: nextTime });
@@ -68,6 +72,29 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
         </div>}
       </div>
 
+      <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(project.locale, "calendar.triggeredWeatherAlerts")}</div>
+        {lastTriggeredWeatherEvents.length === 0 ? (
+          <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "calendar.noTriggeredWeatherAlerts")}</div>
+        ) : (
+          <div style={{ display: "grid", gap: 6 }}>
+            {lastTriggeredWeatherEvents.map((event) => (
+              <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <EventIcon icon={event.icon} locale={project.locale} />
+                  <strong>{event.name}</strong>
+                </div>
+                {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
+                {event.link?.trim() ? (
+                  <a href={event.link} target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 4, fontSize: 12, color: "#93c5fd" }}>
+                    {t(project.locale, "common.openLink")}
+                  </a>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
         <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(project.locale, "events.triggered")}</div>

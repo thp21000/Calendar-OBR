@@ -7,11 +7,13 @@ import {
   deleteWeatherCondition,
   deleteWeatherEvent,
   getTriggeredWeatherEvents,
+  getNewlyTriggeredWeatherEventsBetween,
   isWeatherConditionMet,
   isWeatherEventTriggered,
   updateWeatherCondition,
   updateWeatherEvent
 } from "../weatherEventsLogic";
+import { generateWeatherForTime } from "../weatherLogic";
 
 const weather: WeatherSnapshot = {
   temperature: 36,
@@ -199,5 +201,75 @@ describe("weatherEventsLogic", () => {
     const updated = deleteWeatherCondition(project, "e1", 0);
     expect(updated.weatherEvents[0]?.conditions).toHaveLength(1);
     expect(updated.weatherEvents[0]?.conditions[0]?.metric).toBe("windSpeed");
+  });
+  
+  it("retourne un événement nouvellement actif entre fromTime et toTime", () => {
+    const project = buildProject([]);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }];
+    const fromTime = { absoluteDay: 0, hour: 10, minute: 0 };
+    const toTime = { absoluteDay: 0, hour: 11, minute: 0 };
+    const fromWeather = generateWeatherForTime(project, fromTime.absoluteDay, fromTime.hour)!;
+    const toWeather = generateWeatherForTime(project, toTime.absoluteDay, toTime.hour)!;
+    const operator = toWeather.windSpeed >= fromWeather.windSpeed ? ("gte" as const) : ("lte" as const);
+    const threshold = (fromWeather.windSpeed + toWeather.windSpeed) / 2;
+    const event = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "new",
+      conditions: [{ metric: "windSpeed" as const, operator, value: threshold }]
+    };
+    const result = getNewlyTriggeredWeatherEventsBetween({ ...project, weatherEvents: [event] }, fromTime, toTime);
+    expect(result.map((e) => e.id)).toEqual(["new"]);
+  });
+
+  it("ne retourne pas un événement déjà actif au départ", () => {
+    const project = buildProject([]);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }];
+    const fromTime = { absoluteDay: 0, hour: 10, minute: 0 };
+    const toTime = { absoluteDay: 0, hour: 11, minute: 0 };
+    const fromWeather = generateWeatherForTime(project, fromTime.absoluteDay, fromTime.hour)!;
+    const event = { ...createDefaultWeatherEvent("fr"), id: "already", conditions: [{ metric: "windSpeed" as const, operator: "gte" as const, value: fromWeather.windSpeed - 1 }] };
+    const result = getNewlyTriggeredWeatherEventsBetween({ ...project, weatherEvents: [event] }, fromTime, toTime);
+    expect(result).toEqual([]);
+  });
+
+  it("retourne vide si aucun événement n'est actif à l'arrivée", () => {
+    const project = buildProject([]);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }];
+    const fromTime = { absoluteDay: 0, hour: 10, minute: 0 };
+    const toTime = { absoluteDay: 0, hour: 11, minute: 0 };
+    const toWeather = generateWeatherForTime(project, toTime.absoluteDay, toTime.hour)!;
+    const event = { ...createDefaultWeatherEvent("fr"), id: "none", conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: toWeather.temperature + 100 }] };
+    const result = getNewlyTriggeredWeatherEventsBetween({ ...project, weatherEvents: [event] }, fromTime, toTime);
+    expect(result).toEqual([]);
+  });
+
+  it("retourne vide si aucune météo n'existe", () => {
+    const project = buildProject([]);
+    const result = getNewlyTriggeredWeatherEventsBetween(project, { absoluteDay: 0, hour: 10, minute: 0 }, { absoluteDay: 0, hour: 11, minute: 0 });
+    expect(result).toEqual([]);
+  });
+
+  it("fonctionne lors d'un passage au jour suivant", () => {
+    const project = buildProject([]);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }];
+    const fromTime = { absoluteDay: 0, hour: 23, minute: 0 };
+    const toTime = { absoluteDay: 1, hour: 0, minute: 0 };
+    const fromWeather = generateWeatherForTime(project, fromTime.absoluteDay, fromTime.hour)!;
+    const toWeather = generateWeatherForTime(project, toTime.absoluteDay, toTime.hour)!;
+    const candidates = [
+      { metric: "rain" as const, from: fromWeather.rain, to: toWeather.rain },
+      { metric: "windSpeed" as const, from: fromWeather.windSpeed, to: toWeather.windSpeed },
+      { metric: "temperature" as const, from: fromWeather.temperature, to: toWeather.temperature }
+    ];
+    const selected = candidates.find((c) => c.from !== c.to);
+    if (!selected) {
+      expect(getNewlyTriggeredWeatherEventsBetween({ ...project, weatherEvents: [] }, fromTime, toTime)).toEqual([]);
+      return;
+    }
+    const operator = selected.to >= selected.from ? ("gte" as const) : ("lte" as const);
+    const threshold = (selected.from + selected.to) / 2;
+    const event = { ...createDefaultWeatherEvent("fr"), id: "cross-day", conditions: [{ metric: selected.metric, operator, value: threshold }] };
+    const result = getNewlyTriggeredWeatherEventsBetween({ ...project, weatherEvents: [event] }, fromTime, toTime);
+    expect(result.map((e) => e.id)).toEqual(["cross-day"]);
   });
 });

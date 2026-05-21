@@ -1,4 +1,5 @@
-import type { CalendarProject, WeatherCondition, WeatherEvent, WeatherSnapshot } from "../domain/types";
+import { generateWeatherForTime } from "./weatherLogic";
+import type { CalendarProject, InternalTime, WeatherCondition, WeatherEvent, WeatherSnapshot } from "../domain/types";
 
 export const isWeatherConditionMet = (weather: WeatherSnapshot, condition: WeatherCondition): boolean => {
   const metricValue = weather[condition.metric];
@@ -27,6 +28,19 @@ export const getTriggeredWeatherEvents = (
   weather: WeatherSnapshot
 ): WeatherEvent[] =>
   project.weatherEvents.filter((event) => isWeatherEventTriggered(weather, event));
+
+export const getNewlyTriggeredWeatherEventsBetween = (
+  project: CalendarProject,
+  fromTime: InternalTime,
+  toTime: InternalTime
+): WeatherEvent[] => {
+  const fromWeather = generateWeatherForTime(project, fromTime.absoluteDay, fromTime.hour);
+  const toWeather = generateWeatherForTime(project, toTime.absoluteDay, toTime.hour);
+  if (!fromWeather || !toWeather) return [];
+
+  const fromTriggeredIds = new Set(getTriggeredWeatherEvents(project, fromWeather).map((event) => event.id));
+  return getTriggeredWeatherEvents(project, toWeather).filter((event) => !fromTriggeredIds.has(event.id));
+};
 
 export const createDefaultWeatherEvent = (locale: CalendarProject["locale"]): WeatherEvent => ({
   id: `weather-event-${Date.now()}`,
