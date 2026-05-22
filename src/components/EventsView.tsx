@@ -59,6 +59,8 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInit
     if (result.type === "event") {
       setStatusFilter("all");
       setTimeFilter("all");
+      setSearchQuery("");
+      setIsCreateFormOpen(false);
       setEditingEventId(result.sourceId);
       return;
     }
