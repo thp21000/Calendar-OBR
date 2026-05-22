@@ -43,7 +43,9 @@ describe("publicSnapshot moon events", () => {
       { id: "d2", date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 0, minute: 0 }, gmNote: "gm only", visibility: "gm", updatedAt: 1 }
     ];
     const snapshot = createPublicCalendarTodaySnapshot(project, 1);
+    expect(snapshot.dayNotesToday[0]?.playerNote).toBe("public");
     expect(JSON.stringify(snapshot)).not.toContain("gm only");
+    expect(JSON.stringify(snapshot)).not.toContain("secret");
     expect(snapshot.dayNotesToday.map((n) => n.id)).toEqual(["d1"]);
   });
 });

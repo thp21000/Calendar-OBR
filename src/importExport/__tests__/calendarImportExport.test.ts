@@ -5,7 +5,7 @@ import {
   loadCalendarProject,
   saveCalendarProject
 } from "../../storage/calendarStorage";
-import { exportCalendarProject, importCalendarProject, validateImportedCalendarProject } from "../calendarImportExport";
+import { exportCalendarProject, importCalendarProject, sanitizeCalendarProject, validateImportedCalendarProject } from "../calendarImportExport";
 
 describe("calendarImportExport", () => {
   it("accepts a complete valid JSON import", () => {
@@ -381,5 +381,30 @@ describe("calendarImportExport", () => {
     expect(imported.ok).toBe(true);
     if (!imported.ok) return;
     expect(imported.project.dayNotes).toEqual([]);
+  });
+
+  it("sanitizeCalendarProject backfills missing dayNotes to []", () => {
+    const project = createDefaultCalendarProject() as Record<string, unknown>;
+    delete project.dayNotes;
+    const sanitized = sanitizeCalendarProject(project);
+    expect(sanitized.ok).toBe(true);
+    if (!sanitized.ok) return;
+    expect(sanitized.project.dayNotes).toEqual([]);
+  });
+
+  it("sanitizes invalid day notes", () => {
+    const project = createDefaultCalendarProject();
+    const payload = {
+      ...project,
+      dayNotes: [
+        { id: "", date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 0, minute: 0 }, visibility: "players", updatedAt: 1, playerNote: "x" },
+        { id: "n1", date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 0, minute: 0 }, visibility: "invalid", updatedAt: "bad", playerNote: "x" }
+      ]
+    };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.dayNotes?.map((n) => n.id)).toEqual(["n1"]);
+    expect(imported.project.dayNotes?.[0].visibility).toBe("gm");
   });
 });
