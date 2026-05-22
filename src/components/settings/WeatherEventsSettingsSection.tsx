@@ -68,6 +68,48 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
               <div style={labelStyle}>{t(project.locale, "weatherEvents.link")}</div>
               <input value={event.link ?? ""} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { link: e.target.value }))} style={inputStyle} />
             </label>
+            <label style={{ display: "block" }}>
+              <div style={labelStyle}>{t(project.locale, "weatherEvents.durationHours")}</div>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={event.durationHours ?? ""}
+                onChange={(e) =>
+                  onProjectUpdate(
+                    updateWeatherEvent(project, event.id, {
+                      durationHours:
+                        e.target.value.trim() === ""
+                          ? undefined
+                          : Math.max(0, Math.trunc(Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : 0))
+                    })
+                  )
+                }
+                style={inputStyle}
+              />
+              <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{t(project.locale, "weatherEvents.durationHelp")}</div>
+            </label>
+            <label style={{ display: "block" }}>
+              <div style={labelStyle}>{t(project.locale, "weatherEvents.cooldownHours")}</div>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={event.cooldownHours ?? ""}
+                onChange={(e) =>
+                  onProjectUpdate(
+                    updateWeatherEvent(project, event.id, {
+                      cooldownHours:
+                        e.target.value.trim() === ""
+                          ? undefined
+                          : Math.max(0, Math.trunc(Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : 0))
+                    })
+                  )
+                }
+                style={inputStyle}
+              />
+              <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{t(project.locale, "weatherEvents.cooldownHelp")}</div>
+            </label>
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <input
                 type="checkbox"

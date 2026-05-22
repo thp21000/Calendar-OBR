@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { createNotificationsFromTriggers, type CalendarNotification } from "../calendar/notifications";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
-import { getNewlyTriggeredWeatherEventsBetween, getTriggeredWeatherEvents } from "../calendar/weatherEventsLogic";
+import { getNewlyTriggeredWeatherEventsBetween, getTriggeredWeatherEvents, toAbsoluteMinutes } from "../calendar/weatherEventsLogic";
 import { getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
@@ -37,6 +37,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
   const [lastTriggeredEvents, setLastTriggeredEvents] = useState<CalendarEvent[]>([]);
   const [lastTriggeredWeatherEvents, setLastTriggeredWeatherEvents] = useState<CalendarProject["weatherEvents"]>([]);
   const [notifications, setNotifications] = useState<CalendarNotification[]>([]);
+  const lastTriggeredAtMinutesRef = useRef<Record<string, number>>({})
 
   const readDismissed = (): Set<string> => {
     try {
@@ -63,10 +64,14 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
 
     if (deltaMinutes > 0) {
       const triggered = getTriggeredEventsBetween(project, previousTime, nextTime);
-      const triggeredWeather = getNewlyTriggeredWeatherEventsBetween(project, previousTime, nextTime);
+      const triggeredWeather = getNewlyTriggeredWeatherEventsBetween(project, previousTime, nextTime, lastTriggeredAtMinutesRef.current);
       const completed = getCompletedEventsBetween(project, previousTime, nextTime);
       setLastTriggeredEvents(triggered);
       setLastTriggeredWeatherEvents(triggeredWeather);
+      const triggerTimeMinutes = toAbsoluteMinutes(nextTime);
+      for (const weatherEvent of triggeredWeather) {
+        lastTriggeredAtMinutesRef.current[weatherEvent.id] = triggerTimeMinutes;
+      }
       const dismissed = readDismissed();
       const created = createNotificationsFromTriggers(triggered, triggeredWeather, nextTime).filter((item) => !dismissed.has(item.id));
       setNotifications((prev) => {

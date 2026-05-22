@@ -10,6 +10,9 @@ import {
   getNewlyTriggeredWeatherEventsBetween,
   isWeatherConditionMet,
   isWeatherEventTriggered,
+  isWithinCooldownWindow,
+  isWithinDurationWindow,
+  toAbsoluteMinutes,
   updateWeatherCondition,
   updateWeatherEvent
 } from "../weatherEventsLogic";
@@ -321,5 +324,56 @@ describe("weatherEventsLogic", () => {
     const event = { ...createDefaultWeatherEvent("fr"), id: "cross-day", conditions: [{ metric: selected.metric, operator, value: threshold }] };
     const result = getNewlyTriggeredWeatherEventsBetween({ ...project, weatherEvents: [event] }, fromTime, toTime);
     expect(result.map((e) => e.id)).toEqual(["cross-day"]);
+  });
+
+  it("sans durée/cooldown : comportement inchangé", () => {
+    const project = buildProject([]);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }];
+    const fromTime = { absoluteDay: 0, hour: 10, minute: 0 };
+    const toTime = { absoluteDay: 0, hour: 11, minute: 0 };
+    const fromWeather = generateWeatherForTime(project, fromTime.absoluteDay, fromTime.hour)!;
+    const toWeather = generateWeatherForTime(project, toTime.absoluteDay, toTime.hour)!;
+    const operator = toWeather.windSpeed >= fromWeather.windSpeed ? ("gte" as const) : ("lte" as const);
+    const threshold = (fromWeather.windSpeed + toWeather.windSpeed) / 2;
+    const event = { ...createDefaultWeatherEvent("fr"), id: "legacy", conditions: [{ metric: "windSpeed" as const, operator, value: threshold }] };
+    const result = getNewlyTriggeredWeatherEventsBetween({ ...project, weatherEvents: [event] }, fromTime, toTime, {});
+    expect(result.map((e) => e.id)).toEqual(["legacy"]);
+  });
+
+  it("cooldown empêche un redéclenchement immédiat", () => {
+    const project = buildProject([{ ...createDefaultWeatherEvent("fr"), id: "cool", cooldownHours: 3, conditions: [{ metric: "temperature", operator: "lte", value: 999 }] }]);
+    const toTime = { absoluteDay: 0, hour: 12, minute: 0 };
+    const result = getNewlyTriggeredWeatherEventsBetween(project, { absoluteDay: 0, hour: 11, minute: 0 }, toTime, { cool: toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }) });
+    expect(result).toEqual([]);
+  });
+
+  it("cooldown expiré permet un nouveau déclenchement", () => {
+    const project = buildProject([]);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }];
+    const fromTime = { absoluteDay: 0, hour: 10, minute: 0 };
+    const toTime = { absoluteDay: 0, hour: 11, minute: 0 };
+    const fromWeather = generateWeatherForTime(project, fromTime.absoluteDay, fromTime.hour)!;
+    const toWeather = generateWeatherForTime(project, toTime.absoluteDay, toTime.hour)!;
+    const operator = toWeather.windSpeed >= fromWeather.windSpeed ? ("gte" as const) : ("lte" as const);
+    const threshold = (fromWeather.windSpeed + toWeather.windSpeed) / 2;
+    const event = { ...createDefaultWeatherEvent("fr"), id: "cool-ok", cooldownHours: 1, conditions: [{ metric: "windSpeed" as const, operator, value: threshold }] };
+    const result = getNewlyTriggeredWeatherEventsBetween({ ...project, weatherEvents: [event] }, fromTime, toTime, {
+      "cool-ok": toAbsoluteMinutes({ absoluteDay: 0, hour: 8, minute: 0 })
+    });
+    expect(result.map((e) => e.id)).toEqual(["cool-ok"]);
+  });
+
+  it("durée active empêche une nouvelle notification", () => {
+    const project = buildProject([{ ...createDefaultWeatherEvent("fr"), id: "dur", durationHours: 2, conditions: [{ metric: "temperature", operator: "lte", value: 999 }] }]);
+    const toTime = { absoluteDay: 0, hour: 12, minute: 0 };
+    const result = getNewlyTriggeredWeatherEventsBetween(project, { absoluteDay: 0, hour: 11, minute: 0 }, toTime, { dur: toAbsoluteMinutes({ absoluteDay: 0, hour: 11, minute: 0 }) });
+    expect(result).toEqual([]);
+  });
+
+  it("helpers durée/cooldown fonctionnent", () => {
+    expect(isWithinDurationWindow(60, 119, 1)).toBe(true);
+    expect(isWithinDurationWindow(60, 120, 1)).toBe(false);
+    expect(isWithinCooldownWindow(60, 119, 1)).toBe(true);
+    expect(isWithinCooldownWindow(60, 120, 1)).toBe(false);
   });
 });

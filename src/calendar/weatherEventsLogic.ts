@@ -35,14 +35,37 @@ export const getTriggeredWeatherEvents = (
 export const getNewlyTriggeredWeatherEventsBetween = (
   project: CalendarProject,
   fromTime: InternalTime,
-  toTime: InternalTime
+  toTime: InternalTime,
+  lastTriggeredAtMinutesByEventId?: Record<string, number>
 ): WeatherEvent[] => {
   const fromWeather = generateWeatherForTime(project, fromTime.absoluteDay, fromTime.hour);
   const toWeather = generateWeatherForTime(project, toTime.absoluteDay, toTime.hour);
   if (!fromWeather || !toWeather) return [];
 
   const fromTriggeredIds = new Set(getTriggeredWeatherEvents(project, fromWeather).map((event) => event.id));
-  return getTriggeredWeatherEvents(project, toWeather).filter((event) => !fromTriggeredIds.has(event.id));
+  const toMinutes = toAbsoluteMinutes(toTime);
+  return getTriggeredWeatherEvents(project, toWeather).filter((event) => {
+    const lastTriggeredAt = lastTriggeredAtMinutesByEventId?.[event.id];
+    if (typeof lastTriggeredAt === "number") {
+      if (isWithinDurationWindow(lastTriggeredAt, toMinutes, event.durationHours)) return false;
+      if (isWithinCooldownWindow(lastTriggeredAt, toMinutes, event.cooldownHours)) return false;
+    }
+    return !fromTriggeredIds.has(event.id);
+  });
+};
+
+export const toAbsoluteMinutes = (time: InternalTime): number => time.absoluteDay * 24 * 60 + time.hour * 60 + time.minute;
+
+export const isWithinDurationWindow = (triggeredAtMinutes: number, currentMinutes: number, durationHours?: number): boolean => {
+  if (typeof durationHours !== "number") return false;
+  const safeHours = Math.max(0, durationHours);
+  return currentMinutes - triggeredAtMinutes < safeHours * 60;
+};
+
+export const isWithinCooldownWindow = (triggeredAtMinutes: number, currentMinutes: number, cooldownHours?: number): boolean => {
+  if (typeof cooldownHours !== "number") return false;
+  const safeHours = Math.max(0, cooldownHours);
+  return currentMinutes - triggeredAtMinutes < safeHours * 60;
 };
 
 export const createDefaultWeatherEvent = (locale: CalendarProject["locale"]): WeatherEvent => ({
