@@ -2,6 +2,7 @@ import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { getPlayerVisibleEventsForCurrentDay } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../calendar/formatEvent";
+import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getCurrentWeather } from "../calendar/weatherLogic";
@@ -85,6 +86,19 @@ export const PlayerView = ({
             </div>
           )}
         </div>
+        <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginTop: 10 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(snapshot.locale, "player.moonEventsToday")}</div>
+          {snapshot.moonEventsToday.length === 0 ? (
+            <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(snapshot.locale, "player.noMoonEvents")}</div>
+          ) : (
+            snapshot.moonEventsToday.map((event) => (
+              <div key={event.id} style={{ fontSize: 12, marginBottom: 4 }}>
+                {event.icon ?? "🌕"} <strong>{event.name}</strong> · {event.moonName} · {t(snapshot.locale, `moon.phase.${event.phaseId}`)}
+                {event.playerDescription ? ` — ${event.playerDescription}` : event.summary ? ` — ${event.summary}` : ""}
+              </div>
+            ))
+          )}
+        </div>
       </>
     );
   }
@@ -94,6 +108,7 @@ export const PlayerView = ({
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
   const currentMoonPhases = getCurrentMoonPhases(project);
+  const visibleMoonEvents = getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay);
   const weatherUnits = getWeatherUnitLabels(project.locale);
   const weatherState = currentWeather?.state ?? "clear";
 
@@ -157,6 +172,22 @@ export const PlayerView = ({
               </div>
             ))}
           </div>
+        )}
+      </div>
+      <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginTop: 10 }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(project.locale, "player.moonEventsToday")}</div>
+        {visibleMoonEvents.length === 0 ? (
+          <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "player.noMoonEvents")}</div>
+        ) : (
+          visibleMoonEvents.map((event) => {
+            const moon = project.moons.find((m) => m.id === event.moonId);
+            return (
+              <div key={event.id} style={{ fontSize: 12, marginBottom: 4 }}>
+                {event.icon ?? "🌕"} <strong>{event.name}</strong> · {moon?.name ?? "?"} · {t(project.locale, `moon.phase.${event.phaseId}`)}
+                {event.playerDescription ? ` — ${event.playerDescription}` : event.summary ? ` — ${event.summary}` : ""}
+              </div>
+            );
+          })
         )}
       </div>
     </>

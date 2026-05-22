@@ -2,6 +2,7 @@ import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { getPlayerVisibleEventsForCurrentDay } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../calendar/formatEvent";
+import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getCurrentWeather } from "../calendar/weatherLogic";
@@ -59,6 +60,15 @@ export type PublicCalendarTodaySnapshot = {
   weather?: PublicCalendarWeatherSnapshot;
   moons: PublicCalendarMoonSnapshot[];
   eventsToday: PublicCalendarEventSnapshot[];
+  moonEventsToday: Array<{
+    id: string;
+    name: string;
+    icon?: string;
+    summary?: string;
+    playerDescription?: string;
+    moonName: string;
+    phaseId: MoonPhaseId;
+  }>;
 };
 
 export const buildPublicCalendarIndex = (project: CalendarProject, revision: number): PublicCalendarIndex => ({
@@ -103,6 +113,15 @@ export const createPublicCalendarTodaySnapshot = (
       summary: event.summary || undefined,
       playerDescription: event.playerDescription || undefined,
       timeLabel: formatEventTimeShort(project, event)
+      })),
+    moonEventsToday: getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay).map((event) => ({
+      id: event.id,
+      name: event.name,
+      icon: event.icon,
+      summary: event.summary || undefined,
+      playerDescription: event.playerDescription || undefined,
+      moonName: project.moons.find((moon) => moon.id === event.moonId)?.name ?? "?",
+      phaseId: event.phaseId
     }))
   };
 };
@@ -137,5 +156,6 @@ export const isPublicCalendarTodaySnapshot = (value: unknown): value is PublicCa
   if (typeof value.formattedDate !== "string") return false;
   if (!Array.isArray(value.moons)) return false;
   if (!Array.isArray(value.eventsToday)) return false;
+  if (!Array.isArray(value.moonEventsToday)) return false;
   return true;
 };
