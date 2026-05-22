@@ -286,6 +286,20 @@ describe("weatherEventsLogic", () => {
     const remaining = updated.weatherEvents[0]?.conditions[0];
     expect(remaining?.type === "metric" || remaining?.type === undefined ? remaining.metric : undefined).toBe("windSpeed");
   });
+
+  it("convertit metric -> season", () => {
+    const e1 = { ...createDefaultWeatherEvent("fr"), id: "e1" };
+    const project = buildProject([e1]);
+    const updated = updateWeatherCondition(project, "e1", 0, { type: "season", seasonId: "winter" });
+    expect(updated.weatherEvents[0]?.conditions[0]).toEqual({ type: "season", seasonId: "winter" });
+  });
+
+  it("convertit metric -> timeOfDay", () => {
+    const e1 = { ...createDefaultWeatherEvent("fr"), id: "e1" };
+    const project = buildProject([e1]);
+    const updated = updateWeatherCondition(project, "e1", 0, { type: "timeOfDay", startHour: 22, endHour: 6 });
+    expect(updated.weatherEvents[0]?.conditions[0]).toEqual({ type: "timeOfDay", startHour: 22, endHour: 6 });
+  });
   
   it("retourne un événement nouvellement actif entre fromTime et toTime", () => {
     const project = buildProject([]);

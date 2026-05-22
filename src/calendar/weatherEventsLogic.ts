@@ -1,7 +1,7 @@
 import { generateWeatherForTime } from "./weatherLogic";
 import { absoluteDayToCalendarDate } from "./dateEngine";
 import { getSeasonForDate } from "./seasonsLogic";
-import type { CalendarProject, InternalTime, WeatherCondition, WeatherEvent, WeatherSnapshot } from "../domain/types";
+import type { CalendarProject, InternalTime, WeatherCondition, WeatherEvent, WeatherSnapshot, WeatherState } from "../domain/types";
 
 type WeatherConditionContext = {
   project?: CalendarProject;
@@ -194,54 +194,28 @@ export const updateWeatherCondition = (
     const conditions = [...(event.conditions ?? [])];
     const target = conditions[conditionIndex];
     if (!target) return event;
-    const metricPatch = patch.type === "metric" || (patch.type === undefined && ("metric" in patch || "operator" in patch || "value" in patch))
-      ? patch
-      : undefined;
-    if (target.type === "state") {
-      const nextType = patch.type === "metric" ? "metric" : patch.type === "season" ? "season" : patch.type === "timeOfDay" ? "timeOfDay" : "state";
+    const asMetric = (fallback?: { metric: "temperature" | "windSpeed" | "rain"; operator: "gte" | "lte"; value: number }) => ({
+      type: "metric" as const,
+      metric: patch.type === "metric" && patch.metric ? patch.metric : ("metric" in patch && patch.metric ? patch.metric : fallback?.metric ?? "temperature"),
+      operator: patch.type === "metric" && patch.operator ? patch.operator : ("operator" in patch && patch.operator ? patch.operator : fallback?.operator ?? "gte"),
+      value: patch.type === "metric" && typeof patch.value === "number" ? patch.value : ("value" in patch && typeof patch.value === "number" ? patch.value : fallback?.value ?? 35)
+    });
+    const asState = (fallbackState: WeatherState = "storm") => ({ type: "state" as const, state: patch.type === "state" && patch.state ? patch.state : fallbackState });
+    const asSeason = (fallbackSeasonId = "") => ({ type: "season" as const, seasonId: patch.type === "season" && typeof patch.seasonId === "string" ? patch.seasonId : fallbackSeasonId });
+    const asTimeOfDay = (fallbackStartHour = 22, fallbackEndHour = 6) => ({
+      type: "timeOfDay" as const,
+      startHour: patch.type === "timeOfDay" && typeof patch.startHour === "number" ? patch.startHour : fallbackStartHour,
+      endHour: patch.type === "timeOfDay" && typeof patch.endHour === "number" ? patch.endHour : fallbackEndHour
+    });
+
+    if (patch.type === "state") conditions[conditionIndex] = asState(target.type === "state" ? target.state : "storm");
+    else if (patch.type === "season") conditions[conditionIndex] = asSeason(target.type === "season" ? target.seasonId : "");
+    else if (patch.type === "timeOfDay") conditions[conditionIndex] = asTimeOfDay(target.type === "timeOfDay" ? target.startHour : 22, target.type === "timeOfDay" ? target.endHour : 6);
+    else {
       conditions[conditionIndex] =
-        nextType === "state"
-          ? {
-              type: "state",
-              state: patch.type === "state" ? patch.state ?? target.state : "storm"
-            }
-          : nextType === "season"
-          ? { type: "season", seasonId: "seasonId" in patch && typeof patch.seasonId === "string" ? patch.seasonId : "" }
-          : nextType === "timeOfDay"
-          ? { type: "timeOfDay", startHour: "startHour" in patch && typeof patch.startHour === "number" ? patch.startHour : 22, endHour: "endHour" in patch && typeof patch.endHour === "number" ? patch.endHour : 6 }
-          : {
-              type: "metric",
-              metric: metricPatch?.metric ?? "temperature",
-              operator: metricPatch?.operator ?? "gte",
-              value: metricPatch?.value ?? 35
-            };
-    } else if (target.type === "season") {
-      if (patch.type === "state") conditions[conditionIndex] = { type: "state", state: patch.state ?? "storm" };
-      else if (patch.type === "timeOfDay") conditions[conditionIndex] = { type: "timeOfDay", startHour: patch.startHour ?? 22, endHour: patch.endHour ?? 6 };
-      else if (patch.type === "metric") conditions[conditionIndex] = { type: "metric", metric: patch.metric ?? "temperature", operator: patch.operator ?? "gte", value: patch.value ?? 35 };
-      else conditions[conditionIndex] = { type: "season", seasonId: "seasonId" in patch && typeof patch.seasonId === "string" ? patch.seasonId : target.seasonId };
-    } else if (target.type === "timeOfDay") {
-      if (patch.type === "state") conditions[conditionIndex] = { type: "state", state: patch.state ?? "storm" };
-      else if (patch.type === "season") conditions[conditionIndex] = { type: "season", seasonId: patch.seasonId ?? "" };
-      else if (patch.type === "metric") conditions[conditionIndex] = { type: "metric", metric: patch.metric ?? "temperature", operator: patch.operator ?? "gte", value: patch.value ?? 35 };
-      else {
-        conditions[conditionIndex] = {
-          type: "timeOfDay",
-          startHour: "startHour" in patch && typeof patch.startHour === "number" ? patch.startHour : target.startHour,
-          endHour: "endHour" in patch && typeof patch.endHour === "number" ? patch.endHour : target.endHour
-        };
-      }
-    } else {
-      if (patch.type === "state") {
-        conditions[conditionIndex] = { type: "state", state: patch.state ?? "storm" };
-      } else {
-        conditions[conditionIndex] = {
-          type: "metric",
-          metric: metricPatch?.metric ?? target.metric,
-          operator: metricPatch?.operator ?? target.operator,
-          value: metricPatch?.value ?? target.value
-        };
-      }
+        target.type === "metric" || target.type === undefined
+          ? asMetric({ metric: target.metric, operator: target.operator, value: target.value })
+          : asMetric();
     }
     return { ...event, conditions };
   })
