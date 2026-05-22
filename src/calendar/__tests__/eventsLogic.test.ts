@@ -215,6 +215,24 @@ describe("eventsLogic", () => {
     expect(updated.events[0].status).toBe("active");
   });
 
+  it("revealCalendarEvent ne modifie pas un revealOnTrigger archivé", () => {
+    const archivedReveal = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 8, minute: 0 }), visibility: "revealOnTrigger" as const, status: "archived" as const };
+    const project = { ...buildProject(), events: [archivedReveal] };
+
+    const updated = revealCalendarEvent(project, "e1");
+
+    expect(updated.events[0].status).toBe("archived");
+  });
+
+  it("revealCalendarEvent ne modifie pas un revealOnTrigger désactivé", () => {
+    const disabledReveal = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 8, minute: 0 }), visibility: "revealOnTrigger" as const, status: "disabled" as const };
+    const project = { ...buildProject(), events: [disabledReveal] };
+
+    const updated = revealCalendarEvent(project, "e1");
+
+    expect(updated.events[0].status).toBe("disabled");
+  });
+
   it("revealCalendarEvent ne modifie pas un événement players", () => {
     const playersEvent = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 8, minute: 0 }), visibility: "players" as const, status: "active" as const };
     const project = { ...buildProject(), events: [playersEvent] };

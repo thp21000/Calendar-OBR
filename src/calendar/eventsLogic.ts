@@ -206,6 +206,8 @@ export const revealCalendarEvent = (project: CalendarProject, eventId: string): 
   events: project.events.map((event) => {
     if (event.id !== eventId) return event;
     if (event.visibility !== "revealOnTrigger") return event;
+    if (event.status === "archived") return event;
+    if (event.status === "disabled") return event;
     return { ...event, status: "triggered" };
   })
 });
