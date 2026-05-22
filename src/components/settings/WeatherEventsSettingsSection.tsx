@@ -2,6 +2,7 @@ import {
   addWeatherCondition,
   addWeatherSeasonCondition,
   addWeatherTimeOfDayCondition,
+  addWeatherMoonPhaseCondition,
   addWeatherStateCondition,
   addWeatherEvent,
   createDefaultWeatherEvent,
@@ -11,7 +12,7 @@ import {
   updateWeatherEvent
 } from "../../calendar/weatherEventsLogic";
 import { parseWeatherInput } from "../../calendar/seasonsLogic";
-import type { CalendarProject, WeatherCondition, WeatherConditionMetric, WeatherConditionOperator, WeatherState } from "../../domain/types";
+import type { CalendarProject, MoonPhaseId, WeatherCondition, WeatherConditionMetric, WeatherConditionOperator, WeatherState } from "../../domain/types";
 import { useEffect, useState } from "react";
 import { t } from "../../i18n/messages";
 
@@ -31,6 +32,7 @@ const operatorLabel = (locale: CalendarProject["locale"], operator: WeatherCondi
   operator === "gte" ? t(locale, "weatherEvents.operatorGte") : t(locale, "weatherEvents.operatorLte");
 
 const weatherStates: WeatherState[] = ["clear", "cloudy", "overcast", "fog", "lightRain", "heavyRain", "storm", "snow", "strongWind", "tempest"];
+const moonPhases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
 
 const conditionSummary = (locale: CalendarProject["locale"], condition: WeatherCondition): string => {
   if (condition.type === "state") {
@@ -38,6 +40,7 @@ const conditionSummary = (locale: CalendarProject["locale"], condition: WeatherC
   }
   if (condition.type === "season") return `${t(locale, "weatherEvents.season")} = ${condition.seasonId || "?"}`;
   if (condition.type === "timeOfDay") return `${t(locale, "weatherEvents.timeOfDay")} ${condition.startHour}→${condition.endHour}`;
+  if (condition.type === "moonPhase") return `${t(locale, "weatherEvents.moonPhase")} = ${condition.phaseId}`;
   return `${metricLabel(locale, condition.metric)} ${condition.operator === "gte" ? ">=" : "<="} ${condition.value}`;
 };
 
@@ -145,7 +148,7 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                 <label style={{ display: "block" }}>
                   <div style={labelStyle}>{t(project.locale, "weatherEvents.conditionType")}</div>
                   <select
-                    value={condition.type === "state" ? "state" : condition.type === "season" ? "season" : condition.type === "timeOfDay" ? "timeOfDay" : "metric"}
+                    value={condition.type === "state" ? "state" : condition.type === "season" ? "season" : condition.type === "timeOfDay" ? "timeOfDay" : condition.type === "moonPhase" ? "moonPhase" : "metric"}
                     onChange={(e) =>
                       onProjectUpdate(
                         updateWeatherCondition(
@@ -158,6 +161,8 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                             ? { type: "season", seasonId: project.seasons[0]?.id ?? "" }
                             : e.target.value === "timeOfDay"
                             ? { type: "timeOfDay", startHour: 22, endHour: 6 }
+                            : e.target.value === "moonPhase"
+                            ? { type: "moonPhase", moonId: project.moons[0]?.id ?? "", phaseId: "full" }
                             : { type: "metric", metric: "temperature", operator: "gte", value: 35 }
                         )
                       )
@@ -168,6 +173,7 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                     <option value="state">{t(project.locale, "weatherEvents.conditionTypeState")}</option>
                     <option value="season">{t(project.locale, "weatherEvents.conditionTypeSeason")}</option>
                     <option value="timeOfDay">{t(project.locale, "weatherEvents.conditionTypeTimeOfDay")}</option>
+                    <option value="moonPhase">{t(project.locale, "weatherEvents.conditionTypeMoonPhase")}</option>
                   </select>
                 </label>
                 {condition.type === "state" ? (
@@ -216,6 +222,25 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                     </label>
                     <div style={{ fontSize: 11, color: "#9ca3af" }}>{t(project.locale, "weatherEvents.timeOfDayHelp")}</div>
                   </>
+                  ) : condition.type === "moonPhase" ? (
+                  project.moons.length === 0 ? (
+                    <div style={{ fontSize: 11, color: "#fca5a5" }}>{t(project.locale, "weatherEvents.noMoonAvailable")}</div>
+                  ) : (
+                    <>
+                      <label style={{ display: "block" }}>
+                        <div style={labelStyle}>{t(project.locale, "weatherEvents.moon")}</div>
+                        <select value={condition.moonId} onChange={(e) => onProjectUpdate(updateWeatherCondition(project, event.id, index, { type: "moonPhase", moonId: e.target.value, phaseId: condition.phaseId }))} style={inputStyle}>
+                          {project.moons.map((moon) => <option key={moon.id} value={moon.id}>{moon.name}</option>)}
+                        </select>
+                      </label>
+                      <label style={{ display: "block" }}>
+                        <div style={labelStyle}>{t(project.locale, "weatherEvents.moonPhase")}</div>
+                        <select value={condition.phaseId} onChange={(e) => onProjectUpdate(updateWeatherCondition(project, event.id, index, { type: "moonPhase", moonId: condition.moonId, phaseId: e.target.value as MoonPhaseId }))} style={inputStyle}>
+                          {moonPhases.map((phase) => <option key={phase} value={phase}>{phase}</option>)}
+                        </select>
+                      </label>
+                    </>
+                  )
                 ) : (
                   <>
                 <label style={{ display: "block" }}>
@@ -273,6 +298,9 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
               </button>
               <button type="button" onClick={() => onProjectUpdate(addWeatherTimeOfDayCondition(project, event.id))} style={smallButtonStyle}>
                 {t(project.locale, "weatherEvents.addTimeOfDayCondition")}
+              </button>
+              <button type="button" onClick={() => onProjectUpdate(addWeatherMoonPhaseCondition(project, event.id))} style={smallButtonStyle}>
+                {t(project.locale, "weatherEvents.addMoonPhaseCondition")}
               </button>
               <button
                 type="button"

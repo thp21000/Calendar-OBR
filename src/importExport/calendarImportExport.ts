@@ -159,6 +159,17 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                     Number.isFinite(condition.startHour) &&
                     typeof condition.endHour === "number" &&
                     Number.isFinite(condition.endHour)) ||
+                  (condition.type === "moonPhase" &&
+                    typeof condition.moonId === "string" &&
+                    condition.moonId.trim().length > 0 &&
+                    (condition.phaseId === "new" ||
+                      condition.phaseId === "waxingCrescent" ||
+                      condition.phaseId === "firstQuarter" ||
+                      condition.phaseId === "waxingGibbous" ||
+                      condition.phaseId === "full" ||
+                      condition.phaseId === "waningGibbous" ||
+                      condition.phaseId === "lastQuarter" ||
+                      condition.phaseId === "waningCrescent")) ||
                   ((condition.type === undefined || condition.type === "metric") &&
                     (condition.metric === "temperature" || condition.metric === "windSpeed" || condition.metric === "rain") &&
                     (condition.operator === "gte" || condition.operator === "lte") &&

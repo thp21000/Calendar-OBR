@@ -106,6 +106,20 @@ describe("weatherEventsLogic", () => {
     expect(isWeatherConditionMet(weather, { type: "timeOfDay", startHour: 22, endHour: 6 }, { time: { absoluteDay: 0, hour: 4, minute: 0 } })).toBe(true);
     expect(isWeatherConditionMet(weather, { type: "timeOfDay", startHour: 22, endHour: 6 }, { time: { absoluteDay: 0, hour: 12, minute: 0 } })).toBe(false);
   });
+  it("condition phase lunaire match", () => {
+    const project = buildProject([]);
+    project.moons = [{ id: "m1", name: "Moon", cycleLengthDays: 29.5, cycleOffsetDays: 0 }];
+    expect(isWeatherConditionMet(weather, { type: "moonPhase", moonId: "m1", phaseId: "new" }, { project, time: { absoluteDay: 0, hour: 10, minute: 0 } })).toBe(true);
+  });
+  it("condition phase lunaire non match", () => {
+    const project = buildProject([]);
+    project.moons = [{ id: "m1", name: "Moon", cycleLengthDays: 29.5, cycleOffsetDays: 0 }];
+    expect(isWeatherConditionMet(weather, { type: "moonPhase", moonId: "m1", phaseId: "full" }, { project, time: { absoluteDay: 0, hour: 10, minute: 0 } })).toBe(false);
+  });
+  it("condition phase lunaire lune absente = faux", () => {
+    const project = buildProject([]);
+    expect(isWeatherConditionMet(weather, { type: "moonPhase", moonId: "missing", phaseId: "full" }, { project, time: { absoluteDay: 0, hour: 10, minute: 0 } })).toBe(false);
+  });
 
   it("événement désactivé non déclenché", () => {
     const event: WeatherEvent = {
@@ -188,6 +202,12 @@ describe("weatherEventsLogic", () => {
   it("requireAny état + période", () => {
     const event: WeatherEvent = { id: "a", name: "A", enabled: true, requireAllConditions: false, conditions: [{ type: "state", state: "storm" }, { type: "timeOfDay", startHour: 22, endHour: 6 }] };
     expect(isWeatherEventTriggered(weather, event, { time: { absoluteDay: 0, hour: 23, minute: 0 } })).toBe(true);
+  });
+  it("requireAll météo + phase lunaire", () => {
+    const project = buildProject([]);
+    project.moons = [{ id: "m1", name: "Moon", cycleLengthDays: 29.5, cycleOffsetDays: 0 }];
+    const event: WeatherEvent = { id: "a", name: "A", enabled: true, requireAllConditions: true, conditions: [{ metric: "temperature", operator: "gte", value: 35 }, { type: "moonPhase", moonId: "m1", phaseId: "new" }] };
+    expect(isWeatherEventTriggered(weather, event, { project, time: { absoluteDay: 0, hour: 10, minute: 0 } })).toBe(true);
   });
 
   it("getTriggeredWeatherEvents retourne seulement les déclenchés", () => {
@@ -299,6 +319,16 @@ describe("weatherEventsLogic", () => {
     const project = buildProject([e1]);
     const updated = updateWeatherCondition(project, "e1", 0, { type: "timeOfDay", startHour: 22, endHour: 6 });
     expect(updated.weatherEvents[0]?.conditions[0]).toEqual({ type: "timeOfDay", startHour: 22, endHour: 6 });
+  });
+  it("convertit metric -> moonPhase", () => {
+    const e1 = { ...createDefaultWeatherEvent("fr"), id: "e1" };
+    const updated = updateWeatherCondition(buildProject([e1]), "e1", 0, { type: "moonPhase", moonId: "moon-1", phaseId: "full" });
+    expect(updated.weatherEvents[0]?.conditions[0]).toEqual({ type: "moonPhase", moonId: "moon-1", phaseId: "full" });
+  });
+  it("convertit moonPhase -> metric", () => {
+    const e1 = { ...createDefaultWeatherEvent("fr"), id: "e1", conditions: [{ type: "moonPhase", moonId: "moon-1", phaseId: "full" as const }] };
+    const updated = updateWeatherCondition(buildProject([e1 as unknown as WeatherEvent]), "e1", 0, { type: "metric", metric: "rain", operator: "gte", value: 1 });
+    expect(updated.weatherEvents[0]?.conditions[0]).toEqual({ type: "metric", metric: "rain", operator: "gte", value: 1 });
   });
   
   it("retourne un événement nouvellement actif entre fromTime et toTime", () => {

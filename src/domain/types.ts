@@ -173,7 +173,13 @@ export type WeatherTimeOfDayCondition = {
   endHour: number;
 };
 
-export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition | WeatherSeasonCondition | WeatherTimeOfDayCondition;
+export type WeatherMoonPhaseCondition = {
+  type: "moonPhase";
+  moonId: string;
+  phaseId: MoonPhaseId;
+};
+
+export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition | WeatherSeasonCondition | WeatherTimeOfDayCondition | WeatherMoonPhaseCondition;
 
 export type WeatherEvent = {
   id: string;

@@ -347,4 +347,21 @@ describe("calendarImportExport", () => {
     expect(imported.project.weatherEvents[0].conditions).toEqual([{ type: "season", seasonId: "s1" }, { type: "timeOfDay", startHour: 23, endHour: 0 }]);
     expect(imported.project.weatherEvents[1].conditions).toEqual([]);
   });
+
+  it("sanitizes moonPhase weather conditions", () => {
+    const project = createDefaultCalendarProject();
+    project.moons = [{ id: "m1", name: "Moon", cycleLengthDays: 29.5, cycleOffsetDays: 0 }];
+    const payload = {
+      ...project,
+      weatherEvents: [
+        { id: "ok", name: "ok", enabled: true, requireAllConditions: true, conditions: [{ type: "moonPhase", moonId: "m1", phaseId: "full" }] },
+        { id: "bad", name: "bad", enabled: true, requireAllConditions: true, conditions: [{ type: "moonPhase", moonId: "", phaseId: "full" }, { type: "moonPhase", moonId: "m1", phaseId: "invalid" }] }
+      ]
+    };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherEvents[0].conditions).toEqual([{ type: "moonPhase", moonId: "m1", phaseId: "full" }]);
+    expect(imported.project.weatherEvents[1].conditions).toEqual([]);
+  });
 });
