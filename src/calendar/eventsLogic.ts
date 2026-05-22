@@ -421,11 +421,20 @@ export const getReminderEventsBetween = (
     if (event.status !== "active") return false;
     if (event.reminderEnabled !== true) return false;
     if (typeof event.reminderMinutesBefore !== "number" || !Number.isFinite(event.reminderMinutesBefore) || event.reminderMinutesBefore <= 0) return false;
-    if (event.recurrence.type !== "none") return false;
 
-    const startMinute = toAbsoluteMinute(project, getEventTriggerStartDate(event));
-    const reminderMinute = startMinute - Math.trunc(event.reminderMinutesBefore);
-    return reminderMinute > fromMinute && reminderMinute <= toMinute;
+    const reminderMinutesBefore = Math.trunc(event.reminderMinutesBefore);
+    if (event.recurrence.type === "none") {
+      const startMinute = toAbsoluteMinute(project, getEventTriggerStartDate(event));
+      const reminderMinute = startMinute - reminderMinutesBefore;
+      return reminderMinute > fromMinute && reminderMinute <= toMinute;
+    }
+
+    const occurrenceSearchToMinute = toMinute + reminderMinutesBefore;
+    const occurrences = getRecurringOccurrenceStartsBetween(project, event, fromMinute, occurrenceSearchToMinute);
+    return occurrences.some((occurrenceStartMinute) => {
+      const reminderMinute = occurrenceStartMinute - reminderMinutesBefore;
+      return reminderMinute > fromMinute && reminderMinute <= toMinute;
+    });
   });
 };
 

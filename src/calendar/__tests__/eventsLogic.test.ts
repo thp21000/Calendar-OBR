@@ -619,6 +619,50 @@ it("getReminderEventsBetween: événement sans rappel = aucun", () => {
     expect(result).toEqual([]);
   });
 
+  it("getReminderEventsBetween: everyXDays détecté", () => {
+    const e = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 10, minute: 0 }), recurrence: { type: "everyXDays" as const, interval: 1 }, reminderEnabled: true, reminderMinutesBefore: 60 };
+    const project = { ...buildProject(), events: [e] };
+    const result = getReminderEventsBetween(project, { absoluteDay: 1, hour: 8, minute: 30 }, { absoluteDay: 1, hour: 9, minute: 0 });
+    expect(result.map((x) => x.id)).toEqual(["e1"]);
+  });
+
+  it("getReminderEventsBetween: everyXMonths détecté", () => {
+    const e = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 10, minute: 0 }), recurrence: { type: "everyXMonths" as const, interval: 1 }, reminderEnabled: true, reminderMinutesBefore: 60 };
+    const project = { ...buildProject(), events: [e] };
+    const from = { absoluteDay: 29, hour: 8, minute: 30 };
+    const to = { absoluteDay: 30, hour: 9, minute: 0 };
+    const result = getReminderEventsBetween(project, from, to);
+    expect(result.map((x) => x.id)).toEqual(["e1"]);
+  });
+
+  it("getReminderEventsBetween: yearly détecté", () => {
+    const e = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 10, minute: 0 }), recurrence: { type: "yearly" as const, interval: 1 }, reminderEnabled: true, reminderMinutesBefore: 60 };
+    const project = { ...buildProject(), events: [e] };
+    const result = getReminderEventsBetween(project, { absoluteDay: 60, hour: 8, minute: 30 }, { absoluteDay: 61, hour: 9, minute: 0 });
+    expect(result.map((x) => x.id)).toEqual(["e1"]);
+  });
+
+  it("getReminderEventsBetween: récurrent non détecté hors fenêtre", () => {
+    const e = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 10, minute: 0 }), recurrence: { type: "everyXDays" as const, interval: 1 }, reminderEnabled: true, reminderMinutesBefore: 60 };
+    const project = { ...buildProject(), events: [e] };
+    const result = getReminderEventsBetween(project, { absoluteDay: 1, hour: 9, minute: 1 }, { absoluteDay: 1, hour: 9, minute: 30 });
+    expect(result).toEqual([]);
+  });
+
+  it("getReminderEventsBetween: all-day récurrent calculé depuis 00:00", () => {
+    const e = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 18, minute: 0 }), allDay: true, recurrence: { type: "everyXDays" as const, interval: 1 }, reminderEnabled: true, reminderMinutesBefore: 60 };
+    const project = { ...buildProject(), events: [e] };
+    const result = getReminderEventsBetween(project, { absoluteDay: 0, hour: 22, minute: 30 }, { absoluteDay: 0, hour: 23, minute: 0 });
+    expect(result.map((x) => x.id)).toEqual(["e1"]);
+  });
+
+  it("getReminderEventsBetween: récurrent sans reminderEnabled ignoré", () => {
+    const e = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 10, minute: 0 }), recurrence: { type: "everyXDays" as const, interval: 1 }, reminderMinutesBefore: 60 };
+    const project = { ...buildProject(), events: [e] };
+    const result = getReminderEventsBetween(project, { absoluteDay: 1, hour: 8, minute: 30 }, { absoluteDay: 1, hour: 9, minute: 0 });
+    expect(result).toEqual([]);
+  });
+
 it("getCompletedEventsBetween: événement normal sans endDate terminé au début", () => {
     const project = buildProject();
     project.events = [makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 12, minute: 0 })];
