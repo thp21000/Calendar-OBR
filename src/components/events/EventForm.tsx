@@ -11,6 +11,7 @@ export type EventFormValue = {
   visibility: CalendarEvent["visibility"]; allDay: boolean;
   recurrenceType: CalendarEvent["recurrence"]["type"]; recurrenceInterval: number;
   notifyOnTrigger: boolean; deleteAfterTrigger: boolean; archiveAfterTrigger: boolean;
+  reminderEnabled: boolean; reminderMinutesBefore: number;
   hasEndDate: boolean; endYear: number; endMonthId: string; endDayOfMonth: number; endHour: number; endMinute: number;
 };
 
@@ -34,6 +35,8 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent, initialDat
       notifyOnTrigger: event.notifyOnTrigger,
       deleteAfterTrigger: event.deleteAfterTrigger,
       archiveAfterTrigger: event.archiveAfterTrigger,
+      reminderEnabled: event.reminderEnabled === true,
+      reminderMinutesBefore: typeof event.reminderMinutesBefore === "number" && Number.isFinite(event.reminderMinutesBefore) && event.reminderMinutesBefore > 0 ? Math.trunc(event.reminderMinutesBefore) : 60,
       hasEndDate: Boolean(event.endDate),
       endYear: event.endDate?.year ?? event.date.year,
       endMonthId: event.endDate?.monthId ?? event.date.monthId,
@@ -49,6 +52,7 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent, initialDat
     name: "", icon: "", summary: "", year: now.year, monthId: now.monthId, dayOfMonth: now.dayOfMonth, hour: now.hour, minute: now.minute,
     visibility: "gm", allDay: false, recurrenceType: "none", recurrenceInterval: 1,
     notifyOnTrigger: true, deleteAfterTrigger: false, archiveAfterTrigger: false,
+    reminderEnabled: false, reminderMinutesBefore: 60,
     hasEndDate: false, endYear: now.year, endMonthId: now.monthId, endDayOfMonth: now.dayOfMonth, endHour: clamp(now.hour + 1, 0, 23), endMinute: now.minute
   };
 };
@@ -102,7 +106,9 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
         recurrence,
         notifyOnTrigger: form.notifyOnTrigger,
         deleteAfterTrigger: form.deleteAfterTrigger,
-        archiveAfterTrigger: form.archiveAfterTrigger
+        archiveAfterTrigger: form.archiveAfterTrigger,
+        reminderEnabled: form.reminderEnabled,
+        reminderMinutesBefore: Math.max(0, Math.trunc(form.reminderMinutesBefore || 60))
       });
       setNameError(null);
       return;
@@ -112,7 +118,9 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
     onSubmit({ ...base, summary: form.summary, visibility: form.visibility, allDay: form.allDay, endDate, recurrence,
       notifyOnTrigger: form.notifyOnTrigger,
       deleteAfterTrigger: form.deleteAfterTrigger,
-      archiveAfterTrigger: form.archiveAfterTrigger
+      archiveAfterTrigger: form.archiveAfterTrigger,
+      reminderEnabled: form.reminderEnabled,
+      reminderMinutesBefore: Math.max(0, Math.trunc(form.reminderMinutesBefore || 60))
     });
     setForm(toFormValue(project, undefined, initialDate));
     setNameError(null);
@@ -164,6 +172,12 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.notifyOnTrigger} onChange={(e)=>updateForm("notifyOnTrigger", e.target.checked)}/>{t(project.locale, "events.notifyOnTrigger")}</label>
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.deleteAfterTrigger} onChange={(e)=>updateForm("deleteAfterTrigger", e.target.checked)}/>{t(project.locale, "events.deleteAfterTrigger")}</label>
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.archiveAfterTrigger} onChange={(e)=>updateForm("archiveAfterTrigger", e.target.checked)}/>{t(project.locale, "events.archiveAfterTrigger")}</label>
+    </CollapsibleSection>
+    <CollapsibleSection title={t(project.locale, "events.reminder")} defaultOpen={false}>
+      <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.reminderEnabled} onChange={(e)=>updateForm("reminderEnabled", e.target.checked)}/>{t(project.locale, "events.reminderEnabled")}</label>
+      <label>{t(project.locale, "events.reminderMinutesBefore")}</label>
+      <input type="number" min={0} value={form.reminderMinutesBefore} onChange={(e)=>updateForm("reminderMinutesBefore", Math.max(0, Math.trunc(Number(e.target.value) || 60)))} style={inputStyle}/>
+      <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "events.reminderMinutesBeforeHelp")}</div>
     </CollapsibleSection>
     <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
       <button type="button" onClick={submit} style={buttonStyle}>{mode === "create" ? t(project.locale, "events.save") : t(project.locale, "events.update")}</button>

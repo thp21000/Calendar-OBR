@@ -408,3 +408,20 @@ describe("calendarImportExport", () => {
     expect(imported.project.dayNotes?.[0].visibility).toBe("gm");
   });
 });
+
+it("sanitizeCalendarProject normalizes invalid reminder fields", () => {
+    const project = createDefaultCalendarProject() as unknown as Record<string, unknown>;
+    project.events = [{
+      ...(createDefaultCalendarProject().events[0] ?? {
+        id: "e1", name: "e1", date: { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 10, minute: 0 }, recurrence: { type: "none" }, summary: "", visibility: "gm", notifyOnTrigger: true, deleteAfterTrigger: false, archiveAfterTrigger: false, status: "active"
+      }),
+      reminderEnabled: "yes",
+      reminderMinutesBefore: -12.8
+    }];
+    const sanitized = sanitizeCalendarProject(project);
+    expect(sanitized.ok).toBe(true);
+    if (!sanitized.ok) return;
+    const event = sanitized.project.events[0] as Record<string, unknown>;
+    expect(event.reminderEnabled).toBeUndefined();
+    expect(event.reminderMinutesBefore).toBeUndefined();
+  });

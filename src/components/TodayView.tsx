@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
-import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
+import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getReminderEventsBetween, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
-import { createNotificationsFromTriggers, type CalendarNotification } from "../calendar/notifications";
+import { createNotificationsFromTriggers, createReminderNotifications, type CalendarNotification } from "../calendar/notifications";
 import * as moonLogic from "../calendar/moonLogic";
 import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
@@ -76,6 +76,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
       const triggeredWeather = getNewlyTriggeredWeatherEventsBetween(project, previousTime, nextTime, lastTriggeredAtMinutesRef.current);
       const triggeredMoon = getNewlyTriggeredMoonEventsBetween(project, previousTime, nextTime);
       const completed = getCompletedEventsBetween(project, previousTime, nextTime);
+      const reminderEvents = getReminderEventsBetween(project, previousTime, nextTime);
       setLastTriggeredEvents(triggered);
       setLastTriggeredWeatherEvents(triggeredWeather);
       setLastTriggeredMoonEvents(triggeredMoon);
@@ -84,7 +85,10 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
         lastTriggeredAtMinutesRef.current[weatherEvent.id] = triggerTimeMinutes;
       }
       const dismissed = readDismissed();
-      const created = createNotificationsFromTriggers(triggered, triggeredWeather, triggeredMoon.filter((m) => m.notifyOnTrigger), nextTime).filter((item) => !dismissed.has(item.id));
+      const created = [
+        ...createNotificationsFromTriggers(triggered, triggeredWeather, triggeredMoon.filter((m) => m.notifyOnTrigger), nextTime),
+        ...createReminderNotifications(reminderEvents, nextTime)
+      ].filter((item) => !dismissed.has(item.id));
       setNotifications((prev) => {
         const merged = new Map<string, CalendarNotification>();
         [...prev, ...created].forEach((item) => {

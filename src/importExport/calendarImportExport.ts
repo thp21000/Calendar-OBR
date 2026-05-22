@@ -134,6 +134,21 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     });
   }
 
+  if (Array.isArray(maybeCompat.events)) {
+    maybeCompat.events = maybeCompat.events
+      .filter(isRecord)
+      .map((event) => {
+        const next = { ...event } as Record<string, unknown>;
+        if (typeof next.reminderEnabled !== "boolean") delete next.reminderEnabled;
+        if (typeof next.reminderMinutesBefore !== "number" || !Number.isFinite(next.reminderMinutesBefore) || next.reminderMinutesBefore < 0) {
+          delete next.reminderMinutesBefore;
+        } else {
+          next.reminderMinutesBefore = Math.trunc(next.reminderMinutesBefore);
+        }
+        return next;
+      });
+  }
+
   if (Array.isArray(maybeCompat.weatherEvents)) {
     maybeCompat.weatherEvents = maybeCompat.weatherEvents
       .filter(isRecord)

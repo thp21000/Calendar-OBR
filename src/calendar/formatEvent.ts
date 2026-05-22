@@ -81,6 +81,12 @@ export const formatEventTriggerOptions = (project: CalendarProject, event: Calen
   if (event.notifyOnTrigger) parts.push(t(project.locale, "events.triggerNotify"));
   if (event.deleteAfterTrigger) parts.push(t(project.locale, "events.triggerDelete"));
   if (event.archiveAfterTrigger) parts.push(t(project.locale, "events.triggerArchive"));
+  if (event.reminderEnabled === true) {
+    const mins = typeof event.reminderMinutesBefore === "number" && Number.isFinite(event.reminderMinutesBefore) && event.reminderMinutesBefore > 0
+      ? Math.trunc(event.reminderMinutesBefore)
+      : 60;
+    parts.push(t(project.locale, "events.reminder").replace("{n}", String(mins)));
+  }
   if (parts.length === 0) return t(project.locale, "events.triggerNone");
   return parts.join(", ");
 };

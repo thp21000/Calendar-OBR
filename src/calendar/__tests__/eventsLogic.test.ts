@@ -17,7 +17,8 @@ import {
   applyEventCompletionActions,
   getEventTimeBucket,
   duplicateCalendarEvent,
-  revealCalendarEvent
+  revealCalendarEvent,
+  getReminderEventsBetween
 } from "../eventsLogic";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../../domain/types";
 
@@ -588,6 +589,35 @@ describe("eventsLogic", () => {
     expect(getEventsForCurrentDay(project)).toEqual([]);
   });
 });
+
+it("getReminderEventsBetween: événement sans rappel = aucun", () => {
+    const e = makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 13, minute: 0 });
+    const project = { ...buildProject(), events: [e] };
+    const result = getReminderEventsBetween(project, { absoluteDay: 0, hour: 11, minute: 59 }, { absoluteDay: 0, hour: 12, minute: 1 });
+    expect(result).toEqual([]);
+  });
+
+  it("getReminderEventsBetween: rappel 60 min détecté", () => {
+    const e = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 13, minute: 0 }), reminderEnabled: true, reminderMinutesBefore: 60 };
+    const project = { ...buildProject(), events: [e] };
+    const result = getReminderEventsBetween(project, { absoluteDay: 0, hour: 11, minute: 59 }, { absoluteDay: 0, hour: 12, minute: 0 });
+    expect(result.map((x)=>x.id)).toEqual(["e1"]);
+  });
+
+  it("getReminderEventsBetween: fenêtre hors rappel = aucun", () => {
+    const e = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 13, minute: 0 }), reminderEnabled: true, reminderMinutesBefore: 60 };
+    const project = { ...buildProject(), events: [e] };
+    const result = getReminderEventsBetween(project, { absoluteDay: 0, hour: 12, minute: 1 }, { absoluteDay: 0, hour: 12, minute: 59 });
+    expect(result).toEqual([]);
+  });
+
+  it("getReminderEventsBetween: archived/disabled ignorés", () => {
+    const a = { ...makeEvent("a", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 13, minute: 0 }), reminderEnabled: true, reminderMinutesBefore: 60, status: "archived" as const };
+    const d = { ...makeEvent("d", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 13, minute: 0 }), reminderEnabled: true, reminderMinutesBefore: 60, status: "disabled" as const };
+    const project = { ...buildProject(), events: [a,d] };
+    const result = getReminderEventsBetween(project, { absoluteDay: 0, hour: 11, minute: 59 }, { absoluteDay: 0, hour: 12, minute: 0 });
+    expect(result).toEqual([]);
+  });
 
 it("getCompletedEventsBetween: événement normal sans endDate terminé au début", () => {
     const project = buildProject();

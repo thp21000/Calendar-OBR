@@ -77,6 +77,8 @@ export type CalendarEvent = {
   archiveAfterTrigger: boolean;
   status: CalendarEventStatus;
   allDay?: boolean;
+  reminderEnabled?: boolean;
+  reminderMinutesBefore?: number;
 };
 
 export type UiSettings = {

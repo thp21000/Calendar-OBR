@@ -2,7 +2,7 @@ import type { CalendarEvent, InternalTime, MoonEvent, WeatherEvent } from "../do
 
 export type CalendarNotification = {
   id: string;
-  type: "event" | "weather" | "moon";
+  type: "event" | "weather" | "moon" | "eventReminder";
   sourceId: string;
   title: string;
   summary?: string;
@@ -52,5 +52,26 @@ export const createNotificationsFromTriggers = (
   [...eventNotifications, ...weatherNotifications, ...moonNotifications].forEach((notification) => {
     byId.set(notification.id, notification);
   });
+  return [...byId.values()];
+};
+
+export const createReminderNotifications = (
+  reminderEvents: CalendarEvent[],
+  now: InternalTime,
+  createdAt: number = Date.now()
+): CalendarNotification[] => {
+  const byId = new Map<string, CalendarNotification>();
+  for (const event of reminderEvents) {
+    const id = `event-reminder:${event.id}:${toMomentPart(now)}`;
+    byId.set(id, {
+      id,
+      type: "eventReminder",
+      sourceId: event.id,
+      title: event.name,
+      summary: event.summary || undefined,
+      createdAt,
+      dismissed: false
+    });
+  }
   return [...byId.values()];
 };

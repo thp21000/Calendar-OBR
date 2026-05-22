@@ -53,7 +53,9 @@ export const createCalendarEvent = (input: CreateCalendarEventInput): CalendarEv
   deleteAfterTrigger: false,
   archiveAfterTrigger: false,
   status: "active",
-  allDay: input.allDay ?? false
+  allDay: input.allDay ?? false,
+  reminderEnabled: false,
+  reminderMinutesBefore: 60
 });
 
 const getMonthOrder = (project: CalendarProject, monthId: string): number => {
@@ -404,6 +406,27 @@ const getOccurrenceCompletionMinute = (project: CalendarProject, event: Calendar
   const baseCompletionMinute = event.endDate ? toAbsoluteMinute(project, event.endDate) : baseStartMinute;
   const durationMinutes = Math.max(0, baseCompletionMinute - baseStartMinute);
   return occurrenceStartMinute + durationMinutes;
+};
+
+export const getReminderEventsBetween = (
+  project: CalendarProject,
+  fromTime: { absoluteDay: number; hour: number; minute: number },
+  toTime: { absoluteDay: number; hour: number; minute: number }
+): CalendarEvent[] => {
+  const fromMinute = internalToAbsoluteMinute(fromTime);
+  const toMinute = internalToAbsoluteMinute(toTime);
+  if (toMinute <= fromMinute) return [];
+
+  return project.events.filter((event) => {
+    if (event.status !== "active") return false;
+    if (event.reminderEnabled !== true) return false;
+    if (typeof event.reminderMinutesBefore !== "number" || !Number.isFinite(event.reminderMinutesBefore) || event.reminderMinutesBefore <= 0) return false;
+    if (event.recurrence.type !== "none") return false;
+
+    const startMinute = toAbsoluteMinute(project, getEventTriggerStartDate(event));
+    const reminderMinute = startMinute - Math.trunc(event.reminderMinutesBefore);
+    return reminderMinute > fromMinute && reminderMinute <= toMinute;
+  });
 };
 
 export const getTriggeredEventsBetween = (

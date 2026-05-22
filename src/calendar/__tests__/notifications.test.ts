@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createNotificationsFromTriggers } from "../notifications";
+import { createNotificationsFromTriggers, createReminderNotifications } from "../notifications";
 import type { CalendarEvent, WeatherEvent } from "../../domain/types";
 
 const event = (id: string, summary?: string, gmDescription?: string): CalendarEvent => ({
@@ -48,5 +48,13 @@ describe("createNotificationsFromTriggers", () => {
     const notifications = createNotificationsFromTriggers([event("e1", "public", "secret gm")], [], [], { absoluteDay: 10, hour: 2, minute: 30 }, 1000);
     expect(JSON.stringify(notifications)).not.toContain("secret gm");
     expect((notifications[0] as unknown as { gmDescription?: string }).gmDescription).toBeUndefined();
+  });
+});
+
+describe("createReminderNotifications", () => {
+  it("creates stable reminder ids and excludes gmDescription", () => {
+    const notifications = createReminderNotifications([event("e1", "public", "secret gm")], { absoluteDay: 10, hour: 2, minute: 30 }, 1000);
+    expect(notifications[0].id).toBe("event-reminder:e1:10:2:30");
+    expect(JSON.stringify(notifications)).not.toContain("secret gm");
   });
 });
