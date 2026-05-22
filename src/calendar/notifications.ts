@@ -1,8 +1,8 @@
-import type { CalendarEvent, InternalTime, WeatherEvent } from "../domain/types";
+import type { CalendarEvent, InternalTime, MoonEvent, WeatherEvent } from "../domain/types";
 
 export type CalendarNotification = {
   id: string;
-  type: "event" | "weather";
+  type: "event" | "weather" | "moon";
   sourceId: string;
   title: string;
   summary?: string;
@@ -15,6 +15,7 @@ const toMomentPart = (time: InternalTime): string => `${time.absoluteDay}:${time
 export const createNotificationsFromTriggers = (
   triggeredEvents: CalendarEvent[],
   triggeredWeatherEvents: WeatherEvent[],
+  triggeredMoonEvents: MoonEvent[],
   now: InternalTime,
   createdAt: number = Date.now()
 ): CalendarNotification[] => {
@@ -38,8 +39,17 @@ export const createNotificationsFromTriggers = (
     dismissed: false
   }));
 
+  const moonNotifications = triggeredMoonEvents.map((event) => ({
+    id: `moon:${event.id}:${toMomentPart(now)}`,
+    type: "moon" as const,
+    sourceId: event.id,
+    title: event.name,
+    summary: event.summary || undefined,
+    createdAt,
+    dismissed: false
+  }));
   const byId = new Map<string, CalendarNotification>();
-  [...eventNotifications, ...weatherNotifications].forEach((notification) => {
+  [...eventNotifications, ...weatherNotifications, ...moonNotifications].forEach((notification) => {
     byId.set(notification.id, notification);
   });
   return [...byId.values()];

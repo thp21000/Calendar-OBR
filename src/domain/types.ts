@@ -194,6 +194,20 @@ export type WeatherEvent = {
   cooldownHours?: number;
 };
 
+export type MoonEvent = {
+  id: string;
+  name: string;
+  icon?: string;
+  summary: string;
+  gmDescription?: string;
+  playerDescription?: string;
+  moonId: string;
+  phaseId: MoonPhaseId;
+  visibility: "gm" | "players" | "revealOnTrigger";
+  enabled: boolean;
+  notifyOnTrigger: boolean;
+  status: "active" | "triggered" | "archived" | "disabled";
+};
 
 export type CalendarProject = {
   schemaVersion: number;
@@ -207,6 +221,7 @@ export type CalendarProject = {
   events: CalendarEvent[];
   seasons: Season[];
   moons: Moon[];
+  moonEvents?: MoonEvent[];
   weatherSettings: WeatherSettings;
   weatherEvents: WeatherEvent[];
   uiSettings: UiSettings;

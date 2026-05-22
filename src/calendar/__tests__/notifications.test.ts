@@ -27,25 +27,25 @@ const weather = (id: string, summary?: string): WeatherEvent => ({
 
 describe("createNotificationsFromTriggers", () => {
   it("creates notifications from events", () => {
-    const notifications = createNotificationsFromTriggers([event("e1", "s1")], [], { absoluteDay: 10, hour: 2, minute: 30 }, 1000);
+    const notifications = createNotificationsFromTriggers([event("e1", "s1")], [], [], { absoluteDay: 10, hour: 2, minute: 30 }, 1000);
     expect(notifications).toHaveLength(1);
     expect(notifications[0].id).toBe("event:e1:10:2:30");
     expect(notifications[0].summary).toBe("s1");
   });
 
   it("creates notifications from weather alerts", () => {
-    const notifications = createNotificationsFromTriggers([], [weather("w1", "rain")], { absoluteDay: 10, hour: 2, minute: 30 }, 1000);
+    const notifications = createNotificationsFromTriggers([], [weather("w1", "rain")], [], { absoluteDay: 10, hour: 2, minute: 30 }, 1000);
     expect(notifications).toHaveLength(1);
     expect(notifications[0].id).toBe("weather:w1:10:2:30");
   });
 
   it("deduplicates notifications by stable id", () => {
-    const notifications = createNotificationsFromTriggers([event("e1"), event("e1")], [weather("w1"), weather("w1")], { absoluteDay: 10, hour: 2, minute: 30 }, 1000);
+    const notifications = createNotificationsFromTriggers([event("e1"), event("e1")], [weather("w1"), weather("w1")], [], { absoluteDay: 10, hour: 2, minute: 30 }, 1000);
     expect(notifications.map((n) => n.id)).toEqual(["event:e1:10:2:30", "weather:w1:10:2:30"]);
   });
 
   it("never copies gmDescription", () => {
-    const notifications = createNotificationsFromTriggers([event("e1", "public", "secret gm")], [], { absoluteDay: 10, hour: 2, minute: 30 }, 1000);
+    const notifications = createNotificationsFromTriggers([event("e1", "public", "secret gm")], [], [], { absoluteDay: 10, hour: 2, minute: 30 }, 1000);
     expect(JSON.stringify(notifications)).not.toContain("secret gm");
     expect((notifications[0] as unknown as { gmDescription?: string }).gmDescription).toBeUndefined();
   });

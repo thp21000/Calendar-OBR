@@ -364,4 +364,13 @@ describe("calendarImportExport", () => {
     expect(imported.project.weatherEvents[0].conditions).toEqual([{ type: "moonPhase", moonId: "m1", phaseId: "full" }]);
     expect(imported.project.weatherEvents[1].conditions).toEqual([]);
   });
+
+  it("old calendar without moonEvents is still valid", () => {
+    const project = createDefaultCalendarProject() as Record<string, unknown>;
+    delete project.moonEvents;
+    const imported = importCalendarProject(JSON.stringify(project), createDefaultCalendarProject());
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.moonEvents).toEqual([]);
+  });
 });

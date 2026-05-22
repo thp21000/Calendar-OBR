@@ -3,7 +3,7 @@ import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { createNotificationsFromTriggers, type CalendarNotification } from "../calendar/notifications";
-import { getCurrentMoonPhases } from "../calendar/moonLogic";
+import { getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import {
   getActiveWeatherEventsWithDuration,
@@ -37,12 +37,14 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
     ? getActiveWeatherEventsWithDuration(project, currentWeather, project.currentTime, lastTriggeredAtMinutesRef.current)
     : [];
   const currentMoonPhases = getCurrentMoonPhases(project);
+  const triggeredMoonEvents = getTriggeredMoonEvents(project, project.currentTime.absoluteDay);
   const hourlyForecast = getHourlyWeatherForecast(project, 5);
   const dailyForecast = getDailyWeatherForecast(project, 5);
   const weatherUnits = getWeatherUnitLabels(project.locale);
   const eventsToday = getEventsForCurrentDay(project);
   const [lastTriggeredEvents, setLastTriggeredEvents] = useState<CalendarEvent[]>([]);
   const [lastTriggeredWeatherEvents, setLastTriggeredWeatherEvents] = useState<CalendarProject["weatherEvents"]>([]);
+  const [lastTriggeredMoonEvents, setLastTriggeredMoonEvents] = useState<NonNullable<CalendarProject["moonEvents"]>>([]);
   const [notifications, setNotifications] = useState<CalendarNotification[]>([]);
 
   const readDismissed = (): Set<string> => {
@@ -71,15 +73,17 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
     if (deltaMinutes > 0) {
       const triggered = getTriggeredEventsBetween(project, previousTime, nextTime);
       const triggeredWeather = getNewlyTriggeredWeatherEventsBetween(project, previousTime, nextTime, lastTriggeredAtMinutesRef.current);
+      const triggeredMoon = getNewlyTriggeredMoonEventsBetween(project, previousTime, nextTime);
       const completed = getCompletedEventsBetween(project, previousTime, nextTime);
       setLastTriggeredEvents(triggered);
       setLastTriggeredWeatherEvents(triggeredWeather);
+      setLastTriggeredMoonEvents(triggeredMoon);
       const triggerTimeMinutes = toAbsoluteMinutes(nextTime);
       for (const weatherEvent of triggeredWeather) {
         lastTriggeredAtMinutesRef.current[weatherEvent.id] = triggerTimeMinutes;
       }
       const dismissed = readDismissed();
-      const created = createNotificationsFromTriggers(triggered, triggeredWeather, nextTime).filter((item) => !dismissed.has(item.id));
+      const created = createNotificationsFromTriggers(triggered, triggeredWeather, triggeredMoon.filter((m) => m.notifyOnTrigger), nextTime).filter((item) => !dismissed.has(item.id));
       setNotifications((prev) => {
         const merged = new Map<string, CalendarNotification>();
         [...prev, ...created].forEach((item) => {
@@ -92,6 +96,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
     } else {
       setLastTriggeredEvents([]);
       setLastTriggeredWeatherEvents([]);
+      setLastTriggeredMoonEvents([]);
     }
 
     onProjectUpdate({ ...project, currentTime: nextTime });
@@ -118,6 +123,15 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
       <TodayEventsCard project={project} eventsToday={eventsToday} />
       <TriggeredEventsCard project={project} lastTriggeredEvents={lastTriggeredEvents} />
       <TriggeredWeatherAlertsCard locale={project.locale} weatherEvents={lastTriggeredWeatherEvents} />
+      {triggeredMoonEvents.length > 0 ? <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 8 }}>
+        <strong style={{ fontSize: 13 }}>{t(project.locale, "moonEvents.triggeredToday")}</strong>
+        <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
+          {triggeredMoonEvents.map((event) => {
+            const moon = project.moons.find((m) => m.id === event.moonId);
+            return <li key={event.id} style={{ fontSize: 12 }}>{event.icon ?? "🌕"} {event.name} · {moon?.name ?? "?"} · {event.phaseId}{event.summary ? ` — ${event.summary}` : ""}</li>;
+          })}
+        </ul>
+      </div> : null}
       <WeatherAndSeasonCard
         project={project}
         currentSeason={currentSeason}

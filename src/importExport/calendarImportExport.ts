@@ -53,6 +53,7 @@ export const validateImportedCalendarProject = (
   if (!Array.isArray(data.events)) return { valid: false, error: "events must be an array." };
   if (!Array.isArray(data.seasons)) return { valid: false, error: "seasons must be an array." };
   if (!Array.isArray(data.moons)) return { valid: false, error: "moons must be an array." };
+  if (data.moonEvents !== undefined && !Array.isArray(data.moonEvents)) return { valid: false, error: "moonEvents must be an array." };
   if (!Array.isArray(data.weatherEvents)) return { valid: false, error: "weatherEvents must be an array." };
   if (!isRecord(data.weatherSettings)) return { valid: false, error: "weatherSettings must be an object." };
 
@@ -70,6 +71,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     ...data,
     seasons: Array.isArray(data.seasons) ? data.seasons : [],
     moons: Array.isArray(data.moons) ? data.moons : [],
+    moonEvents: Array.isArray(data.moonEvents) ? data.moonEvents : [],
     weatherEvents: Array.isArray(data.weatherEvents) ? data.weatherEvents : []
   };
 
@@ -205,6 +207,26 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         } else {
           next.cooldownHours = Math.trunc(next.cooldownHours);
         }
+        return next;
+      });
+  }
+  if (Array.isArray(maybeCompat.moonEvents)) {
+    maybeCompat.moonEvents = maybeCompat.moonEvents
+      .filter(isRecord)
+      .filter((event) => typeof event.id === "string" && event.id.trim().length > 0)
+      .filter((event) => typeof event.name === "string" && event.name.trim().length > 0)
+      .map((event) => {
+        const next = { ...event } as Record<string, unknown>;
+        if (typeof next.icon !== "string") delete next.icon;
+        if (typeof next.summary !== "string") next.summary = "";
+        if (typeof next.gmDescription !== "string") delete next.gmDescription;
+        if (typeof next.playerDescription !== "string") delete next.playerDescription;
+        if (typeof next.moonId !== "string") next.moonId = "";
+        if (!(next.phaseId === "new" || next.phaseId === "waxingCrescent" || next.phaseId === "firstQuarter" || next.phaseId === "waxingGibbous" || next.phaseId === "full" || next.phaseId === "waningGibbous" || next.phaseId === "lastQuarter" || next.phaseId === "waningCrescent")) next.phaseId = "full";
+        if (!(next.visibility === "gm" || next.visibility === "players" || next.visibility === "revealOnTrigger")) next.visibility = "gm";
+        if (typeof next.enabled !== "boolean") next.enabled = true;
+        if (typeof next.notifyOnTrigger !== "boolean") next.notifyOnTrigger = true;
+        if (!(next.status === "active" || next.status === "triggered" || next.status === "archived" || next.status === "disabled")) next.status = "active";
         return next;
       });
   }
