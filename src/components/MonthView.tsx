@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { getDayDetails } from "../calendar/dayDetails";
+import { addDayNote, createDefaultDayNote, deleteDayNote, getDayNotesForDay, updateDayNote } from "../calendar/dayNotesLogic";
 import { getEventsForDay } from "../calendar/eventsLogic";
 import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex, getCurrentMonthWeekdayNames } from "../calendar/monthView";
 import { getSeasonsStartingOnDate } from "../calendar/seasonsLogic";
@@ -19,7 +20,7 @@ const buildDayTooltip = (dayOfMonth: number, seasonName: string | undefined, eve
   return parts.join(" — ");
 };
 
-export const MonthView = ({ project, onCreateEventForDate }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void }) => {
+export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void }) => {
   const current = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
   const firstWeekday = getCurrentMonthFirstWeekdayIndex(project.currentTime, project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
@@ -27,6 +28,7 @@ export const MonthView = ({ project, onCreateEventForDate }: { project: Calendar
   const leading = Array.from({ length: firstWeekday }, (_, i) => i);
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null);
   const dayDetails = selectedDate ? getDayDetails(project, selectedDate) : null;
+  const notes = selectedDate ? getDayNotesForDay(project, selectedDate) : [];
 
   return (
     <>
@@ -82,6 +84,23 @@ export const MonthView = ({ project, onCreateEventForDate }: { project: Calendar
             </div>
           )}
           {onCreateEventForDate ? <button type="button" onClick={() => onCreateEventForDate(dayDetails.date)} style={{ marginTop: 8, width: "100%" }}>{t(project.locale, "month.createEventForDay")}</button> : null}
+          <div style={{ fontSize: 12, marginTop: 8, marginBottom: 4 }}><strong>{t(project.locale, "dayNotes.title")}:</strong></div>
+          {notes.length === 0 ? <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "dayNotes.noNotes")}</div> : notes.map((note) => (
+            <div key={note.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 4, marginBottom: 4 }}>
+              {note.gmNote ? <div><strong>GM:</strong> {note.gmNote}</div> : null}
+              {note.playerNote ? <div><strong>Public:</strong> {note.playerNote}</div> : null}
+              {onProjectUpdate ? <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                <button type="button" onClick={() => { const gmNote = prompt(t(project.locale, "dayNotes.gmNote"), note.gmNote ?? "") ?? note.gmNote; const playerNote = prompt(t(project.locale, "dayNotes.playerNote"), note.playerNote ?? "") ?? note.playerNote; onProjectUpdate(updateDayNote(project, note.id, { gmNote, playerNote })); }}>{t(project.locale, "dayNotes.edit")}</button>
+                <button type="button" onClick={() => { if (confirm(t(project.locale, "dayNotes.confirmDelete"))) onProjectUpdate(deleteDayNote(project, note.id)); }}>{t(project.locale, "dayNotes.delete")}</button>
+              </div> : null}
+            </div>
+          ))}
+          {onProjectUpdate ? <button type="button" style={{ marginTop: 4 }} onClick={() => {
+            const base = createDefaultDayNote(project, dayDetails.date);
+            const gmNote = prompt(t(project.locale, "dayNotes.gmNote"), "") ?? "";
+            const playerNote = prompt(t(project.locale, "dayNotes.playerNote"), "") ?? "";
+            onProjectUpdate(addDayNote(project, { ...base, gmNote, playerNote, visibility: playerNote ? "players" : "gm" }));
+          }}>{t(project.locale, "dayNotes.add")}</button> : null}
         </div>
       ) : null}
     </>

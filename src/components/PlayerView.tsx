@@ -2,6 +2,7 @@ import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { getPlayerVisibleEventsForCurrentDay } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../calendar/formatEvent";
+import { getPlayerVisibleDayNotesForDay } from "../calendar/dayNotesLogic"
 import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
@@ -99,6 +100,10 @@ export const PlayerView = ({
             ))
           )}
         </div>
+        <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginTop: 10 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(snapshot.locale, "player.dayNotes")}</div>
+          {snapshot.dayNotesToday.length === 0 ? <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(snapshot.locale, "player.noDayNotes")}</div> : snapshot.dayNotesToday.map((n) => <div key={n.id} style={{ fontSize: 12 }}>{n.playerNote}</div>)}
+        </div>
       </>
     );
   }
@@ -109,6 +114,7 @@ export const PlayerView = ({
   const currentWeather = getCurrentWeather(project);
   const currentMoonPhases = getCurrentMoonPhases(project);
   const visibleMoonEvents = getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay);
+  const visibleDayNotes = getPlayerVisibleDayNotesForDay(project, displayDate);
   const weatherUnits = getWeatherUnitLabels(project.locale);
   const weatherState = currentWeather?.state ?? "clear";
 
@@ -189,6 +195,10 @@ export const PlayerView = ({
             );
           })
         )}
+      </div>
+      <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginTop: 10 }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(project.locale, "player.dayNotes")}</div>
+        {visibleDayNotes.length === 0 ? <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "player.noDayNotes")}</div> : visibleDayNotes.map((n) => <div key={n.id} style={{ fontSize: 12 }}>{n.playerNote}</div>)}
       </div>
     </>
   );

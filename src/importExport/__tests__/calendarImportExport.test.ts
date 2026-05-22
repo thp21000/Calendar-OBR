@@ -373,4 +373,13 @@ describe("calendarImportExport", () => {
     if (!imported.ok) return;
     expect(imported.project.moonEvents).toEqual([]);
   });
+
+  it("old calendar without dayNotes is still valid", () => {
+    const project = createDefaultCalendarProject() as Record<string, unknown>;
+    delete project.dayNotes;
+    const imported = importCalendarProject(JSON.stringify(project), createDefaultCalendarProject());
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.dayNotes).toEqual([]);
+  });
 });

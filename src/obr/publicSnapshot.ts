@@ -1,5 +1,6 @@
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { getPlayerVisibleEventsForCurrentDay } from "../calendar/eventsLogic";
+import { getPlayerVisibleDayNotesForDay } from "../calendar/dayNotesLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../calendar/formatEvent";
 import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
@@ -69,6 +70,7 @@ export type PublicCalendarTodaySnapshot = {
     moonName: string;
     phaseId: MoonPhaseId;
   }>;
+  dayNotesToday: Array<{ id: string; playerNote?: string }>;
 };
 
 export const buildPublicCalendarIndex = (project: CalendarProject, revision: number): PublicCalendarIndex => ({
@@ -122,7 +124,8 @@ export const createPublicCalendarTodaySnapshot = (
       playerDescription: event.playerDescription || undefined,
       moonName: project.moons.find((moon) => moon.id === event.moonId)?.name ?? "?",
       phaseId: event.phaseId
-    }))
+    })),
+    dayNotesToday: getPlayerVisibleDayNotesForDay(project, displayDate).map((note) => ({ id: note.id, playerNote: note.playerNote || undefined }))
   };
 };
 
@@ -157,5 +160,6 @@ export const isPublicCalendarTodaySnapshot = (value: unknown): value is PublicCa
   if (!Array.isArray(value.moons)) return false;
   if (!Array.isArray(value.eventsToday)) return false;
   if (!Array.isArray(value.moonEventsToday)) return false;
+  if (!Array.isArray(value.dayNotesToday)) return false;
   return true;
 };

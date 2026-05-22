@@ -34,6 +34,7 @@ const defaultProject: CalendarProject = {
   seasons: [],
   moons: createDefaultMoonSystem("fr"),
   moonEvents: [],
+  dayNotes: [],
   weatherSettings: {},
   weatherEvents: [],
   uiSettings: { activeTab: "today", compactMode: true, defaultMoonSystemInitialized: true }

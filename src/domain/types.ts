@@ -209,6 +209,15 @@ export type MoonEvent = {
   status: "active" | "triggered" | "archived" | "disabled";
 };
 
+export type DayNote = {
+  id: string;
+  date: CalendarDate;
+  gmNote?: string;
+  playerNote?: string;
+  visibility: "gm" | "players";
+  updatedAt: number;
+};
+
 export type CalendarProject = {
   schemaVersion: number;
   appVersion: string;
@@ -222,6 +231,7 @@ export type CalendarProject = {
   seasons: Season[];
   moons: Moon[];
   moonEvents?: MoonEvent[];
+  dayNotes?: DayNote[];
   weatherSettings: WeatherSettings;
   weatherEvents: WeatherEvent[];
   uiSettings: UiSettings;

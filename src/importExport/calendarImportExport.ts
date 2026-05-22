@@ -51,6 +51,7 @@ export const validateImportedCalendarProject = (
   }
 
   if (!Array.isArray(data.events)) return { valid: false, error: "events must be an array." };
+  if (data.dayNotes !== undefined && !Array.isArray(data.dayNotes)) return { valid: false, error: "dayNotes must be an array." };
   if (!Array.isArray(data.seasons)) return { valid: false, error: "seasons must be an array." };
   if (!Array.isArray(data.moons)) return { valid: false, error: "moons must be an array." };
   if (data.moonEvents !== undefined && !Array.isArray(data.moonEvents)) return { valid: false, error: "moonEvents must be an array." };
@@ -71,6 +72,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     ...data,
     seasons: Array.isArray(data.seasons) ? data.seasons : [],
     moons: Array.isArray(data.moons) ? data.moons : [],
+    dayNotes: Array.isArray(data.dayNotes) ? data.dayNotes : [],
     moonEvents: Array.isArray(data.moonEvents) ? data.moonEvents : [],
     weatherEvents: Array.isArray(data.weatherEvents) ? data.weatherEvents : []
   };
@@ -227,6 +229,20 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         if (typeof next.enabled !== "boolean") next.enabled = true;
         if (typeof next.notifyOnTrigger !== "boolean") next.notifyOnTrigger = true;
         if (!(next.status === "active" || next.status === "triggered" || next.status === "archived" || next.status === "disabled")) next.status = "active";
+        return next;
+      });
+  }
+  if (Array.isArray(maybeCompat.dayNotes)) {
+    maybeCompat.dayNotes = maybeCompat.dayNotes
+      .filter(isRecord)
+      .filter((note) => typeof note.id === "string" && note.id.trim().length > 0)
+      .filter((note) => isRecord(note.date))
+      .map((note) => {
+        const next = { ...note } as Record<string, unknown>;
+        if (typeof next.gmNote !== "string") delete next.gmNote;
+        if (typeof next.playerNote !== "string") delete next.playerNote;
+        if (!(next.visibility === "gm" || next.visibility === "players")) next.visibility = "gm";
+        if (typeof next.updatedAt !== "number" || !Number.isFinite(next.updatedAt)) next.updatedAt = Date.now();
         return next;
       });
   }
