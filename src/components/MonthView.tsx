@@ -13,10 +13,11 @@ import { EventIcon } from "./EventIcon";
 
 const FALLBACK_EVENT_ICON = "◆";
 
-const buildDayTooltip = (dayOfMonth: number, seasonName: string | undefined, events: CalendarEvent[]): string => {
+const buildDayTooltip = (dayOfMonth: number, seasonName: string | undefined, events: CalendarEvent[], hasNotes: boolean, notesLabel: string): string => {
   const parts: string[] = [String(dayOfMonth)];
   if (seasonName) parts.push(seasonName);
   if (events.length > 0) parts.push(events.map((event) => event.name).join(", "));
+  if (hasNotes) parts.push(notesLabel);
   return parts.join(" — ");
 };
 
@@ -49,9 +50,10 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
         {monthDays.map((day: MonthDayCell) => {
           const date = { year: current.year, monthId: current.monthId, dayOfMonth: day.dayOfMonth, hour: 0, minute: 0 };
           const events = getEventsForDay(project, date);
+          const hasDayNotes = getDayNotesForDay(project, date).length > 0;
           const seasonsStarting = getSeasonsStartingOnDate(project, date);
           const seasonStart = seasonsStarting[0];
-          const hasMarkers = events.length > 0 || seasonsStarting.length > 0;
+          const hasMarkers = events.length > 0 || seasonsStarting.length > 0 || hasDayNotes;
           const firstEvent = events[0];
           const icon = firstEvent?.icon || FALLBACK_EVENT_ICON;
           return (
@@ -59,13 +61,14 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
               key={day.absoluteDay}
               type="button"
               onClick={() => setSelectedDate(date)}
-              title={buildDayTooltip(day.dayOfMonth, seasonStart?.name, events)}
+              title={buildDayTooltip(day.dayOfMonth, seasonStart?.name, events, hasDayNotes, t(project.locale, "month.hasNotes"))}
               style={{ minHeight: 38, borderRadius: 6, border: day.isCurrentDay ? "1px solid #22c55e" : "1px solid #374151", background: day.isCurrentDay ? "#14532d" : "#1f2937", display: "flex", flexDirection: "column", justifyContent: hasMarkers ? "center" : "space-between", alignItems: "center", fontSize: 12, padding: "3px 2px", width: "100%", cursor: "pointer" }}
             >
               {!hasMarkers ? <span>{day.dayOfMonth}</span> : null}
               <div style={{ display: "flex", alignItems: "center", gap: 2, minHeight: hasMarkers ? 16 : 0 }}>
                 {events.length > 0 ? <EventIcon icon={icon} locale={project.locale} size={14} /> : null}
                 {seasonStart ? <EventIcon icon={seasonStart.icon} locale={project.locale} size={14} /> : null}
+                {hasDayNotes ? <span style={{ fontSize: 11, lineHeight: 1 }}>📝</span> : null}
               </div>
             </button>
           );
