@@ -236,7 +236,8 @@ describe("calendarImportExport", () => {
     const imported = importCalendarProject(JSON.stringify(payload), project);
     expect(imported.ok).toBe(true);
     if (!imported.ok) return;
-    expect(imported.project.weatherEvents[0].conditions[0].value).toBe(-15);
+    const firstCondition = imported.project.weatherEvents[0].conditions[0];
+    expect(firstCondition.type === "state" ? undefined : firstCondition.value).toBe(-15);
   });
 
   it("imports weather event without enabled", () => {
@@ -271,5 +272,28 @@ describe("calendarImportExport", () => {
     };
     const imported = importCalendarProject(JSON.stringify(payload), project);
     expect(imported.ok).toBe(true);
+  });
+
+  it("imports weather event with state condition and legacy metric condition", () => {
+    const project = createDefaultCalendarProject();
+    const payload = {
+      ...project,
+      weatherEvents: [
+        {
+          id: "combo",
+          name: "Combo",
+          enabled: true,
+          requireAllConditions: false,
+          conditions: [
+            { type: "state", state: "storm" },
+            { metric: "temperature", operator: "gte", value: 35 }
+          ]
+        }
+      ]
+    };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherEvents[0].conditions).toEqual(payload.weatherEvents[0].conditions);
   });
 });

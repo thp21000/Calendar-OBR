@@ -19,7 +19,8 @@ const weather: WeatherSnapshot = {
   temperature: 36,
   windSpeed: 82,
   windDirection: "NE",
-  rain: 12
+  rain: 12,
+  state: "heavyRain"
 };
 
 const buildProject = (weatherEvents: WeatherEvent[]): CalendarProject => ({
@@ -66,6 +67,22 @@ describe("weatherEventsLogic", () => {
     expect(isWeatherConditionMet(weather, { metric: "rain", operator: "gte", value: 10 })).toBe(true);
   });
 
+  it("condition numérique legacy sans type reste valide", () => {
+    expect(isWeatherConditionMet(weather, { metric: "temperature", operator: "gte", value: 35 })).toBe(true);
+  });
+
+  it("condition numérique type metric valide", () => {
+    expect(isWeatherConditionMet(weather, { type: "metric", metric: "temperature", operator: "gte", value: 35 })).toBe(true);
+  });
+
+  it("condition état météo match", () => {
+    expect(isWeatherConditionMet(weather, { type: "state", state: "heavyRain" })).toBe(true);
+  });
+
+  it("condition état météo non match", () => {
+    expect(isWeatherConditionMet(weather, { type: "state", state: "storm" })).toBe(false);
+  });
+
   it("événement désactivé non déclenché", () => {
     const event: WeatherEvent = {
       id: "e1", name: "Tempête", conditions: [{ metric: "windSpeed", operator: "gte", value: 80 }], requireAllConditions: true, enabled: false
@@ -107,6 +124,36 @@ describe("weatherEventsLogic", () => {
       enabled: true
     };
     expect(isWeatherEventTriggered(weather, event)).toBe(true);
+  });
+
+  it("requireAllConditions true avec métrique + état", () => {
+    const event: WeatherEvent = {
+      id: "combo-all",
+      name: "Pluie forte chaude",
+      conditions: [
+        { type: "metric", metric: "temperature", operator: "gte", value: 35 },
+        { type: "state", state: "heavyRain" }
+      ],
+      requireAllConditions: true,
+      enabled: true
+    };
+    expect(isWeatherEventTriggered(weather, event)).toBe(true);
+    expect(isWeatherEventTriggered({ ...weather, state: "storm" }, event)).toBe(false);
+  });
+
+  it("requireAny avec métrique + état", () => {
+    const event: WeatherEvent = {
+      id: "combo-any",
+      name: "Canicule ou orage",
+      conditions: [
+        { type: "metric", metric: "temperature", operator: "gte", value: 40 },
+        { type: "state", state: "storm" }
+      ],
+      requireAllConditions: false,
+      enabled: true
+    };
+    expect(isWeatherEventTriggered(weather, event)).toBe(false);
+    expect(isWeatherEventTriggered({ ...weather, state: "storm" }, event)).toBe(true);
   });
 
   it("getTriggeredWeatherEvents retourne seulement les déclenchés", () => {
@@ -190,8 +237,10 @@ describe("weatherEventsLogic", () => {
     e1.conditions.push({ metric: "windSpeed", operator: "gte", value: 80 });
     const project = buildProject([e1]);
     const updated = updateWeatherCondition(project, "e1", 1, { value: 90 });
-    expect(updated.weatherEvents[0]?.conditions[0]?.value).toBe(35);
-    expect(updated.weatherEvents[0]?.conditions[1]?.value).toBe(90);
+    const first = updated.weatherEvents[0]?.conditions[0];
+    const second = updated.weatherEvents[0]?.conditions[1];
+    expect(first?.type === "state" ? undefined : first?.value).toBe(35);
+    expect(second?.type === "state" ? undefined : second?.value).toBe(90);
   });
 
   it("deleteWeatherCondition supprime seulement la condition ciblée", () => {
@@ -200,7 +249,8 @@ describe("weatherEventsLogic", () => {
     const project = buildProject([e1]);
     const updated = deleteWeatherCondition(project, "e1", 0);
     expect(updated.weatherEvents[0]?.conditions).toHaveLength(1);
-    expect(updated.weatherEvents[0]?.conditions[0]?.metric).toBe("windSpeed");
+    const remaining = updated.weatherEvents[0]?.conditions[0];
+    expect(remaining?.type === "state" ? undefined : remaining?.metric).toBe("windSpeed");
   });
   
   it("retourne un événement nouvellement actif entre fromTime et toTime", () => {

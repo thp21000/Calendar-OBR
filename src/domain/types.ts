@@ -150,11 +150,19 @@ export type MoonPhase = {
 export type WeatherConditionMetric = "temperature" | "windSpeed" | "rain";
 export type WeatherConditionOperator = "gte" | "lte";
 
-export type WeatherCondition = {
+export type WeatherMetricCondition = {
+  type?: "metric";
   metric: WeatherConditionMetric;
   operator: WeatherConditionOperator;
   value: number;
 };
+
+export type WeatherStateCondition = {
+  type: "state";
+  state: WeatherState;
+};
+
+export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition;
 
 export type WeatherEvent = {
   id: string;

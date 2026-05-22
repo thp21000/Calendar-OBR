@@ -2,6 +2,9 @@ import { generateWeatherForTime } from "./weatherLogic";
 import type { CalendarProject, InternalTime, WeatherCondition, WeatherEvent, WeatherSnapshot } from "../domain/types";
 
 export const isWeatherConditionMet = (weather: WeatherSnapshot, condition: WeatherCondition): boolean => {
+  if (condition.type === "state") {
+    return (weather.state ?? "clear") === condition.state;
+  }
   const metricValue = weather[condition.metric];
   if (condition.operator === "gte") return metricValue >= condition.value;
   return metricValue <= condition.value;
@@ -50,7 +53,7 @@ export const createDefaultWeatherEvent = (locale: CalendarProject["locale"]): We
   link: "",
   enabled: true,
   requireAllConditions: true,
-  conditions: [{ metric: "temperature", operator: "gte", value: 35 }]
+  conditions: [{ type: "metric", metric: "temperature", operator: "gte", value: 35 }]
 });
 
 export const addWeatherEvent = (project: CalendarProject, event: WeatherEvent): CalendarProject => ({
@@ -78,7 +81,19 @@ export const addWeatherCondition = (project: CalendarProject, eventId: string): 
     event.id === eventId
       ? {
           ...event,
-          conditions: [...(event.conditions ?? []), { metric: "temperature", operator: "gte", value: 35 }]
+          conditions: [...(event.conditions ?? []), { type: "metric", metric: "temperature", operator: "gte", value: 35 }]
+        }
+      : event
+  )
+});
+
+export const addWeatherStateCondition = (project: CalendarProject, eventId: string): CalendarProject => ({
+  ...project,
+  weatherEvents: project.weatherEvents.map((event) =>
+    event.id === eventId
+      ? {
+          ...event,
+          conditions: [...(event.conditions ?? []), { type: "state", state: "storm" }]
         }
       : event
   )
@@ -96,7 +111,35 @@ export const updateWeatherCondition = (
     const conditions = [...(event.conditions ?? [])];
     const target = conditions[conditionIndex];
     if (!target) return event;
-    conditions[conditionIndex] = { ...target, ...patch };
+    const metricPatch = patch.type === "metric" || (patch.type === undefined && ("metric" in patch || "operator" in patch || "value" in patch))
+      ? patch
+      : undefined;
+    if (target.type === "state") {
+      const nextType = patch.type === "metric" ? "metric" : "state";
+      conditions[conditionIndex] =
+        nextType === "state"
+          ? {
+              type: "state",
+              state: patch.type === "state" ? patch.state ?? target.state : "storm"
+            }
+          : {
+              type: "metric",
+              metric: metricPatch?.metric ?? "temperature",
+              operator: metricPatch?.operator ?? "gte",
+              value: metricPatch?.value ?? 35
+            };
+    } else {
+      if (patch.type === "state") {
+        conditions[conditionIndex] = { type: "state", state: patch.state ?? "storm" };
+      } else {
+        conditions[conditionIndex] = {
+          type: "metric",
+          metric: metricPatch?.metric ?? target.metric,
+          operator: metricPatch?.operator ?? target.operator,
+          value: metricPatch?.value ?? target.value
+        };
+      }
+    }
     return { ...event, conditions };
   })
 });

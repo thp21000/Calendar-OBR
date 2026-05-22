@@ -1,5 +1,6 @@
 import {
   addWeatherCondition,
+  addWeatherStateCondition,
   addWeatherEvent,
   createDefaultWeatherEvent,
   deleteWeatherCondition,
@@ -8,7 +9,7 @@ import {
   updateWeatherEvent
 } from "../../calendar/weatherEventsLogic";
 import { parseWeatherInput } from "../../calendar/seasonsLogic";
-import type { CalendarProject, WeatherConditionMetric, WeatherConditionOperator } from "../../domain/types";
+import type { CalendarProject, WeatherCondition, WeatherConditionMetric, WeatherConditionOperator, WeatherState } from "../../domain/types";
 import { useEffect, useState } from "react";
 import { t } from "../../i18n/messages";
 
@@ -26,6 +27,15 @@ const metricLabel = (locale: CalendarProject["locale"], metric: WeatherCondition
 
 const operatorLabel = (locale: CalendarProject["locale"], operator: WeatherConditionOperator): string =>
   operator === "gte" ? t(locale, "weatherEvents.operatorGte") : t(locale, "weatherEvents.operatorLte");
+
+const weatherStates: WeatherState[] = ["clear", "cloudy", "overcast", "fog", "lightRain", "heavyRain", "storm", "snow", "strongWind", "tempest"];
+
+const conditionSummary = (locale: CalendarProject["locale"], condition: WeatherCondition): string => {
+  if (condition.type === "state") {
+    return `${t(locale, "weatherEvents.state")} = ${t(locale, `weather.state.${condition.state}`)}`;
+  }
+  return `${metricLabel(locale, condition.metric)} ${condition.operator === "gte" ? ">=" : "<="} ${condition.value}`;
+};
 
 export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputStyle }: Props) => (
   <>
@@ -84,8 +94,47 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
             {(event.conditions ?? []).map((condition, index) => (
               <div key={`${event.id}-${index}`} style={{ border: "1px dashed #374151", borderRadius: 6, padding: 6, marginBottom: 6 }}>
                 <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>
-                  {metricLabel(project.locale, condition.metric)} {condition.operator === "gte" ? ">=" : "<="} {condition.value}
+                  {conditionSummary(project.locale, condition)}
                 </div>
+                <label style={{ display: "block" }}>
+                  <div style={labelStyle}>{t(project.locale, "weatherEvents.conditionType")}</div>
+                  <select
+                    value={condition.type === "state" ? "state" : "metric"}
+                    onChange={(e) =>
+                      onProjectUpdate(
+                        updateWeatherCondition(
+                          project,
+                          event.id,
+                          index,
+                          e.target.value === "state"
+                            ? { type: "state", state: "storm" }
+                            : { type: "metric", metric: "temperature", operator: "gte", value: 35 }
+                        )
+                      )
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="metric">{t(project.locale, "weatherEvents.conditionTypeMetric")}</option>
+                    <option value="state">{t(project.locale, "weatherEvents.conditionTypeState")}</option>
+                  </select>
+                </label>
+                {condition.type === "state" ? (
+                  <label style={{ display: "block" }}>
+                    <div style={labelStyle}>{t(project.locale, "weatherEvents.state")}</div>
+                    <select
+                      value={condition.state}
+                      onChange={(e) => onProjectUpdate(updateWeatherCondition(project, event.id, index, { type: "state", state: e.target.value as WeatherState }))}
+                      style={inputStyle}
+                    >
+                      {weatherStates.map((state) => (
+                        <option key={state} value={state}>
+                          {t(project.locale, `weather.state.${state}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <>
                 <label style={{ display: "block" }}>
                   <div style={labelStyle}>{t(project.locale, "weatherEvents.metric")}</div>
                   <select
@@ -117,6 +166,8 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                     onChange={(nextValue) => onProjectUpdate(updateWeatherCondition(project, event.id, index, { value: nextValue }))}
                   />
                 </label>
+                </>
+                )}
                 <button type="button" onClick={() => onProjectUpdate(deleteWeatherCondition(project, event.id, index))} style={smallButtonStyle}>
                   {t(project.locale, "weatherEvents.deleteCondition")}
                 </button>
@@ -130,6 +181,9 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" onClick={() => onProjectUpdate(addWeatherCondition(project, event.id))} style={smallButtonStyle}>
                 {t(project.locale, "weatherEvents.addCondition")}
+              </button>
+              <button type="button" onClick={() => onProjectUpdate(addWeatherStateCondition(project, event.id))} style={smallButtonStyle}>
+                {t(project.locale, "weatherEvents.addStateCondition")}
               </button>
               <button
                 type="button"

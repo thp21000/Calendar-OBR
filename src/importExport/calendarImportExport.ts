@@ -142,10 +142,22 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
             .filter(isRecord)
             .filter(
               (condition) =>
-                (condition.metric === "temperature" || condition.metric === "windSpeed" || condition.metric === "rain") &&
-                (condition.operator === "gte" || condition.operator === "lte") &&
-                typeof condition.value === "number" &&
-                Number.isFinite(condition.value)
+                ((condition.type === "state" &&
+                  (condition.state === "clear" ||
+                    condition.state === "cloudy" ||
+                    condition.state === "overcast" ||
+                    condition.state === "fog" ||
+                    condition.state === "lightRain" ||
+                    condition.state === "heavyRain" ||
+                    condition.state === "storm" ||
+                    condition.state === "snow" ||
+                    condition.state === "strongWind" ||
+                    condition.state === "tempest")) ||
+                  ((condition.type === undefined || condition.type === "metric") &&
+                    (condition.metric === "temperature" || condition.metric === "windSpeed" || condition.metric === "rain") &&
+                    (condition.operator === "gte" || condition.operator === "lte") &&
+                    typeof condition.value === "number" &&
+                    Number.isFinite(condition.value)))
             );
         } else {
           next.conditions = [];
