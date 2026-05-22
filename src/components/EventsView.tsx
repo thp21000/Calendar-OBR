@@ -5,6 +5,7 @@ import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/typ
 import { t } from "../i18n/messages";
 import { EventIcon } from "./EventIcon";
 import { EventForm } from "./events/EventForm";
+import { GlobalSearchPanel } from "./search/GlobalSearchPanel";
 
 export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInitialCreateDateConsumed }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; onInitialCreateDateConsumed?: () => void }) => {
   const events = sortEventsByDate(project.events, project);
@@ -55,6 +56,7 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInit
   return (
     <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{t(project.locale, "events.title")}</div>
+      <GlobalSearchPanel project={project} />
       <button
         type="button"
         onClick={() => setIsCreateFormOpen((prev) => !prev)}
