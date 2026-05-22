@@ -5,7 +5,11 @@ import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { createNotificationsFromTriggers, type CalendarNotification } from "../calendar/notifications";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
-import { getNewlyTriggeredWeatherEventsBetween, getTriggeredWeatherEvents, toAbsoluteMinutes } from "../calendar/weatherEventsLogic";
+import {
+  getActiveWeatherEventsWithDuration,
+  getNewlyTriggeredWeatherEventsBetween,
+  toAbsoluteMinutes
+} from "../calendar/weatherEventsLogic";
 import { getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
@@ -26,9 +30,12 @@ const buttonStyle = { border: "1px solid #8b5cf6", borderRadius: 8, background: 
 export const TodayView = ({ project, onProjectUpdate, onReset }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; onReset: () => void; }) => {
   const dismissedStorageKey = `calendar-obr.notifications.dismissed.${project.id}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+  const lastTriggeredAtMinutesRef = useRef<Record<string, number>>({});
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
-  const triggeredWeatherEvents = currentWeather ? getTriggeredWeatherEvents(project, currentWeather) : [];
+  const triggeredWeatherEvents = currentWeather
+    ? getActiveWeatherEventsWithDuration(project, currentWeather, project.currentTime, lastTriggeredAtMinutesRef.current)
+    : [];
   const currentMoonPhases = getCurrentMoonPhases(project);
   const hourlyForecast = getHourlyWeatherForecast(project, 5);
   const dailyForecast = getDailyWeatherForecast(project, 5);
@@ -37,7 +44,6 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
   const [lastTriggeredEvents, setLastTriggeredEvents] = useState<CalendarEvent[]>([]);
   const [lastTriggeredWeatherEvents, setLastTriggeredWeatherEvents] = useState<CalendarProject["weatherEvents"]>([]);
   const [notifications, setNotifications] = useState<CalendarNotification[]>([]);
-  const lastTriggeredAtMinutesRef = useRef<Record<string, number>>({})
 
   const readDismissed = (): Set<string> => {
     try {

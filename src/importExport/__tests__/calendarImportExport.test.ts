@@ -296,4 +296,38 @@ describe("calendarImportExport", () => {
     if (!imported.ok) return;
     expect(imported.project.weatherEvents[0].conditions).toEqual(payload.weatherEvents[0].conditions);
   });
+
+  it("sanitizes invalid durationHours/cooldownHours values", () => {
+    const project = createDefaultCalendarProject();
+    const payload = {
+      ...project,
+      weatherEvents: [
+        {
+          id: "bad-1",
+          name: "Bad 1",
+          enabled: true,
+          requireAllConditions: true,
+          durationHours: -2,
+          cooldownHours: "oops",
+          conditions: [{ metric: "temperature", operator: "gte", value: 35 }]
+        },
+        {
+          id: "ok-1",
+          name: "Ok 1",
+          enabled: true,
+          requireAllConditions: true,
+          durationHours: 2.8,
+          cooldownHours: 1.2,
+          conditions: [{ metric: "temperature", operator: "gte", value: 35 }]
+        }
+      ]
+    };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherEvents[0].durationHours).toBeUndefined();
+    expect(imported.project.weatherEvents[0].cooldownHours).toBeUndefined();
+    expect(imported.project.weatherEvents[1].durationHours).toBe(2);
+    expect(imported.project.weatherEvents[1].cooldownHours).toBe(1);
+  });
 });

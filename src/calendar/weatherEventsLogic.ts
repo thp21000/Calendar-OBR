@@ -32,6 +32,21 @@ export const getTriggeredWeatherEvents = (
 ): WeatherEvent[] =>
   project.weatherEvents.filter((event) => isWeatherEventTriggered(weather, event));
 
+export const getActiveWeatherEventsWithDuration = (
+  project: CalendarProject,
+  weather: WeatherSnapshot,
+  currentTime: InternalTime,
+  lastTriggeredAtMinutesByEventId?: Record<string, number>
+): WeatherEvent[] => {
+  const nowMinutes = toAbsoluteMinutes(currentTime);
+  return project.weatherEvents.filter((event) => {
+    if (isWeatherEventTriggered(weather, event)) return true;
+    const lastTriggeredAt = lastTriggeredAtMinutesByEventId?.[event.id];
+    if (typeof lastTriggeredAt !== "number") return false;
+    return isWithinDurationWindow(lastTriggeredAt, nowMinutes, event.durationHours);
+  });
+};
+
 export const getNewlyTriggeredWeatherEventsBetween = (
   project: CalendarProject,
   fromTime: InternalTime,

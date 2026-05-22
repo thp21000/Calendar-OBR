@@ -8,6 +8,7 @@ import {
   deleteWeatherEvent,
   getTriggeredWeatherEvents,
   getNewlyTriggeredWeatherEventsBetween,
+  getActiveWeatherEventsWithDuration,
   isWeatherConditionMet,
   isWeatherEventTriggered,
   isWithinCooldownWindow,
@@ -375,5 +376,31 @@ describe("weatherEventsLogic", () => {
     expect(isWithinDurationWindow(60, 120, 1)).toBe(false);
     expect(isWithinCooldownWindow(60, 119, 1)).toBe(true);
     expect(isWithinCooldownWindow(60, 120, 1)).toBe(false);
+  });
+
+  it("reste actif pendant durationHours même si la météo ne matche plus", () => {
+    const project = buildProject([
+      { ...createDefaultWeatherEvent("fr"), id: "dur-active", durationHours: 2, conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
+    ]);
+    const active = getActiveWeatherEventsWithDuration(
+      project,
+      { ...weather, temperature: 5 },
+      { absoluteDay: 0, hour: 12, minute: 0 },
+      { "dur-active": toAbsoluteMinutes({ absoluteDay: 0, hour: 11, minute: 0 }) }
+    );
+    expect(active.map((e) => e.id)).toEqual(["dur-active"]);
+  });
+
+  it("n'est plus actif après expiration de durationHours", () => {
+    const project = buildProject([
+      { ...createDefaultWeatherEvent("fr"), id: "dur-expired", durationHours: 1, conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
+    ]);
+    const active = getActiveWeatherEventsWithDuration(
+      project,
+      { ...weather, temperature: 5 },
+      { absoluteDay: 0, hour: 12, minute: 0 },
+      { "dur-expired": toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }) }
+    );
+    expect(active).toEqual([]);
   });
 });
