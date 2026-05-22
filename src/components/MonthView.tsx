@@ -4,6 +4,7 @@ import { getDayDetails } from "../calendar/dayDetails";
 import { addDayNote, createDefaultDayNote, deleteDayNote, getDayNotesForDay, updateDayNote } from "../calendar/dayNotesLogic";
 import { getEventsForDay } from "../calendar/eventsLogic";
 import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex, getCurrentMonthWeekdayNames } from "../calendar/monthView";
+import { getAdjacentMonthLabels, getMonthViewTimeForDate, getNextMonthViewTime, getPreviousMonthViewTime } from "../calendar/monthNavigation";
 import { getSeasonsStartingOnDate } from "../calendar/seasonsLogic";
 import type { MonthDayCell } from "../calendar/monthView";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/types";
@@ -22,10 +23,11 @@ const buildDayTooltip = (dayOfMonth: number, seasonName: string | undefined, eve
 };
 
 export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, initialSelectedDate }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null }) => {
-  const current = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+  const [viewedTime, setViewedTime] = useState(getMonthViewTimeForDate(project, absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)));
+  const current = absoluteDayToCalendarDate(viewedTime, project.calendarSystem);
   const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
-  const firstWeekday = getCurrentMonthFirstWeekdayIndex(project.currentTime, project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
-  const monthDays: MonthDayCell[] = getCurrentMonthDays(project.currentTime, project.calendarSystem);
+  const firstWeekday = getCurrentMonthFirstWeekdayIndex(viewedTime, project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
+  const monthDays: MonthDayCell[] = getCurrentMonthDays(viewedTime, project.calendarSystem);
   const leading = Array.from({ length: firstWeekday }, (_, i) => i);
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null);
   const lastInitialSelectedDateRef = useRef<string | null>(null);
@@ -35,18 +37,21 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
     const key = `${initialSelectedDate.year}:${initialSelectedDate.monthId}:${initialSelectedDate.dayOfMonth}`;
     if (lastInitialSelectedDateRef.current === key) return;
     lastInitialSelectedDateRef.current = key;
+    setViewedTime(getMonthViewTimeForDate(project, initialSelectedDate));
     setSelectedDate(initialSelectedDate);
   }, [initialSelectedDate]);
   const dayDetails = selectedDate ? getDayDetails(project, selectedDate) : null;
   const notes = selectedDate ? getDayNotesForDay(project, selectedDate) : [];
+  const labels = getAdjacentMonthLabels(project, viewedTime);
 
   return (
     <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{project.name}</div>
-      <div style={{ marginBottom: 8 }}><strong>{t(project.locale, "calendar.currentMonth")}:</strong> {current.monthName} {current.year}</div>
+      <button type="button" title={t(project.locale, "month.previousMonth")} onClick={() => setViewedTime(getPreviousMonthViewTime(project, viewedTime))} style={{ width: "100%", marginBottom: 6 }}>‹ {labels.previous}</button>
+      <div style={{ marginBottom: 8, textAlign: "center" }}><strong>{labels.current}</strong></div>
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${weekdays.length}, 1fr)`, gap: 4, marginBottom: 4 }}>{weekdays.map((day) => <div key={day} style={{ fontSize: 11, color: "#9ca3af", textAlign: "center" }}>{day}</div>)}</div>
       <div style={{ display: "grid", gridTemplateColumns: `repeat(${weekdays.length}, 1fr)`, gap: 4 }}>
-       {leading.map((n) => <div key={`lead-${n}`} />)}
+        {leading.map((n) => <div key={`lead-${n}`} />)}
         {monthDays.map((day: MonthDayCell) => {
           const date = { year: current.year, monthId: current.monthId, dayOfMonth: day.dayOfMonth, hour: 0, minute: 0 };
           const events = getEventsForDay(project, date);
@@ -74,6 +79,9 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
           );
         })}
       </div>
+      <button type="button" title={t(project.locale, "month.nextMonth")} onClick={() => setViewedTime(getNextMonthViewTime(project, viewedTime))} style={{ width: "100%", marginTop: 6 }}>
+        {labels.next} ›
+      </button>
       {dayDetails ? (
         <div style={{ marginTop: 10, border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
