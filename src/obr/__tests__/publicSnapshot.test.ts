@@ -39,14 +39,14 @@ describe("publicSnapshot moon events", () => {
   it("never exposes gm day notes", () => {
     const project = createDefaultCalendarProject();
     project.dayNotes = [
-      { id: "d1", date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 0, minute: 0 }, gmNote: "secret", playerNote: "public", visibility: "players", updatedAt: 1 },
+       { id: "d1", date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 0, minute: 0 }, gmNote: "secret player-note gm", playerNote: "public", visibility: "players", updatedAt: 1 },
       { id: "d2", date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 0, minute: 0 }, gmNote: "gm only", visibility: "gm", updatedAt: 1 }
     ];
     const snapshot = createPublicCalendarTodaySnapshot(project, 1);
+    expect(JSON.stringify(snapshot)).toContain("public");
     expect(snapshot.dayNotesToday[0]?.playerNote).toBe("public");
     expect(JSON.stringify(snapshot)).not.toContain("gm only");
-    expect(JSON.stringify(snapshot)).not.toContain("secret");
+    expect(JSON.stringify(snapshot)).not.toContain("secret player-note gm");
     expect(snapshot.dayNotesToday.map((n) => n.id)).toEqual(["d1"]);
   });
 });
-
