@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CalendarDate, CalendarProject } from "./domain/types";
+import type { CalendarNotification } from "./calendar/notifications";
 import type { GlobalSearchResult } from "./calendar/globalSearch";
 import { t } from "./i18n/messages";
 import { EventsView } from "./components/EventsView";
@@ -32,6 +33,7 @@ export const App = () => {
   const [publicSnapshot, setPublicSnapshot] = useState<PublicCalendarTodaySnapshot | null>(null);
   const [pendingCreateEventDate, setPendingCreateEventDate] = useState<CalendarDate | null>(null);
   const [pendingMonthSelectedDate, setPendingMonthSelectedDate] = useState<CalendarDate | null>(null);
+  const [pendingEditEventId, setPendingEditEventId] = useState<string | null>(null);
   const projectRef = useRef<CalendarProject | null>(null);
   const revisionRef = useRef(0);
 
@@ -113,6 +115,21 @@ export const App = () => {
       setActiveTab("settings");
     }
   };
+
+  const handleOpenNotification = (notification: CalendarNotification) => {
+    if (notification.type === "event" || notification.type === "eventReminder") {
+      setPendingEditEventId(notification.sourceId);
+      setActiveTab("events");
+      return;
+    }
+    if (notification.type === "moon") {
+      setActiveTab("settings");
+      return;
+    }
+    if (notification.type === "weather") {
+      setActiveTab("today");
+    }
+  };
   
   const handleReset = () => {
     const reset = resetCalendarProject(scope.storageKey);
@@ -134,7 +151,7 @@ export const App = () => {
         <button type="button" onClick={() => setActiveTab("settings")} style={tabStyle(project.uiSettings.activeTab === "settings")}>{t(project.locale, "nav.settings")}</button>
         <button type="button" onClick={() => setActiveTab("player")} style={tabStyle(project.uiSettings.activeTab === "player")}>{t(project.locale, "nav.player")}</button>
       </div>
-      {project.uiSettings.activeTab === "month" ? <MonthView project={project} onProjectUpdate={updateProject} initialSelectedDate={pendingMonthSelectedDate} onCreateEventForDate={(date) => { setPendingCreateEventDate(date); setActiveTab("events"); }} /> : project.uiSettings.activeTab === "events" ? <EventsView project={project} onProjectUpdate={updateProject} initialCreateDate={pendingCreateEventDate} onInitialCreateDateConsumed={() => setPendingCreateEventDate(null)} onOpenSearchResult={handleOpenSearchResult} /> : project.uiSettings.activeTab === "settings" ? <SettingsView project={project} onProjectUpdate={updateProject} saveError={saveError} scope={scope} onReset={handleReset} /> : project.uiSettings.activeTab === "player" ? <PlayerView project={project} /> : <TodayView project={project} onProjectUpdate={updateProject} onReset={handleReset} />}
+      {project.uiSettings.activeTab === "month" ? <MonthView project={project} onProjectUpdate={updateProject} initialSelectedDate={pendingMonthSelectedDate} onCreateEventForDate={(date) => { setPendingCreateEventDate(date); setActiveTab("events"); }} /> : project.uiSettings.activeTab === "events" ? <EventsView project={project} onProjectUpdate={updateProject} initialCreateDate={pendingCreateEventDate} initialEditEventId={pendingEditEventId} onInitialCreateDateConsumed={() => setPendingCreateEventDate(null)} onInitialEditEventIdConsumed={() => setPendingEditEventId(null)} onOpenSearchResult={handleOpenSearchResult} /> : project.uiSettings.activeTab === "settings" ? <SettingsView project={project} onProjectUpdate={updateProject} saveError={saveError} scope={scope} onReset={handleReset} /> : project.uiSettings.activeTab === "player" ? <PlayerView project={project} /> : <TodayView project={project} onProjectUpdate={updateProject} onReset={handleReset} onOpenNotification={handleOpenNotification} />}
     </> : publicSnapshot ? <PlayerView project={project} snapshot={publicSnapshot} /> : <div style={{ color: "#9ca3af" }}>{t(project.locale, "player.waitingForGmData")}</div>}
   </main>;
 };

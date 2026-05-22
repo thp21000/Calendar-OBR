@@ -12,11 +12,13 @@ export const getNotificationLabelKey = (type: CalendarNotification["type"]): str
 export const TriggerSummaryCard = ({
   locale,
   notifications,
-  onDismiss
+  onDismiss,
+  onOpen
 }: {
   locale: LocaleCode;
   notifications: CalendarNotification[];
   onDismiss: (id: string) => void;
+  onOpen?: (notification: CalendarNotification) => void;
 }) => {
   if (notifications.length === 0) {
     return (
@@ -40,6 +42,7 @@ export const TriggerSummaryCard = ({
               <button type="button" onClick={() => onDismiss(notification.id)} style={{ border: "1px solid #6d28d9", borderRadius: 6, background: "#1f1147", color: "#ddd6fe", padding: "3px 8px", fontSize: 11, cursor: "pointer" }}>
                 {t(locale, "notifications.dismiss")}
               </button>
+              {onOpen ? <button type="button" onClick={() => onOpen(notification)} style={{ border: "1px solid #6d28d9", borderRadius: 6, background: "#1f1147", color: "#ddd6fe", padding: "3px 8px", fontSize: 11, cursor: "pointer" }}>{t(locale, "notifications.open")}</button> : null}
             </div>
             {notification.summary ? <div style={{ fontSize: 12, color: "#e9d5ff", marginTop: 4 }}>{notification.summary}</div> : null}
           </div>

@@ -8,7 +8,7 @@ import { EventIcon } from "./EventIcon";
 import { EventForm } from "./events/EventForm";
 import { GlobalSearchPanel } from "./search/GlobalSearchPanel";
 
-export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInitialCreateDateConsumed, onOpenSearchResult }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; onInitialCreateDateConsumed?: () => void; onOpenSearchResult?: (result: GlobalSearchResult) => void; }) => {
+export const EventsView = ({ project, onProjectUpdate, initialCreateDate, initialEditEventId, onInitialCreateDateConsumed, onInitialEditEventIdConsumed, onOpenSearchResult }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; initialEditEventId?: string | null; onInitialCreateDateConsumed?: () => void; onInitialEditEventIdConsumed?: () => void; onOpenSearchResult?: (result: GlobalSearchResult) => void; }) => {
   const events = sortEventsByDate(project.events, project);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "triggered" | "archived" | "disabled" | "all">("active");
@@ -19,6 +19,16 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInit
   useEffect(() => {
     if (initialCreateDate) setIsCreateFormOpen(true);
   }, [initialCreateDate]);
+
+  useEffect(() => {
+    if (!initialEditEventId) return;
+    setStatusFilter("all");
+    setTimeFilter("all");
+    setSearchQuery("");
+    setIsCreateFormOpen(false);
+    setEditingEventId(initialEditEventId);
+    onInitialEditEventIdConsumed?.();
+  }, [initialEditEventId, onInitialEditEventIdConsumed]);
 
   const filteredByStatus = events.filter((event) => {
     if (statusFilter === "all") return true;

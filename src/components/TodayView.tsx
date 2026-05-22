@@ -28,7 +28,7 @@ const quickActions: QuickAction[] = [
 ];
 const buttonStyle = { border: "1px solid #8b5cf6", borderRadius: 8, background: "#1a1530", color: "#c4b5fd", padding: "8px 6px", fontSize: 12, fontWeight: 700, textTransform: "uppercase" as const, cursor: "pointer" };
 
-export const TodayView = ({ project, onProjectUpdate, onReset }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; onReset: () => void; }) => {
+export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotification }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; onReset: () => void; onOpenNotification?: (notification: CalendarNotification) => void; }) => {
   const dismissedStorageKey = `calendar-obr.notifications.dismissed.${project.id}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const lastTriggeredAtMinutesRef = useRef<Record<string, number>>({});
@@ -120,6 +120,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
       <TriggerSummaryCard
         locale={project.locale}
         notifications={notifications}
+        onOpen={onOpenNotification}
         onDismiss={(id) => {
           setNotifications((prev) => prev.filter((item) => item.id !== id));
           const dismissed = readDismissed();
