@@ -3,6 +3,7 @@ import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getTriggeredEventsBetween } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { createNotificationsFromTriggers, type CalendarNotification } from "../calendar/notifications";
+import * as moonLogic from "../calendar/moonLogic";
 import { getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import {
@@ -36,7 +37,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
   const triggeredWeatherEvents = currentWeather
     ? getActiveWeatherEventsWithDuration(project, currentWeather, project.currentTime, lastTriggeredAtMinutesRef.current)
     : [];
-  const currentMoonPhases = getCurrentMoonPhases(project);
+  const currentMoonPhases = moonLogic.getCurrentMoonPhases(project);
   const triggeredMoonEvents = getTriggeredMoonEvents(project, project.currentTime.absoluteDay);
   const hourlyForecast = getHourlyWeatherForecast(project, 5);
   const dailyForecast = getDailyWeatherForecast(project, 5);
