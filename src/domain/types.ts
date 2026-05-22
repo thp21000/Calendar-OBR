@@ -162,7 +162,18 @@ export type WeatherStateCondition = {
   state: WeatherState;
 };
 
-export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition;
+export type WeatherSeasonCondition = {
+  type: "season";
+  seasonId: string;
+};
+
+export type WeatherTimeOfDayCondition = {
+  type: "timeOfDay";
+  startHour: number;
+  endHour: number;
+};
+
+export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition | WeatherSeasonCondition | WeatherTimeOfDayCondition;
 
 export type WeatherEvent = {
   id: string;

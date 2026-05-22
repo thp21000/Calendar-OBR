@@ -237,7 +237,7 @@ describe("calendarImportExport", () => {
     expect(imported.ok).toBe(true);
     if (!imported.ok) return;
     const firstCondition = imported.project.weatherEvents[0].conditions[0];
-    expect(firstCondition.type === "state" ? undefined : firstCondition.value).toBe(-15);
+    expect(firstCondition.type === "metric" || firstCondition.type === undefined ? firstCondition.value : undefined).toBe(-15);
   });
 
   it("imports weather event without enabled", () => {
@@ -329,5 +329,22 @@ describe("calendarImportExport", () => {
     expect(imported.project.weatherEvents[0].cooldownHours).toBeUndefined();
     expect(imported.project.weatherEvents[1].durationHours).toBe(2);
     expect(imported.project.weatherEvents[1].cooldownHours).toBe(1);
+  });
+
+  it("sanitizes season/timeOfDay weather conditions", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [{ id: "s1", name: "S1", start: { monthId: project.calendarSystem.months[0].id, dayOfMonth: 1 }, end: { monthId: project.calendarSystem.months[0].id, dayOfMonth: 10 } }];
+    const payload = {
+      ...project,
+      weatherEvents: [
+        { id: "ok", name: "ok", enabled: true, requireAllConditions: true, conditions: [{ type: "season", seasonId: "s1" }, { type: "timeOfDay", startHour: 26, endHour: -2 }] },
+        { id: "bad", name: "bad", enabled: true, requireAllConditions: true, conditions: [{ type: "season", seasonId: "" }, { type: "timeOfDay", startHour: "a", endHour: 2 }] }
+      ]
+    };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherEvents[0].conditions).toEqual([{ type: "season", seasonId: "s1" }, { type: "timeOfDay", startHour: 23, endHour: 0 }]);
+    expect(imported.project.weatherEvents[1].conditions).toEqual([]);
   });
 });

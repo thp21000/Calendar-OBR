@@ -153,12 +153,29 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                     condition.state === "snow" ||
                     condition.state === "strongWind" ||
                     condition.state === "tempest")) ||
+                (condition.type === "season" && typeof condition.seasonId === "string" && condition.seasonId.trim().length > 0) ||
+                  (condition.type === "timeOfDay" &&
+                    typeof condition.startHour === "number" &&
+                    Number.isFinite(condition.startHour) &&
+                    typeof condition.endHour === "number" &&
+                    Number.isFinite(condition.endHour)) ||
                   ((condition.type === undefined || condition.type === "metric") &&
                     (condition.metric === "temperature" || condition.metric === "windSpeed" || condition.metric === "rain") &&
                     (condition.operator === "gte" || condition.operator === "lte") &&
                     typeof condition.value === "number" &&
                     Number.isFinite(condition.value)))
             );
+            next.conditions = (next.conditions as Record<string, unknown>[]).map((condition) => {
+            if (!isRecord(condition)) return condition;
+            if (condition.type === "timeOfDay") {
+              return {
+                ...condition,
+                startHour: Math.max(0, Math.min(23, Math.trunc(condition.startHour as number))),
+                endHour: Math.max(0, Math.min(23, Math.trunc(condition.endHour as number)))
+              };
+            }
+            return condition;
+          });
         } else {
           next.conditions = [];
         }

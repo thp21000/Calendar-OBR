@@ -87,6 +87,26 @@ describe("weatherEventsLogic", () => {
     expect(isWeatherConditionMet(weather, { type: "state", state: "storm" })).toBe(false);
   });
 
+  it("condition saison match", () => {
+    const project = buildProject([]);
+    project.seasons = [{ id: "s1", name: "S1", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }];
+    expect(isWeatherConditionMet(weather, { type: "season", seasonId: "s1" }, { project, time: { absoluteDay: 0, hour: 10, minute: 0 } })).toBe(true);
+  });
+  it("condition saison non match", () => {
+    const project = buildProject([]);
+    project.seasons = [{ id: "s1", name: "S1", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }];
+    expect(isWeatherConditionMet(weather, { type: "season", seasonId: "s2" }, { project, time: { absoluteDay: 0, hour: 10, minute: 0 } })).toBe(false);
+  });
+  it("condition période horaire simple", () => {
+    expect(isWeatherConditionMet(weather, { type: "timeOfDay", startHour: 8, endHour: 18 }, { time: { absoluteDay: 0, hour: 10, minute: 0 } })).toBe(true);
+    expect(isWeatherConditionMet(weather, { type: "timeOfDay", startHour: 8, endHour: 18 }, { time: { absoluteDay: 0, hour: 22, minute: 0 } })).toBe(false);
+  });
+  it("condition période horaire traversant minuit", () => {
+    expect(isWeatherConditionMet(weather, { type: "timeOfDay", startHour: 22, endHour: 6 }, { time: { absoluteDay: 0, hour: 23, minute: 0 } })).toBe(true);
+    expect(isWeatherConditionMet(weather, { type: "timeOfDay", startHour: 22, endHour: 6 }, { time: { absoluteDay: 0, hour: 4, minute: 0 } })).toBe(true);
+    expect(isWeatherConditionMet(weather, { type: "timeOfDay", startHour: 22, endHour: 6 }, { time: { absoluteDay: 0, hour: 12, minute: 0 } })).toBe(false);
+  });
+
   it("événement désactivé non déclenché", () => {
     const event: WeatherEvent = {
       id: "e1", name: "Tempête", conditions: [{ metric: "windSpeed", operator: "gte", value: 80 }], requireAllConditions: true, enabled: false
@@ -158,6 +178,16 @@ describe("weatherEventsLogic", () => {
     };
     expect(isWeatherEventTriggered(weather, event)).toBe(false);
     expect(isWeatherEventTriggered({ ...weather, state: "storm" }, event)).toBe(true);
+  });
+  it("requireAll météo + saison", () => {
+    const project = buildProject([]);
+    project.seasons = [{ id: "s1", name: "S1", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }];
+    const event: WeatherEvent = { id: "a", name: "A", enabled: true, requireAllConditions: true, conditions: [{ metric: "temperature", operator: "gte", value: 35 }, { type: "season", seasonId: "s1" }] };
+    expect(isWeatherEventTriggered(weather, event, { project, time: { absoluteDay: 0, hour: 10, minute: 0 } })).toBe(true);
+  });
+  it("requireAny état + période", () => {
+    const event: WeatherEvent = { id: "a", name: "A", enabled: true, requireAllConditions: false, conditions: [{ type: "state", state: "storm" }, { type: "timeOfDay", startHour: 22, endHour: 6 }] };
+    expect(isWeatherEventTriggered(weather, event, { time: { absoluteDay: 0, hour: 23, minute: 0 } })).toBe(true);
   });
 
   it("getTriggeredWeatherEvents retourne seulement les déclenchés", () => {
@@ -243,8 +273,8 @@ describe("weatherEventsLogic", () => {
     const updated = updateWeatherCondition(project, "e1", 1, { value: 90 });
     const first = updated.weatherEvents[0]?.conditions[0];
     const second = updated.weatherEvents[0]?.conditions[1];
-    expect(first?.type === "state" ? undefined : first?.value).toBe(35);
-    expect(second?.type === "state" ? undefined : second?.value).toBe(90);
+    expect(first?.type === "metric" || first?.type === undefined ? first.value : undefined).toBe(35);
+    expect(second?.type === "metric" || second?.type === undefined ? second.value : undefined).toBe(90);
   });
 
   it("deleteWeatherCondition supprime seulement la condition ciblée", () => {
@@ -254,7 +284,7 @@ describe("weatherEventsLogic", () => {
     const updated = deleteWeatherCondition(project, "e1", 0);
     expect(updated.weatherEvents[0]?.conditions).toHaveLength(1);
     const remaining = updated.weatherEvents[0]?.conditions[0];
-    expect(remaining?.type === "state" ? undefined : remaining?.metric).toBe("windSpeed");
+    expect(remaining?.type === "metric" || remaining?.type === undefined ? remaining.metric : undefined).toBe("windSpeed");
   });
   
   it("retourne un événement nouvellement actif entre fromTime et toTime", () => {
