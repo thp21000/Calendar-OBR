@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { searchCalendarProject } from "../../calendar/globalSearch";
+import { searchCalendarProject, type GlobalSearchResult } from "../../calendar/globalSearch";
 import type { CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
 
-export const GlobalSearchPanel = ({ project }: { project: CalendarProject }) => {
+export const GlobalSearchPanel = ({ project, onOpenResult }: { project: CalendarProject; onOpenResult?: (result: GlobalSearchResult) => void }) => {
   const [query, setQuery] = useState("");
   const results = useMemo(() => searchCalendarProject(project, query), [project, query]);
   const normalized = query.trim();
@@ -36,6 +36,7 @@ export const GlobalSearchPanel = ({ project }: { project: CalendarProject }) => 
                 {result.date ? `${result.date.dayOfMonth}/${result.date.monthId}/${result.date.year}` : ""}
                 {result.visibility ? ` · ${t(project.locale, "globalSearch.visibility")}: ${result.visibility}` : ""}
               </div>
+              {onOpenResult ? <div style={{ marginTop: 4 }}><button type="button" style={{ border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#f3f4f6", padding: "4px 8px", fontSize: 11 }} onClick={() => onOpenResult(result)}>{t(project.locale, "globalSearch.open")}</button></div> : null}
             </div>
           ))}
         </div>

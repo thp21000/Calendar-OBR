@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { getDayDetails } from "../calendar/dayDetails";
 import { addDayNote, createDefaultDayNote, deleteDayNote, getDayNotesForDay, updateDayNote } from "../calendar/dayNotesLogic";
@@ -20,13 +20,22 @@ const buildDayTooltip = (dayOfMonth: number, seasonName: string | undefined, eve
   return parts.join(" — ");
 };
 
-export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void }) => {
+export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, initialSelectedDate }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null }) => {
   const current = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
   const firstWeekday = getCurrentMonthFirstWeekdayIndex(project.currentTime, project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
   const monthDays: MonthDayCell[] = getCurrentMonthDays(project.currentTime, project.calendarSystem);
   const leading = Array.from({ length: firstWeekday }, (_, i) => i);
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null);
+  const lastInitialSelectedDateRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!initialSelectedDate) return;
+    const key = `${initialSelectedDate.year}:${initialSelectedDate.monthId}:${initialSelectedDate.dayOfMonth}`;
+    if (lastInitialSelectedDateRef.current === key) return;
+    lastInitialSelectedDateRef.current = key;
+    setSelectedDate(initialSelectedDate);
+  }, [initialSelectedDate]);
   const dayDetails = selectedDate ? getDayDetails(project, selectedDate) : null;
   const notes = selectedDate ? getDayNotesForDay(project, selectedDate) : [];
 

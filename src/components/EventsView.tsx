@@ -3,11 +3,12 @@ import { addCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, getEvent
 import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEventTriggerOptions, formatEventVisibility } from "../calendar/formatEvent";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
+import type { GlobalSearchResult } from "../calendar/globalSearch";
 import { EventIcon } from "./EventIcon";
 import { EventForm } from "./events/EventForm";
 import { GlobalSearchPanel } from "./search/GlobalSearchPanel";
 
-export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInitialCreateDateConsumed }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; onInitialCreateDateConsumed?: () => void }) => {
+export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInitialCreateDateConsumed, onOpenSearchResult }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; onInitialCreateDateConsumed?: () => void; onOpenSearchResult?: (result: GlobalSearchResult) => void; }) => {
   const events = sortEventsByDate(project.events, project);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "triggered" | "archived" | "disabled" | "all">("active");
@@ -53,10 +54,20 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInit
     onProjectUpdate(updateCalendarEvent(project, event.id, { status }));
     const handleDuplicate = (event: CalendarEvent) => onProjectUpdate(duplicateCalendarEvent(project, event.id));
   const handleReveal = (event: CalendarEvent) => onProjectUpdate(revealCalendarEvent(project, event.id));
+  
+  const handleOpenSearchResult = (result: GlobalSearchResult) => {
+    if (result.type === "event") {
+      setStatusFilter("all");
+      setTimeFilter("all");
+      setEditingEventId(result.sourceId);
+      return;
+    }
+    onOpenSearchResult?.(result);
+  };
   return (
     <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{t(project.locale, "events.title")}</div>
-      <GlobalSearchPanel project={project} />
+      <GlobalSearchPanel project={project} onOpenResult={handleOpenSearchResult} />
       <button
         type="button"
         onClick={() => setIsCreateFormOpen((prev) => !prev)}
