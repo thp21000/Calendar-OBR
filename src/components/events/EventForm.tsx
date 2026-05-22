@@ -17,6 +17,13 @@ export type EventFormValue = {
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
+const normalizeReminderMinutes = (value: unknown): number => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 60;
+  const int = Math.trunc(n);
+  return int > 0 ? int : 60;
+};
+
 const toFormValue = (project: CalendarProject, event?: CalendarEvent, initialDate?: CalendarDate): EventFormValue => {
   if (event) {
     return {
@@ -36,7 +43,7 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent, initialDat
       deleteAfterTrigger: event.deleteAfterTrigger,
       archiveAfterTrigger: event.archiveAfterTrigger,
       reminderEnabled: event.reminderEnabled === true,
-      reminderMinutesBefore: typeof event.reminderMinutesBefore === "number" && Number.isFinite(event.reminderMinutesBefore) && event.reminderMinutesBefore > 0 ? Math.trunc(event.reminderMinutesBefore) : 60,
+      reminderMinutesBefore: normalizeReminderMinutes(event.reminderMinutesBefore),
       hasEndDate: Boolean(event.endDate),
       endYear: event.endDate?.year ?? event.date.year,
       endMonthId: event.endDate?.monthId ?? event.date.monthId,
@@ -108,7 +115,7 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
         deleteAfterTrigger: form.deleteAfterTrigger,
         archiveAfterTrigger: form.archiveAfterTrigger,
         reminderEnabled: form.reminderEnabled,
-        reminderMinutesBefore: Math.max(0, Math.trunc(form.reminderMinutesBefore || 60))
+        reminderMinutesBefore: normalizeReminderMinutes(form.reminderMinutesBefore)
       });
       setNameError(null);
       return;
@@ -120,7 +127,7 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
       deleteAfterTrigger: form.deleteAfterTrigger,
       archiveAfterTrigger: form.archiveAfterTrigger,
       reminderEnabled: form.reminderEnabled,
-      reminderMinutesBefore: Math.max(0, Math.trunc(form.reminderMinutesBefore || 60))
+      reminderMinutesBefore: normalizeReminderMinutes(form.reminderMinutesBefore)
     });
     setForm(toFormValue(project, undefined, initialDate));
     setNameError(null);
@@ -176,7 +183,7 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
     <CollapsibleSection title={t(project.locale, "events.reminder")} defaultOpen={false}>
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.reminderEnabled} onChange={(e)=>updateForm("reminderEnabled", e.target.checked)}/>{t(project.locale, "events.reminderEnabled")}</label>
       <label>{t(project.locale, "events.reminderMinutesBefore")}</label>
-      <input type="number" min={0} value={form.reminderMinutesBefore} onChange={(e)=>updateForm("reminderMinutesBefore", Math.max(0, Math.trunc(Number(e.target.value) || 60)))} style={inputStyle}/>
+      <input type="number" min={1} value={form.reminderMinutesBefore} onChange={(e)=>updateForm("reminderMinutesBefore", normalizeReminderMinutes(e.target.value))} style={inputStyle}/>
       <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "events.reminderMinutesBeforeHelp")}</div>
     </CollapsibleSection>
     <div style={{ display: "flex", gap: 6, marginTop: 8 }}>

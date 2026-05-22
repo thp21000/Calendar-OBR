@@ -2,6 +2,13 @@ import type { LocaleCode } from "../../domain/types";
 import type { CalendarNotification } from "../../calendar/notifications";
 import { t } from "../../i18n/messages";
 
+export const getNotificationLabelKey = (type: CalendarNotification["type"]): string => {
+  if (type === "event") return "notifications.eventTriggered";
+  if (type === "eventReminder") return "notifications.eventReminder";
+  if (type === "weather") return "notifications.weatherTriggered";
+  return "notifications.moonTriggered";
+};
+
 export const TriggerSummaryCard = ({
   locale,
   notifications,
@@ -28,7 +35,7 @@ export const TriggerSummaryCard = ({
           <div key={notification.id} style={{ border: "1px solid #6d28d9", borderRadius: 6, padding: 6, background: "#2e1065" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
               <strong style={{ fontSize: 12 }}>
-                {notification.type === "event" ? t(locale, "notifications.eventTriggered") : notification.type === "weather" ? t(locale, "notifications.weatherTriggered") : t(locale, "notifications.moonTriggered")} — {notification.title}
+                {t(locale, getNotificationLabelKey(notification.type))} — {notification.title}
               </strong>
               <button type="button" onClick={() => onDismiss(notification.id)} style={{ border: "1px solid #6d28d9", borderRadius: 6, background: "#1f1147", color: "#ddd6fe", padding: "3px 8px", fontSize: 11, cursor: "pointer" }}>
                 {t(locale, "notifications.dismiss")}
