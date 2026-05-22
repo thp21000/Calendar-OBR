@@ -54,6 +54,7 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
         {leading.map((n) => <div key={`lead-${n}`} />)}
         {monthDays.map((day: MonthDayCell) => {
           const date = { year: current.year, monthId: current.monthId, dayOfMonth: day.dayOfMonth, hour: 0, minute: 0 };
+          const isActualCurrentDay = day.absoluteDay === project.currentTime.absoluteDay;
           const events = getEventsForDay(project, date);
           const hasDayNotes = getDayNotesForDay(project, date).length > 0;
           const seasonsStarting = getSeasonsStartingOnDate(project, date);
@@ -67,7 +68,7 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
               type="button"
               onClick={() => setSelectedDate(date)}
               title={buildDayTooltip(day.dayOfMonth, seasonStart?.name, events, hasDayNotes, t(project.locale, "month.hasNotes"))}
-              style={{ minHeight: 38, borderRadius: 6, border: day.isCurrentDay ? "1px solid #22c55e" : "1px solid #374151", background: day.isCurrentDay ? "#14532d" : "#1f2937", display: "flex", flexDirection: "column", justifyContent: hasMarkers ? "center" : "space-between", alignItems: "center", fontSize: 12, padding: "3px 2px", width: "100%", cursor: "pointer" }}
+              style={{ minHeight: 38, borderRadius: 6, border: isActualCurrentDay ? "1px solid #22c55e" : "1px solid #374151", background: isActualCurrentDay ? "#14532d" : "#1f2937", display: "flex", flexDirection: "column", justifyContent: hasMarkers ? "center" : "space-between", alignItems: "center", fontSize: 12, padding: "3px 2px", width: "100%", cursor: "pointer" }}
             >
               {!hasMarkers ? <span>{day.dayOfMonth}</span> : null}
               <div style={{ display: "flex", alignItems: "center", gap: 2, minHeight: hasMarkers ? 16 : 0 }}>
