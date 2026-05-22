@@ -281,6 +281,14 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "moons.fullCycle": "Cycle complet",
     "moons.newMoon": "Nouvelle lune",
     "moons.mainMoon": "Lune principale",
+    "moon.phase.new": "Nouvelle lune",
+    "moon.phase.waxingCrescent": "Premier croissant",
+    "moon.phase.firstQuarter": "Premier quartier",
+    "moon.phase.waxingGibbous": "Gibbeuse croissante",
+    "moon.phase.full": "Pleine lune",
+    "moon.phase.waningGibbous": "Gibbeuse décroissante",
+    "moon.phase.lastQuarter": "Dernier quartier",
+    "moon.phase.waningCrescent": "Dernier croissant",
     "moonEvents.empty": "Aucun événement lunaire",
     "moonEvents.add": "Ajouter un événement lunaire",
     "moonEvents.delete": "Supprimer",
@@ -354,15 +362,7 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "seasons.rain": "Pluie",
     "seasons.min": "Min",
     "seasons.max": "Max",
-    "seasons.average": "Moyenne",
-    "moon.phase.new": "Nouvelle lune",
-    "moon.phase.waxingCrescent": "Premier croissant",
-    "moon.phase.firstQuarter": "Premier quartier",
-    "moon.phase.waxingGibbous": "Gibbeuse croissante",
-    "moon.phase.full": "Pleine lune",
-    "moon.phase.waningGibbous": "Gibbeuse décroissante",
-    "moon.phase.lastQuarter": "Dernier quartier",
-    "moon.phase.waningCrescent": "Dernier croissant"
+    "seasons.average": "Moyenne"
   },
   en: {
     "app.title": "Living Calendar",
@@ -644,6 +644,14 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "moons.fullCycle": "Full cycle",
     "moons.newMoon": "New moon",
     "moons.mainMoon": "Main moon",
+    "moon.phase.new": "New moon",
+    "moon.phase.waxingCrescent": "Waxing crescent",
+    "moon.phase.firstQuarter": "First quarter",
+    "moon.phase.waxingGibbous": "Waxing gibbous",
+    "moon.phase.full": "Full moon",
+    "moon.phase.waningGibbous": "Waning gibbous",
+    "moon.phase.lastQuarter": "Last quarter",
+    "moon.phase.waningCrescent": "Waning crescent",
     "moonEvents.empty": "No moon events",
     "moonEvents.add": "Add moon event",
     "moonEvents.delete": "Delete",
@@ -717,15 +725,7 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "seasons.rain": "Rain",
     "seasons.min": "Min",
     "seasons.max": "Max",
-    "seasons.average": "Average",
-    "moon.phase.new": "New moon",
-    "moon.phase.waxingCrescent": "Waxing crescent",
-    "moon.phase.firstQuarter": "First quarter",
-    "moon.phase.waxingGibbous": "Waxing gibbous",
-    "moon.phase.full": "Full moon",
-    "moon.phase.waningGibbous": "Waning gibbous",
-    "moon.phase.lastQuarter": "Last quarter",
-    "moon.phase.waningCrescent": "Waning crescent"
+    "seasons.average": "Average"
   }
 };
 

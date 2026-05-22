@@ -4,7 +4,7 @@ import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCur
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { createNotificationsFromTriggers, type CalendarNotification } from "../calendar/notifications";
 import * as moonLogic from "../calendar/moonLogic";
-import { getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
+import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import {
   getActiveWeatherEventsWithDuration,
@@ -92,7 +92,10 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
         });
         return [...merged.values()];
       });
-      onProjectUpdate(applyEventCompletionActions({ ...project, currentTime: nextTime }, completed));
+      const withTime = { ...project, currentTime: nextTime };
+      const withEventsCompletion = applyEventCompletionActions(withTime, completed);
+      const withMoonEventStatus = applyMoonEventTriggerActions(withEventsCompletion, triggeredMoon);
+      onProjectUpdate(withMoonEventStatus);
       return;
     } else {
       setLastTriggeredEvents([]);
@@ -129,7 +132,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset }: { project: Cale
         <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
           {triggeredMoonEvents.map((event) => {
             const moon = project.moons.find((m) => m.id === event.moonId);
-            return <li key={event.id} style={{ fontSize: 12 }}>{event.icon ?? "🌕"} {event.name} · {moon?.name ?? "?"} · {event.phaseId}{event.summary ? ` — ${event.summary}` : ""}</li>;
+            return <li key={event.id} style={{ fontSize: 12 }}>{event.icon ?? "🌕"} {event.name} · {moon?.name ?? "?"} · {t(project.locale, `moon.phase.${event.phaseId}`)}{event.summary ? ` — ${event.summary}` : ""}</li>;
           })}
         </ul>
       </div> : null}

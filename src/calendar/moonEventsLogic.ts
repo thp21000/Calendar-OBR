@@ -19,11 +19,29 @@ export const updateMoonEvent = (project: CalendarProject, eventId: string, patch
 export const deleteMoonEvent = (project: CalendarProject, eventId: string): CalendarProject => ({ ...project, moonEvents: (project.moonEvents ?? []).filter((e) => e.id !== eventId) });
 
 export const isMoonEventTriggered = (project: CalendarProject, moonEvent: MoonEvent, absoluteDay: number): boolean => {
-  if (!moonEvent.enabled || moonEvent.status === "disabled") return false;
+  if (!moonEvent.enabled || moonEvent.status === "disabled" || moonEvent.status === "archived") return false;
   const moon = project.moons.find((m) => m.id === moonEvent.moonId);
   if (!moon) return false;
   return getMoonPhaseForDate(moon, absoluteDay).id === moonEvent.phaseId;
 };
+
+export const applyMoonEventTriggerActions = (project: CalendarProject, triggeredMoonEvents: MoonEvent[]): CalendarProject => {
+  const ids = new Set(triggeredMoonEvents.map((e) => e.id));
+  return {
+    ...project,
+    moonEvents: (project.moonEvents ?? []).map((event) =>
+      ids.has(event.id) && event.status === "active" ? { ...event, status: "triggered" } : event
+    )
+  };
+};
+
+export const getPlayerVisibleMoonEvents = (project: CalendarProject, absoluteDay: number): MoonEvent[] =>
+  (project.moonEvents ?? []).filter((event) => {
+    if (!isMoonEventTriggered(project, event, absoluteDay)) return false;
+    if (event.visibility === "players") return true;
+    if (event.visibility === "revealOnTrigger") return event.status === "triggered";
+    return false;
+  });
 
 export const getTriggeredMoonEvents = (project: CalendarProject, absoluteDay: number): MoonEvent[] =>
   (project.moonEvents ?? []).filter((event) => isMoonEventTriggered(project, event, absoluteDay));

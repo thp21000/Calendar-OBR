@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
-import { getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents, isMoonEventTriggered } from "../moonEventsLogic";
+import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getPlayerVisibleMoonEvents, getTriggeredMoonEvents, isMoonEventTriggered } from "../moonEventsLogic";
 
 describe("moonEventsLogic", () => {
   it("full moon can trigger", () => {
@@ -32,11 +32,31 @@ describe("moonEventsLogic", () => {
     project.moonEvents = [{ id: "m1", name: "D", summary: "", moonId: moon.id, phaseId: "new", visibility: "gm", enabled: false, notifyOnTrigger: true, status: "active" }];
     expect(getTriggeredMoonEvents(project, 0)).toEqual([]);
   });
+  it("archived false", () => {
+    const project = createDefaultCalendarProject();
+    const moon = project.moons[0];
+    project.moonEvents = [{ id: "m1", name: "A", summary: "", moonId: moon.id, phaseId: "new", visibility: "gm", enabled: true, notifyOnTrigger: true, status: "archived" }];
+    expect(getTriggeredMoonEvents(project, 0)).toEqual([]);
+  });
   it("newly triggered between days", () => {
     const project = createDefaultCalendarProject();
     const moon = project.moons[0];
     project.moonEvents = [{ id: "m1", name: "N", summary: "", moonId: moon.id, phaseId: "new", visibility: "gm", enabled: true, notifyOnTrigger: true, status: "active" }];
     expect(getNewlyTriggeredMoonEventsBetween(project, { absoluteDay: 28, hour: 0, minute: 0 }, { absoluteDay: 30, hour: 0, minute: 0 }).map((e) => e.id)).toEqual(["m1"]);
   });
+  it("active event becomes triggered after apply actions", () => {
+    const project = createDefaultCalendarProject();
+    const moon = project.moons[0];
+    project.moonEvents = [{ id: "m1", name: "N", summary: "", moonId: moon.id, phaseId: "new", visibility: "revealOnTrigger", enabled: true, notifyOnTrigger: true, status: "active" }];
+    const updated = applyMoonEventTriggerActions(project, [project.moonEvents[0]]);
+    expect(updated.moonEvents?.[0].status).toBe("triggered");
+  });
+  it("revealOnTrigger visible to players only when triggered", () => {
+    const project = createDefaultCalendarProject();
+    const moon = project.moons[0];
+    project.moonEvents = [{ id: "m1", name: "N", summary: "", moonId: moon.id, phaseId: "new", visibility: "revealOnTrigger", enabled: true, notifyOnTrigger: true, status: "active" }];
+    expect(getPlayerVisibleMoonEvents(project, 0)).toEqual([]);
+    project.moonEvents[0].status = "triggered";
+    expect(getPlayerVisibleMoonEvents(project, 0).map((e) => e.id)).toEqual(["m1"]);
+  });
 });
-
