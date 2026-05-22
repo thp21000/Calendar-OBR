@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { addCalendarEvent, deleteCalendarEvent, getEventTimeBucket, sortEventsByDate, updateCalendarEvent } from "../calendar/eventsLogic";
+import { addCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, getEventTimeBucket, revealCalendarEvent, sortEventsByDate, updateCalendarEvent } from "../calendar/eventsLogic";
 import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEventTriggerOptions, formatEventVisibility } from "../calendar/formatEvent";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
@@ -50,6 +50,8 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInit
   };
   const handleStatusUpdate = (event: CalendarEvent, status: CalendarEvent["status"]) =>
     onProjectUpdate(updateCalendarEvent(project, event.id, { status }));
+    const handleDuplicate = (event: CalendarEvent) => onProjectUpdate(duplicateCalendarEvent(project, event.id));
+  const handleReveal = (event: CalendarEvent) => onProjectUpdate(revealCalendarEvent(project, event.id));
   return (
     <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{t(project.locale, "events.title")}</div>
@@ -107,9 +109,13 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, onInit
                 <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "events.triggerOptions")}: {formatEventTriggerOptions(project, event)}</div>
                 <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "events.status")}: {formatEventStatus(project, event)}</div>
                 <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6 }}>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</div>
-                <div style={{ display: "flex", gap: 6 }}>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   <button type="button" onClick={() => setEditingEventId(event.id)} style={btn}>{t(project.locale, "events.edit")}</button>
                   <button type="button" onClick={() => handleDelete(event)} style={btn}>{t(project.locale, "events.delete")}</button>
+                  <button type="button" onClick={() => handleDuplicate(event)} style={btn}>{t(project.locale, "events.duplicate")}</button>
+                  {event.visibility === "revealOnTrigger" && event.status !== "triggered" && event.status !== "archived" && event.status !== "disabled" ? (
+                    <button type="button" onClick={() => handleReveal(event)} style={btn}>{t(project.locale, "events.reveal")}</button>
+                  ) : null}
                 </div>
                 <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
                   {event.status === "active" ? (

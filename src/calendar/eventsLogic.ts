@@ -183,6 +183,33 @@ export const deleteCalendarEvent = (project: CalendarProject, eventId: string): 
   events: project.events.filter((event) => event.id !== eventId)
 });
 
+export const duplicateCalendarEvent = (project: CalendarProject, eventId: string): CalendarProject => {
+  const sourceEvent = project.events.find((event) => event.id === eventId);
+  if (!sourceEvent) return project;
+
+  const suffix = project.locale === "fr" ? "(copie)" : "(copy)";
+  const duplicatedEvent: CalendarEvent = {
+    ...sourceEvent,
+    id: generateId(),
+    name: `${sourceEvent.name} ${suffix}`.trim(),
+    status: "active"
+  };
+
+  return {
+    ...project,
+    events: sortEventsByDate([...project.events, duplicatedEvent], project)
+  };
+};
+
+export const revealCalendarEvent = (project: CalendarProject, eventId: string): CalendarProject => ({
+  ...project,
+  events: project.events.map((event) => {
+    if (event.id !== eventId) return event;
+    if (event.visibility !== "revealOnTrigger") return event;
+    return { ...event, status: "triggered" };
+  })
+});
+
 export const eventOccursOnDay = (event: CalendarEvent, date: CalendarDate, project?: CalendarProject): boolean => {
   if (!project) {
     return event.date.year === date.year && event.date.monthId === date.monthId && event.date.dayOfMonth === date.dayOfMonth;

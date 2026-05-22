@@ -15,7 +15,9 @@ import {
   getTriggeredEventsBetween,
   getCompletedEventsBetween,
   applyEventCompletionActions,
-  getEventTimeBucket
+  getEventTimeBucket,
+  duplicateCalendarEvent,
+  revealCalendarEvent
 } from "../eventsLogic";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../../domain/types";
 
@@ -168,6 +170,58 @@ describe("eventsLogic", () => {
 
     expect(updated.events).toHaveLength(1);
     expect(updated.events[0].id).toBe("e2");
+  });
+
+  it("duplicateCalendarEvent crée un nouvel id et garde le contenu utile", () => {
+    const source = {
+      ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 3, hour: 9, minute: 0 }),
+      name: "Rituel",
+      summary: "Résumé",
+      visibility: "revealOnTrigger" as const,
+      status: "archived" as const,
+      endDate: { year: 1000, monthId: "m1", dayOfMonth: 4, hour: 9, minute: 0 }
+    };
+    const project = { ...buildProject(), events: [source] };
+
+    const updated = duplicateCalendarEvent(project, "e1");
+
+    expect(updated.events).toHaveLength(2);
+    const copy = updated.events.find((event) => event.id !== "e1");
+    expect(copy).toBeDefined();
+    expect(copy?.id).not.toBe("e1");
+    expect(copy?.name).toBe("Rituel (copie)");
+    expect(copy?.date).toEqual(source.date);
+    expect(copy?.endDate).toEqual(source.endDate);
+    expect(copy?.summary).toBe(source.summary);
+    expect(copy?.visibility).toBe(source.visibility);
+    expect(copy?.status).toBe("active");
+  });
+
+  it("revealCalendarEvent passe revealOnTrigger en triggered", () => {
+    const hidden = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 8, minute: 0 }), visibility: "revealOnTrigger" as const, status: "active" as const };
+    const project = { ...buildProject(), events: [hidden] };
+
+    const updated = revealCalendarEvent(project, "e1");
+
+    expect(updated.events[0].status).toBe("triggered");
+  });
+
+  it("revealCalendarEvent ne modifie pas un événement gm", () => {
+    const gmEvent = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 8, minute: 0 }), visibility: "gm" as const, status: "active" as const };
+    const project = { ...buildProject(), events: [gmEvent] };
+
+    const updated = revealCalendarEvent(project, "e1");
+
+    expect(updated.events[0].status).toBe("active");
+  });
+
+  it("revealCalendarEvent ne modifie pas un événement players", () => {
+    const playersEvent = { ...makeEvent("e1", { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 8, minute: 0 }), visibility: "players" as const, status: "active" as const };
+    const project = { ...buildProject(), events: [playersEvent] };
+
+    const updated = revealCalendarEvent(project, "e1");
+
+    expect(updated.events[0].status).toBe("active");
   });
 
   it("eventOccursOnDay retourne true pour le bon jour", () => {
