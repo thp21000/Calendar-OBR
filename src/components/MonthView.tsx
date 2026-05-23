@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { getDayDetails } from "../calendar/dayDetails";
 import { getDayNotesForDay } from "../calendar/dayNotesLogic";
-import { getEventsForDay } from "../calendar/eventsLogic";
+import { getEventsForDay, updateCalendarEvent } from "../calendar/eventsLogic";
 import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex, getCurrentMonthWeekdayNames } from "../calendar/monthView";
 import { getAdjacentMonthLabels, getMonthViewTimeForDate, getNextMonthViewTime, getPreviousMonthViewTime } from "../calendar/monthNavigation";
 import { getSeasonsStartingOnDate } from "../calendar/seasonsLogic";
@@ -11,6 +11,7 @@ import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/typ
 import { t } from "../i18n/messages";
 import { EventIcon } from "./EventIcon";
 import { DayDetailsPanel } from "./month/DayDetailsPanel";
+import { EventDetailsPopup } from "./events/EventDetailsPopup";
 
 const FALLBACK_EVENT_ICON = "◆";
 
@@ -22,7 +23,7 @@ const buildDayTooltip = (dayOfMonth: number, seasonName: string | undefined, eve
   return parts.join(" — ");
 };
 
-export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, initialSelectedDate, onOpenEvent }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null; onOpenEvent?: (eventId: string) => void }) => {
+export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, initialSelectedDate }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null }) => {
   const [viewedTime, setViewedTime] = useState(getMonthViewTimeForDate(project, absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)));
   const current = absoluteDayToCalendarDate(viewedTime, project.calendarSystem);
   const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
@@ -30,6 +31,7 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
   const monthDays: MonthDayCell[] = getCurrentMonthDays(viewedTime, project.calendarSystem);
   const leading = Array.from({ length: firstWeekday }, (_, i) => i);
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const lastInitialSelectedDateRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
   const dayDetails = selectedDate ? getDayDetails(project, selectedDate) : null;
   const notes = selectedDate ? getDayNotesForDay(project, selectedDate) : [];
   const labels = getAdjacentMonthLabels(project, viewedTime);
+  const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
 
   return (
     <>
@@ -86,7 +89,8 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
       <button type="button" title={t(project.locale, "month.nextMonth")} onClick={() => setViewedTime(getNextMonthViewTime(project, viewedTime))} style={{ width: "100%", marginTop: 6 }}>
         {labels.next} ›
       </button>
-      {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={onCreateEventForDate} onProjectUpdate={onProjectUpdate} onOpenEvent={onOpenEvent} /> : null}
+      {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={onCreateEventForDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} /> : null}
+      {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={onProjectUpdate ? (updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent)) : undefined} /> : null}
     </>
   );
 };
