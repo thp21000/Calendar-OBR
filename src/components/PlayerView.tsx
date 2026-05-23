@@ -39,10 +39,10 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
             <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(snapshot.locale, "player.noMoonEvents")}</div>
           ) : (
             snapshot.moonEventsToday.map((event) => (
-              <div key={event.id} style={{ fontSize: 12, marginBottom: 4 }}>
+              <button key={event.id} type="button" onClick={() => setSelectedPublicEvent({ id: event.id, name: event.name, icon: event.icon, summary: event.summary || undefined, playerDescription: event.playerDescription || undefined, subtitle: `${event.moonName} · ${t(snapshot.locale, `moon.phase.${event.phaseId}`)}` })} style={{ width: "100%", textAlign: "left", border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827", cursor: "pointer", marginBottom: 4, fontSize: 12 }}>
                 {event.icon ?? "🌕"} <strong>{event.name}</strong> · {event.moonName} · {t(snapshot.locale, `moon.phase.${event.phaseId}`)}
-                {event.playerDescription ? ` — ${event.playerDescription}` : event.summary ? ` — ${event.summary}` : ""}
-              </div>
+                {event.summary ? ` — ${event.summary}` : ""}
+              </button>
             ))
           )}
         </div>
@@ -135,10 +135,10 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
           visibleMoonEvents.map((event) => {
             const moon = project.moons.find((m) => m.id === event.moonId);
             return (
-              <div key={event.id} style={{ fontSize: 12, marginBottom: 4 }}>
+              <button key={event.id} type="button" onClick={() => setSelectedPublicEvent({ id: event.id, name: event.name, icon: event.icon, summary: event.summary || undefined, playerDescription: event.playerDescription || undefined, subtitle: `${moon?.name ?? "?"} · ${t(project.locale, `moon.phase.${event.phaseId}`)}` })} style={{ width: "100%", textAlign: "left", border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827", cursor: "pointer", marginBottom: 4, fontSize: 12 }}>
                 {event.icon ?? "🌕"} <strong>{event.name}</strong> · {moon?.name ?? "?"} · {t(project.locale, `moon.phase.${event.phaseId}`)}
-                {event.playerDescription ? ` — ${event.playerDescription}` : event.summary ? ` — ${event.summary}` : ""}
-              </div>
+                {event.summary ? ` — ${event.summary}` : ""}
+              </button>
             );
           })
         )}

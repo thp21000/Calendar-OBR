@@ -5,9 +5,11 @@ export type PublicEventDetails = {
   id: string;
   name: string;
   icon?: string;
+  subtitle?: string;
   summary?: string;
   playerDescription?: string;
   timeLabel?: string;
+  details?: string;
 };
 
 export const PublicEventDetailsPopup = ({ locale, event, onClose }: { locale: "fr" | "en"; event: PublicEventDetails; onClose: () => void }) => (
@@ -19,10 +21,14 @@ export const PublicEventDetailsPopup = ({ locale, event, onClose }: { locale: "f
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
         <EventIcon icon={event.icon} locale={locale} />
-        <strong>{event.name}</strong>
+        <div style={{ display: "grid", gap: 2 }}>
+          <strong>{event.name}</strong>
+          {event.subtitle ? <span style={{ fontSize: 12, color: "#cbd5e1" }}>{event.subtitle}</span> : null}
+        </div>
         {event.timeLabel ? <span style={{ marginLeft: "auto", fontSize: 12, color: "#cbd5e1" }}>{event.timeLabel}</span> : null}
       </div>
       {event.summary ? <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(locale, "events.summary")}:</strong> {event.summary}</div> : null}
+      {event.details ? <div style={{ fontSize: 12, marginBottom: 4 }}>{event.details}</div> : null}
       {event.playerDescription ? <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(locale, "events.playerDescription")}:</strong> {event.playerDescription}</div> : null}
     </div>
   </div>

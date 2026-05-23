@@ -6,9 +6,10 @@ describe("publicSnapshot moon events", () => {
   it("includes players moon event", () => {
     const project = createDefaultCalendarProject();
     const moon = project.moons[0];
-    project.moonEvents = [{ id: "m1", name: "Public", summary: "S", moonId: moon.id, phaseId: "new", visibility: "players", enabled: true, notifyOnTrigger: true, status: "active" }];
+    project.moonEvents = [{ id: "m1", name: "Public", summary: "S", playerDescription: "moon player text", moonId: moon.id, phaseId: "new", visibility: "players", enabled: true, notifyOnTrigger: true, status: "active" }];
     const snapshot = createPublicCalendarTodaySnapshot(project, 1);
     expect(snapshot.moonEventsToday.map((e) => e.id)).toContain("m1");
+    expect(snapshot.moonEventsToday[0]?.playerDescription).toBe("moon player text");
   });
 
   it("excludes gm moon event", () => {
