@@ -849,18 +849,26 @@ Objectif :
 
 ### Phase 2 — Résumé météo journalier
 
-Objectif :
+La phase 2 ajoute une couche **journalière déterministe** via `DailyWeatherSummary`.
 
-- ajouter min/max température ;
-- ajouter cumul pluie 24 h ;
-- ajouter état dominant du jour.
+- Le résumé est calculé automatiquement par jour avec `getDailyWeatherSummary(project, absoluteDay)`.
+- Le calcul utilise :
+  - la saison du jour ;
+  - le profil météo saisonnier (ou le profil par défaut) ;
+  - les traits avancés (ou leurs valeurs dérivées) ;
+  - une seed déterministe (seed météo, projet, saison, jour).
+- Le résultat inclut :
+  - températures min/moyenne/max du jour ;
+  - cumul de pluie 24h ;
+  - vent max du jour ;
+  - direction dominante ;
+  - état dominant (`WeatherState`).
 
-À faire :
-
-- créer `getDailyWeatherSummary(project, absoluteDay)` ;
-- garder le résultat déterministe ;
-- enrichir le snapshot actuel avec les valeurs journalières ;
-- afficher discrètement ces données dans Aujourd’hui.
+Important :
+- la météo reste pilotée par les saisons ;
+- les traits avancés restent optionnels ;
+- la météo quotidienne reste **recalculée** (pas stockée) ;
+- aucune météo jour par jour n’est persistée en import/export.
 
 ### Phase 3 — Variation jour/nuit
 
