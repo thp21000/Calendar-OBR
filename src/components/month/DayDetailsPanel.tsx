@@ -5,7 +5,7 @@ import type { DayDetails } from "../../calendar/dayDetails";
 import { EventIcon } from "../EventIcon";
 import { DayNotesEditor } from "./DayNotesEditor";
 
-export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void }) => (
+export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void }) => (
   <div style={{ marginTop: 10, border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
       <strong>{t(project.locale, "month.dayDetailsTitle")}</strong>
@@ -20,7 +20,11 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
       <div style={{ display: "grid", gap: 4 }}>
         {dayDetails.events.map((event) => (
           <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 4 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={event.icon} locale={project.locale} size={14} /><strong>{event.name}</strong></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <EventIcon icon={event.icon} locale={project.locale} size={14} />
+              <strong>{event.name}</strong>
+              {onOpenEvent ? <button type="button" style={{ marginLeft: "auto", fontSize: 11 }} onClick={() => onOpenEvent(event.id)}>{t(project.locale, "globalSearch.open")}</button> : null}
+            </div>
             {event.summary ? <div style={{ color: "#cbd5e1" }}>{event.summary}</div> : null}
           </div>
         ))}

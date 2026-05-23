@@ -22,7 +22,7 @@ const buildDayTooltip = (dayOfMonth: number, seasonName: string | undefined, eve
   return parts.join(" — ");
 };
 
-export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, initialSelectedDate }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null }) => {
+export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, initialSelectedDate, onOpenEvent }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null; onOpenEvent?: (eventId: string) => void }) => {
   const [viewedTime, setViewedTime] = useState(getMonthViewTimeForDate(project, absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)));
   const current = absoluteDayToCalendarDate(viewedTime, project.calendarSystem);
   const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
@@ -86,7 +86,7 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
       <button type="button" title={t(project.locale, "month.nextMonth")} onClick={() => setViewedTime(getNextMonthViewTime(project, viewedTime))} style={{ width: "100%", marginTop: 6 }}>
         {labels.next} ›
       </button>
-      {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={onCreateEventForDate} onProjectUpdate={onProjectUpdate} /> : null}
+      {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={onCreateEventForDate} onProjectUpdate={onProjectUpdate} onOpenEvent={onOpenEvent} /> : null}
     </>
   );
 };
