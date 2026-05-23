@@ -189,6 +189,46 @@ describe("calendarImportExport", () => {
     expect(imported.project.seasons[0].weatherProfile).toEqual(project.seasons[0].weatherProfile);
   });
 
+  it("keeps advanced season weather traits during sanitation", () => {
+    const project = createDefaultCalendarProject();
+    const payload = {
+      ...project,
+      seasons: [
+        {
+          id: "wet",
+          name: "Wet",
+          icon: "🌧️",
+          start: { monthId: "month-1", dayOfMonth: 1 },
+          end: { monthId: "month-2", dayOfMonth: 30 },
+          weatherProfile: {
+            temperature: { min: 4, average: 10, max: 16 },
+            windSpeed: { min: 2, average: 9, max: 18 },
+            rain: { min: 1, average: 6, max: 12 },
+            stability: 0.2,
+            precipitationChance: 0.8,
+            stormChance: 2,
+            fogChance: Number.NaN,
+            temperatureSwing: 0.7,
+            windVariability: 0.6
+          }
+        }
+      ]
+    };
+
+    const sanitized = sanitizeCalendarProject(payload);
+    expect(sanitized.ok).toBe(true);
+    if (!sanitized.ok) return;
+    const profile = sanitized.project.seasons[0].weatherProfile;
+    expect(profile).toBeDefined();
+    if (!profile) return;
+    expect(profile.stability).toBe(0.2);
+    expect(profile.precipitationChance).toBe(0.8);
+    expect(profile.stormChance).toBe(1);
+    expect(profile.fogChance).toBeUndefined();
+    expect(profile.temperatureSwing).toBe(0.7);
+    expect(profile.windVariability).toBe(0.6);
+  });
+
   it("exports then imports and keeps weatherSettings seed and forecastMode", () => {
     const project = createDefaultCalendarProject();
     project.weatherSettings = { seed: "campaign-seed", forecastMode: "wide" };

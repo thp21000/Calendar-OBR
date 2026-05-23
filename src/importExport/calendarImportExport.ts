@@ -124,10 +124,18 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                 max: typeof value.max === "number" ? value.max : fallback.max
               }
             : fallback;
+        const optionalNumber = (value: unknown): number | undefined =>
+          typeof value === "number" && Number.isFinite(value) ? value : undefined;
         next.weatherProfile = normalizeSeasonWeatherProfile({
           temperature: numericRange(wp.temperature, { min: 0, average: 10, max: 20 }),
           windSpeed: numericRange(wp.windSpeed, { min: 0, average: 15, max: 40 }),
-          rain: numericRange(wp.rain, { min: 0, average: 2, max: 10 })
+          rain: numericRange(wp.rain, { min: 0, average: 2, max: 10 }),
+          stability: optionalNumber(wp.stability),
+          precipitationChance: optionalNumber(wp.precipitationChance),
+          stormChance: optionalNumber(wp.stormChance),
+          fogChance: optionalNumber(wp.fogChance),
+          temperatureSwing: optionalNumber(wp.temperatureSwing),
+          windVariability: optionalNumber(wp.windVariability)
         });
       }
       return next;
