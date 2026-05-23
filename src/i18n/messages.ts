@@ -406,10 +406,12 @@ export const messages: Record<LocaleCode, Record<string, string>> = {
     "seasons.rain": "Pluie",
     "seasons.min": "Min",
     "seasons.max": "Max",
+    "player.eventDetails": "Détail public",
     "seasons.average": "Moyenne"
   },
   en: {
     "app.title": "Living Calendar",
+    "player.eventDetails": "Public details",
     "nav.today": "Today",
     "nav.month": "Month",
     "nav.events": "Events",

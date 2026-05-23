@@ -13,6 +13,7 @@ import type { CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import type { PublicCalendarTodaySnapshot } from "../obr/publicSnapshot";
 import { EventIcon } from "./EventIcon";
+import { useState } from "react";
 import { PublicEventDetailsPopup, type PublicEventDetails } from "./player/PublicEventDetailsPopup";
 
 export const PlayerView = ({ project, snapshot }: { project: CalendarProject; snapshot?: PublicCalendarTodaySnapshot | null }) => {
@@ -150,4 +151,3 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
     </>
   );
 };
-import { useState } from "react";
