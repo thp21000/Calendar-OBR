@@ -55,6 +55,7 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
         {monthDays.map((day: MonthDayCell) => {
           const date = { year: current.year, monthId: current.monthId, dayOfMonth: day.dayOfMonth, hour: 0, minute: 0 };
           const isActualCurrentDay = day.absoluteDay === project.currentTime.absoluteDay;
+          const isSelectedDay = !!selectedDate && selectedDate.year === date.year && selectedDate.monthId === date.monthId && selectedDate.dayOfMonth === date.dayOfMonth;
           const events = getEventsForDay(project, date);
           const hasDayNotes = getDayNotesForDay(project, date).length > 0;
           const seasonsStarting = getSeasonsStartingOnDate(project, date);
@@ -62,13 +63,15 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
           const hasMarkers = events.length > 0 || seasonsStarting.length > 0 || hasDayNotes;
           const firstEvent = events[0];
           const icon = firstEvent?.icon || FALLBACK_EVENT_ICON;
+          const border = isActualCurrentDay && isSelectedDay ? "2px solid #93c5fd" : isActualCurrentDay ? "1px solid #22c55e" : isSelectedDay ? "1px solid #60a5fa" : "1px solid #374151";
+          const background = isActualCurrentDay ? "#14532d" : isSelectedDay ? "#1e3a8a" : "#1f2937";
           return (
             <button
               key={day.absoluteDay}
               type="button"
               onClick={() => setSelectedDate(date)}
               title={buildDayTooltip(day.dayOfMonth, seasonStart?.name, events, hasDayNotes, t(project.locale, "month.hasNotes"))}
-              style={{ minHeight: 38, borderRadius: 6, border: isActualCurrentDay ? "1px solid #22c55e" : "1px solid #374151", background: isActualCurrentDay ? "#14532d" : "#1f2937", display: "flex", flexDirection: "column", justifyContent: hasMarkers ? "center" : "space-between", alignItems: "center", fontSize: 12, padding: "3px 2px", width: "100%", cursor: "pointer" }}
+              style={{ minHeight: 38, borderRadius: 6, border, background, display: "flex", flexDirection: "column", justifyContent: hasMarkers ? "center" : "space-between", alignItems: "center", fontSize: 12, padding: "3px 2px", width: "100%", cursor: "pointer" }}
             >
               {!hasMarkers ? <span>{day.dayOfMonth}</span> : null}
               <div style={{ display: "flex", alignItems: "center", gap: 2, minHeight: hasMarkers ? 16 : 0 }}>
