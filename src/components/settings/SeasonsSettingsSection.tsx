@@ -1,4 +1,5 @@
 import { createDefaultSeason, createDefaultSeasonWeatherProfile, deleteSeason, parseWeatherInput, sortSeasonsByStartDate, updateSeason } from "../../calendar/seasonsLogic";
+import { deriveSeasonWeatherTraits } from "../../calendar/seasonWeatherProfile";
 import { useEffect, useState } from "react";
 import { getWeatherUnitLabels } from "../../calendar/weatherUnits";
 import type { CalendarProject, Season } from "../../domain/types";
@@ -62,6 +63,15 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
                     value={profile.rain}
                     onChange={(next) => patchSeason(season, { weatherProfile: { ...profile, rain: next } })}
                   />
+                  <CollapsibleSection title={t(project.locale, "seasons.weatherAdvanced")}>
+                    <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6 }}>{t(project.locale, "seasons.weatherAdvancedHelp")}</div>
+                    <AdvancedWeatherTraitsEditor
+                      locale={project.locale}
+                      inputStyle={inputStyle}
+                      profile={profile}
+                      onChange={(nextTraits) => patchSeason(season, { weatherProfile: { ...profile, ...nextTraits } })}
+                    />
+                  </CollapsibleSection>
                 </>
               );
             })()}
@@ -115,4 +125,40 @@ const RangeEditor = ({
       <Field label={t(locale, "seasons.max")}><input type="text" inputMode="decimal" value={draft.max} onChange={(e) => updateDraft("max", e.target.value)} style={inputStyle} /></Field>
     </div>
   );
+};
+
+const AdvancedWeatherTraitsEditor = ({ locale, inputStyle, profile, onChange }: { locale: "fr" | "en"; inputStyle: React.CSSProperties; profile: ReturnType<typeof createDefaultSeasonWeatherProfile>; onChange: (next: Partial<ReturnType<typeof createDefaultSeasonWeatherProfile> & { [k: string]: number | undefined }>) => void }) => {
+  const derived = deriveSeasonWeatherTraits(profile);
+  const rows: Array<{ key: "stability" | "precipitationChance" | "stormChance" | "fogChance" | "temperatureSwing" | "windVariability"; labelKey: string }> = [
+    { key: "stability", labelKey: "seasons.stability" },
+    { key: "precipitationChance", labelKey: "seasons.precipitationChance" },
+    { key: "stormChance", labelKey: "seasons.stormChance" },
+    { key: "fogChance", labelKey: "seasons.fogChance" },
+    { key: "temperatureSwing", labelKey: "seasons.temperatureSwing" },
+    { key: "windVariability", labelKey: "seasons.windVariability" }
+  ];
+  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+    {rows.map((row) => {
+      const raw = (profile as Record<string, unknown>)[row.key];
+      const shown = typeof raw === "number" ? String(Math.round(raw * 100)) : "";
+      const placeholder = String(Math.round(derived[row.key] * 100));
+      return <Field key={row.key} label={t(locale, row.labelKey)}>
+        <input
+          type="number"
+          min={0}
+          max={100}
+          placeholder={placeholder}
+          value={shown}
+          onChange={(e) => {
+            const v = e.target.value.trim();
+            if (v === "") return onChange({ [row.key]: undefined });
+            const n = Number(v);
+            if (!Number.isFinite(n)) return;
+            onChange({ [row.key]: Math.min(1, Math.max(0, n / 100)) });
+          }}
+          style={inputStyle}
+        />
+      </Field>;
+    })}
+  </div>;
 };

@@ -1,5 +1,7 @@
 import { absoluteDayToCalendarDate } from "./dateEngine";
+import { normalizeSeasonWeatherProfile } from "./seasonWeatherProfile";
 import type { CalendarDate, CalendarProject, Season, SeasonWeatherProfile } from "../domain/types";
+export { normalizeSeasonWeatherProfile } from "./seasonWeatherProfile";
 
 const seasonDateToOrdinal = (project: CalendarProject, value: { monthId: string; dayOfMonth: number }): number => {
   const months = [...project.calendarSystem.months].sort((a, b) => a.order - b.order);
@@ -64,35 +66,6 @@ export const parseWeatherInput = (value: string): number | null => {
   const parsed = Number(trimmed.replace(",", "."));
   return Number.isFinite(parsed) ? parsed : null;
 };
-
-const normalizeTemperatureRange = (value: { min: number; max: number; average: number }) => {
-  const min = Number.isFinite(value.min) ? value.min : 0;
-  let max = Number.isFinite(value.max) ? value.max : min;
-  if (min > max) max = min;
-  let average = Number.isFinite(value.average) ? value.average : min;
-  if (average < min) average = min;
-  if (average > max) average = max;
-  return { min, max, average };
-};
-
-const normalizePositiveWeatherRange = (value: { min: number; max: number; average: number }) => {
-  const minRaw = Number.isFinite(value.min) ? value.min : 0;
-  const min = Math.max(0, minRaw);
-  let max = Number.isFinite(value.max) ? value.max : min;
-  max = Math.max(0, max);
-  if (min > max) max = min;
-  let average = Number.isFinite(value.average) ? value.average : min;
-  average = Math.max(0, average);
-  if (average < min) average = min;
-  if (average > max) average = max;
-  return { min, max, average };
-};
-
-export const normalizeSeasonWeatherProfile = (profile: SeasonWeatherProfile): SeasonWeatherProfile => ({
-  temperature: normalizeTemperatureRange(profile.temperature),
-  windSpeed: normalizePositiveWeatherRange(profile.windSpeed),
-  rain: normalizePositiveWeatherRange(profile.rain)
-});
 
 export const updateSeason = (project: CalendarProject, seasonId: string, patch: Partial<Season>): CalendarProject => ({
   ...project,

@@ -123,6 +123,12 @@ export type SeasonWeatherProfile = {
   temperature: { min: number; max: number; average: number };
   windSpeed: { min: number; max: number; average: number };
   rain: { min: number; max: number; average: number };
+  stability?: number;
+  precipitationChance?: number;
+  stormChance?: number;
+  fogChance?: number;
+  temperatureSwing?: number;
+  windVariability?: number;
 };
 
 export type Moon = {
