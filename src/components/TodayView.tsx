@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
-import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getReminderEventsBetween, getTriggeredEventsBetween } from "../calendar/eventsLogic";
+import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getReminderEventsBetween, getTriggeredEventsBetween, updateCalendarEvent } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { createNotificationsFromTriggers, createReminderNotifications, type CalendarNotification } from "../calendar/notifications";
 import * as moonLogic from "../calendar/moonLogic";
@@ -20,6 +20,7 @@ import { TriggerSummaryCard } from "./today/TriggerSummaryCard";
 import { TriggeredEventsCard } from "./today/TriggeredEventsCard";
 import { TriggeredWeatherAlertsCard } from "./today/TriggeredWeatherAlertsCard";
 import { WeatherAndSeasonCard } from "./today/WeatherAndSeasonCard";
+import { EventDetailsPopup } from "./events/EventDetailsPopup";
 
 type QuickAction = { key: string; deltaMinutes: number };
 const quickActions: QuickAction[] = [
@@ -47,7 +48,9 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const [lastTriggeredWeatherEvents, setLastTriggeredWeatherEvents] = useState<CalendarProject["weatherEvents"]>([]);
   const [lastTriggeredMoonEvents, setLastTriggeredMoonEvents] = useState<NonNullable<CalendarProject["moonEvents"]>>([]);
   const [notifications, setNotifications] = useState<CalendarNotification[]>([]);
-
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
+  
   const readDismissed = (): Set<string> => {
     try {
       const raw = sessionStorage.getItem(dismissedStorageKey);
@@ -129,7 +132,8 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         }}
       />
 
-      <TodayEventsCard project={project} eventsToday={eventsToday} />
+      <TodayEventsCard project={project} eventsToday={eventsToday} onSelectEvent={setSelectedEventId} />
+      {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={(updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent))} /> : null}
       <TriggeredEventsCard project={project} lastTriggeredEvents={lastTriggeredEvents} />
       <TriggeredWeatherAlertsCard locale={project.locale} weatherEvents={lastTriggeredWeatherEvents} />
       {triggeredMoonEvents.length > 0 ? <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 8 }}>
