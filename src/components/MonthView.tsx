@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { getDayDetails } from "../calendar/dayDetails";
-import { addDayNote, createDefaultDayNote, deleteDayNote, getDayNotesForDay, updateDayNote } from "../calendar/dayNotesLogic";
+import { getDayNotesForDay } from "../calendar/dayNotesLogic";
 import { getEventsForDay } from "../calendar/eventsLogic";
 import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex, getCurrentMonthWeekdayNames } from "../calendar/monthView";
 import { getAdjacentMonthLabels, getMonthViewTimeForDate, getNextMonthViewTime, getPreviousMonthViewTime } from "../calendar/monthNavigation";
@@ -9,8 +9,8 @@ import { getSeasonsStartingOnDate } from "../calendar/seasonsLogic";
 import type { MonthDayCell } from "../calendar/monthView";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
-import { getWeatherStateIcon } from "../calendar/weatherState";
 import { EventIcon } from "./EventIcon";
+import { DayDetailsPanel } from "./month/DayDetailsPanel";
 
 const FALLBACK_EVENT_ICON = "◆";
 
@@ -86,47 +86,7 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
       <button type="button" title={t(project.locale, "month.nextMonth")} onClick={() => setViewedTime(getNextMonthViewTime(project, viewedTime))} style={{ width: "100%", marginTop: 6 }}>
         {labels.next} ›
       </button>
-      {dayDetails ? (
-        <div style={{ marginTop: 10, border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <strong>{t(project.locale, "month.dayDetailsTitle")}</strong>
-            <button type="button" onClick={() => setSelectedDate(null)} style={{ fontSize: 11 }}>{t(project.locale, "month.closeDayDetails")}</button>
-          </div>
-          <div style={{ fontSize: 12, marginBottom: 6 }}>{dayDetails.formattedDate}</div>
-          <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "calendar.season")}:</strong> {dayDetails.seasonName ?? t(project.locale, "calendar.noSeason")}</div>
-          <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayWeather")}:</strong> {dayDetails.weather ? `${getWeatherStateIcon(dayDetails.weather.state ?? "clear")} ${t(project.locale, `weather.state.${dayDetails.weather.state ?? "clear"}`)} · ${dayDetails.weather.temperature}° · ${t(project.locale, "calendar.wind")} ${dayDetails.weather.windSpeed} · ${t(project.locale, "calendar.rain")} ${dayDetails.weather.rain}` : t(project.locale, "calendar.noWeather")}</div>
-          <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayMoons")}:</strong> {dayDetails.moonPhases.length === 0 ? t(project.locale, "calendar.noMoon") : dayDetails.moonPhases.map((m) => `${m.phaseIcon} ${m.moonName}`).join(" · ")}</div>
-          <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayEvents")}:</strong></div>
-          {dayDetails.events.length === 0 ? <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "month.noEventsForDay")}</div> : (
-            <div style={{ display: "grid", gap: 4 }}>
-              {dayDetails.events.map((event) => (
-                <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 4 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={event.icon} locale={project.locale} size={14} /><strong>{event.name}</strong></div>
-                  {event.summary ? <div style={{ color: "#cbd5e1" }}>{event.summary}</div> : null}
-                </div>
-              ))}
-            </div>
-          )}
-          {onCreateEventForDate ? <button type="button" onClick={() => onCreateEventForDate(dayDetails.date)} style={{ marginTop: 8, width: "100%" }}>{t(project.locale, "month.createEventForDay")}</button> : null}
-          <div style={{ fontSize: 12, marginTop: 8, marginBottom: 4 }}><strong>{t(project.locale, "dayNotes.title")}:</strong></div>
-          {notes.length === 0 ? <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "dayNotes.noNotes")}</div> : notes.map((note) => (
-            <div key={note.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 4, marginBottom: 4 }}>
-              {note.gmNote ? <div><strong>GM:</strong> {note.gmNote}</div> : null}
-              {note.playerNote ? <div><strong>Public:</strong> {note.playerNote}</div> : null}
-              {onProjectUpdate ? <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-                <button type="button" onClick={() => { const gmNote = prompt(t(project.locale, "dayNotes.gmNote"), note.gmNote ?? "") ?? note.gmNote; const playerNote = prompt(t(project.locale, "dayNotes.playerNote"), note.playerNote ?? "") ?? note.playerNote; onProjectUpdate(updateDayNote(project, note.id, { gmNote, playerNote })); }}>{t(project.locale, "dayNotes.edit")}</button>
-                <button type="button" onClick={() => { if (confirm(t(project.locale, "dayNotes.confirmDelete"))) onProjectUpdate(deleteDayNote(project, note.id)); }}>{t(project.locale, "dayNotes.delete")}</button>
-              </div> : null}
-            </div>
-          ))}
-          {onProjectUpdate ? <button type="button" style={{ marginTop: 4 }} onClick={() => {
-            const base = createDefaultDayNote(project, dayDetails.date);
-            const gmNote = prompt(t(project.locale, "dayNotes.gmNote"), "") ?? "";
-            const playerNote = prompt(t(project.locale, "dayNotes.playerNote"), "") ?? "";
-            onProjectUpdate(addDayNote(project, { ...base, gmNote, playerNote, visibility: playerNote ? "players" : "gm" }));
-          }}>{t(project.locale, "dayNotes.add")}</button> : null}
-        </div>
-      ) : null}
+      {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={onCreateEventForDate} onProjectUpdate={onProjectUpdate} /> : null}
     </>
   );
 };
