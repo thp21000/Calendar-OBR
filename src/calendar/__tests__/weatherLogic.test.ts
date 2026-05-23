@@ -76,6 +76,53 @@ describe("weatherLogic", () => {
     expect(weather.rain).toBeGreaterThanOrEqual(0);
   });
 
+  it("inclut les champs journaliers depuis getDailyWeatherSummary", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const weather = generateWeatherForTime(project, 4, 12);
+    expect(weather).toBeDefined();
+    if (!weather) return;
+    expect(weather.dailyMinTemperature).toBeDefined();
+    expect(weather.dailyMaxTemperature).toBeDefined();
+    expect(weather.dailyRainTotal).toBeDefined();
+    expect(weather.dominantState).toBeDefined();
+  });
+
+  it("temperature horaire reste entre min/max journaliers", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const weather = generateWeatherForTime(project, 4, 12);
+    expect(weather).toBeDefined();
+    if (!weather) return;
+    expect(weather.dailyMinTemperature).toBeDefined();
+    expect(weather.dailyMaxTemperature).toBeDefined();
+    if (weather.dailyMinTemperature === undefined || weather.dailyMaxTemperature === undefined) return;
+    expect(weather.temperature).toBeGreaterThanOrEqual(weather.dailyMinTemperature);
+    expect(weather.temperature).toBeLessThanOrEqual(weather.dailyMaxTemperature);
+  });
+
+  it("à 5h la température est plus proche du min", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const weather = generateWeatherForTime(project, 4, 5);
+    expect(weather).toBeDefined();
+    if (!weather || weather.dailyMinTemperature === undefined || weather.dailyMaxTemperature === undefined) return;
+    const distMin = Math.abs(weather.temperature - weather.dailyMinTemperature);
+    const distMax = Math.abs(weather.temperature - weather.dailyMaxTemperature);
+    expect(distMin).toBeLessThanOrEqual(distMax);
+  });
+
+  it("à 15h la température est plus proche du max", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const weather = generateWeatherForTime(project, 4, 15);
+    expect(weather).toBeDefined();
+    if (!weather || weather.dailyMinTemperature === undefined || weather.dailyMaxTemperature === undefined) return;
+    const distMin = Math.abs(weather.temperature - weather.dailyMinTemperature);
+    const distMax = Math.abs(weather.temperature - weather.dailyMaxTemperature);
+    expect(distMax).toBeLessThanOrEqual(distMin);
+  });
+
   it("retourne le même résultat pour même projet/jour/heure", () => {
     const project = buildProject();
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];

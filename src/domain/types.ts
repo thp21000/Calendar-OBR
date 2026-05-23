@@ -103,6 +103,10 @@ export type WeatherSnapshot = {
   windDirection: WindDirection;
   rain: number;
   state?: WeatherState;
+  dailyMinTemperature?: number;
+  dailyMaxTemperature?: number;
+  dailyRainTotal?: number;
+  dominantState?: WeatherState;
 };
 
 export type Season = {

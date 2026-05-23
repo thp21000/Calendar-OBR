@@ -1022,3 +1022,46 @@ Pour toute amélioration météo :
 - l’UI reste lisible ;
 - la vue joueur n’expose aucune donnée MJ ;
 - la météo reste basée sur les saisons et non sur une configuration jour par jour.
+
+## Météo v2 — Phase 2 : résumé météo journalier
+
+La phase 2 ajoute une couche **journalière déterministe** via `DailyWeatherSummary`.
+
+- Le résumé est calculé automatiquement par jour avec `getDailyWeatherSummary(project, absoluteDay)`.
+- Le calcul utilise :
+  - la saison du jour ;
+  - le profil météo saisonnier (ou le profil par défaut) ;
+  - les traits avancés (ou leurs valeurs dérivées) ;
+  - une seed déterministe (seed météo, projet, saison, jour).
+- Le résultat inclut :
+  - températures min/moyenne/max du jour ;
+  - cumul de pluie 24h ;
+  - vent max du jour ;
+  - direction dominante ;
+  - état dominant (`WeatherState`).
+
+Important :
+- la météo reste pilotée par les saisons ;
+- les traits avancés restent optionnels ;
+- la météo quotidienne reste **recalculée** (pas stockée) ;
+- aucune météo jour par jour n’est persistée en import/export.
+
+## Météo v2 — Phase 3 : intégration du résumé journalier au snapshot
+
+La phase 3 relie `DailyWeatherSummary` à la météo horaire (`WeatherSnapshot`).
+
+- `generateWeatherForTime` enrichit le snapshot avec :
+  - `dailyMinTemperature`
+  - `dailyMaxTemperature`
+  - `dailyRainTotal`
+  - `dominantState`
+- Ces champs restent calculés à la volée (non persistés).
+- Une première variation jour/nuit est appliquée à la température :
+  - proche du minimum vers 05:00,
+  - proche du maximum vers 15:00,
+  - transition progressive entre les deux.
+
+Ce qui reste pour les phases suivantes :
+- pluie par épisodes horaires,
+- vent horaire plus stable,
+- affinage avancé des tendances.

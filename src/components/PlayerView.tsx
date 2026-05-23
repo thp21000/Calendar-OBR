@@ -51,6 +51,21 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
           weatherLabel={weatherLabel}
           moons={snapshot.moons.map((m) => ({ id: `${m.name}:${m.phaseId}`, text: `${m.icon} ${m.name} — ${t(snapshot.locale, `moon.phase.${m.phaseId}`)}` }))}
         />
+        {snapshot.weather?.dailyMinTemperature !== undefined && snapshot.weather?.dailyMaxTemperature !== undefined ? (
+          <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
+            {t(snapshot.locale, "weather.dailyMinMax")}: {snapshot.weather.dailyMinTemperature} / {snapshot.weather.dailyMaxTemperature} {snapshot.weather.units.temperature}
+          </div>
+        ) : null}
+        {snapshot.weather?.dailyRainTotal !== undefined ? (
+          <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
+            {t(snapshot.locale, "weather.dailyRainTotal")}: {snapshot.weather.dailyRainTotal} {snapshot.weather.units.rain}
+          </div>
+        ) : null}
+        {snapshot.weather?.dominantState ? (
+          <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 6 }}>
+            {t(snapshot.locale, "weather.dominantState")}: {getWeatherStateIcon(snapshot.weather.dominantState)} {t(snapshot.locale, `weather.state.${snapshot.weather.dominantState}`)}
+          </div>
+        ) : null}
 
         <PlayerPublicEventsCard locale={snapshot.locale} events={publicEvents} onSelectEvent={setSelectedPublicEvent} />
         <PlayerPublicMoonEventsCard locale={snapshot.locale} events={publicMoonEvents} onSelectEvent={setSelectedPublicEvent} />
@@ -108,6 +123,21 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
         weatherLabel={weatherLabel}
         moons={currentMoonPhases.map(({ moon, phase }) => ({ id: moon.id, text: `${phase.icon} ${moon.name} — ${t(project.locale, `moon.phase.${phase.id}`)}` }))}
       />
+      {currentWeather?.dailyMinTemperature !== undefined && currentWeather?.dailyMaxTemperature !== undefined ? (
+        <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
+          {t(project.locale, "weather.dailyMinMax")}: {currentWeather.dailyMinTemperature} / {currentWeather.dailyMaxTemperature} {weatherUnits.temperature}
+        </div>
+      ) : null}
+      {currentWeather?.dailyRainTotal !== undefined ? (
+        <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
+          {t(project.locale, "weather.dailyRainTotal")}: {currentWeather.dailyRainTotal} {weatherUnits.rain}
+        </div>
+      ) : null}
+      {currentWeather?.dominantState ? (
+        <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 6 }}>
+          {t(project.locale, "weather.dominantState")}: {getWeatherStateIcon(currentWeather.dominantState)} {t(project.locale, `weather.state.${currentWeather.dominantState}`)}
+        </div>
+      ) : null}
 
       <PlayerPublicEventsCard locale={project.locale} events={publicEvents} onSelectEvent={setSelectedPublicEvent} />
       <PlayerPublicMoonEventsCard locale={project.locale} events={publicMoonEvents} onSelectEvent={setSelectedPublicEvent} />

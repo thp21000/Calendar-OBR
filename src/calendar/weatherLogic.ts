@@ -1,5 +1,6 @@
 import { createDefaultSeasonWeatherProfile, getCurrentSeason } from "./seasonsLogic";
 import { getWeatherState } from "./weatherState";
+import { getDailyWeatherSummary } from "./weatherDaily";
 import type { CalendarProject, WeatherSnapshot, WindDirection } from "../domain/types";
 
 const WIND_DIRECTIONS: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -39,12 +40,38 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
   const seedBase = project.weatherSettings.seed || project.id;
   const seed = `${seedBase}|${absoluteDay}|${hour}|${season.id}`;
 
-  const temperature = aroundAverage(profile.temperature.min, profile.temperature.max, profile.temperature.average, seed, "t");
+  const dailySummary = getDailyWeatherSummary(project, absoluteDay);
+  const temperature = dailySummary
+    ? (() => {
+        // Simple day/night curve: near min around 05:00, near max around 15:00.
+        const h = ((hour % 24) + 24) % 24;
+        let normalized: number;
+        if (h >= 5 && h <= 15) {
+          normalized = (h - 5) / 10;
+        } else if (h > 15) {
+          normalized = 1 - (h - 15) / 14;
+        } else {
+          normalized = 1 - (h + 9) / 14;
+        }
+        normalized = clamp(normalized, 0, 1);
+        return round1(dailySummary.minTemperature + (dailySummary.maxTemperature - dailySummary.minTemperature) * normalized);
+      })()
+    : aroundAverage(profile.temperature.min, profile.temperature.max, profile.temperature.average, seed, "t");
   const windSpeed = Math.max(0, aroundAverage(profile.windSpeed.min, profile.windSpeed.max, profile.windSpeed.average, seed, "w"));
   const rain = Math.max(0, aroundAverage(profile.rain.min, profile.rain.max, profile.rain.average, seed, "r"));
   const windDirection = WIND_DIRECTIONS[Math.floor(seeded(seed, "dir") * WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
 
-  return { temperature, windSpeed, windDirection, rain, state: getWeatherState({ temperature, windSpeed, rain }) };
+  return {
+    temperature,
+    windSpeed,
+    windDirection,
+    rain,
+    state: getWeatherState({ temperature, windSpeed, rain }),
+    dailyMinTemperature: dailySummary?.minTemperature,
+    dailyMaxTemperature: dailySummary?.maxTemperature,
+    dailyRainTotal: dailySummary?.rainTotal24h,
+    dominantState: dailySummary?.dominantState
+  };
 };
 
 export const getCurrentWeather = (project: CalendarProject): WeatherSnapshot | undefined =>

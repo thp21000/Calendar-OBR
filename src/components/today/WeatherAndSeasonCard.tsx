@@ -32,6 +32,21 @@ export const WeatherAndSeasonCard = ({
         ? `${getWeatherStateIcon(currentWeather.state ?? "clear")} ${t(project.locale, `weather.state.${currentWeather.state ?? "clear"}`)} · ${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
         : t(project.locale, "calendar.noWeather")}
     </div>
+    {currentWeather?.dailyMinTemperature !== undefined && currentWeather?.dailyMaxTemperature !== undefined ? (
+      <div style={{ fontSize: 12, color: "#d1d5db" }}>
+        {t(project.locale, "weather.dailyMinMax")}: {currentWeather.dailyMinTemperature} / {currentWeather.dailyMaxTemperature} {weatherUnits.temperature}
+      </div>
+    ) : null}
+    {currentWeather?.dailyRainTotal !== undefined ? (
+      <div style={{ fontSize: 12, color: "#d1d5db" }}>
+        {t(project.locale, "weather.dailyRainTotal")}: {currentWeather.dailyRainTotal} {weatherUnits.rain}
+      </div>
+    ) : null}
+    {currentWeather?.dominantState ? (
+      <div style={{ fontSize: 12, color: "#d1d5db" }}>
+        {t(project.locale, "weather.dominantState")}: {getWeatherStateIcon(currentWeather.dominantState)} {t(project.locale, `weather.state.${currentWeather.dominantState}`)}
+      </div>
+    ) : null}
     <div style={{ marginTop: 4 }}>
       <div style={{ fontSize: 12, fontWeight: 700 }}>{t(project.locale, "calendar.hourlyForecast")}</div>
       {hourlyForecast.length === 0 ? (
