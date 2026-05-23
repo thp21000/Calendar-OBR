@@ -7,7 +7,7 @@ import { CollapsibleSection } from "../CollapsibleSection";
 
 
 export type EventFormValue = {
-  name: string; icon: string; summary: string; year: number; monthId: string; dayOfMonth: number; hour: number; minute: number;
+  name: string; icon: string; summary: string; playerDescription: string; gmDescription: string; year: number; monthId: string; dayOfMonth: number; hour: number; minute: number;
   visibility: CalendarEvent["visibility"]; allDay: boolean;
   recurrenceType: CalendarEvent["recurrence"]["type"]; recurrenceInterval: number;
   notifyOnTrigger: boolean; deleteAfterTrigger: boolean; archiveAfterTrigger: boolean;
@@ -30,6 +30,8 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent, initialDat
       name: event.name,
       icon: event.icon ?? "",
       summary: event.summary,
+      playerDescription: event.playerDescription ?? "",
+      gmDescription: event.gmDescription ?? "",
       year: event.date.year,
       monthId: event.date.monthId,
       dayOfMonth: event.date.dayOfMonth,
@@ -56,7 +58,7 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent, initialDat
     ? { ...initialDate, hour: 0, minute: 0 }
     : absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   return {
-    name: "", icon: "", summary: "", year: now.year, monthId: now.monthId, dayOfMonth: now.dayOfMonth, hour: now.hour, minute: now.minute,
+    name: "", icon: "", summary: "", playerDescription: "", gmDescription: "", year: now.year, monthId: now.monthId, dayOfMonth: now.dayOfMonth, hour: now.hour, minute: now.minute,
     visibility: "gm", allDay: false, recurrenceType: "none", recurrenceInterval: 1,
     notifyOnTrigger: true, deleteAfterTrigger: false, archiveAfterTrigger: false,
     reminderEnabled: false, reminderMinutesBefore: 60,
@@ -106,6 +108,8 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
         name,
         icon: form.icon.trim() || undefined,
         summary: form.summary,
+        playerDescription: form.playerDescription.trim() || undefined,
+        gmDescription: form.gmDescription.trim() || undefined,
         date: startDate,
         endDate,
         visibility: form.visibility,
@@ -122,7 +126,7 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
     }
     
     const base = createCalendarEvent({ name, date: startDate, icon: form.icon.trim() || undefined, allDay: form.allDay, endDate });
-    onSubmit({ ...base, summary: form.summary, visibility: form.visibility, allDay: form.allDay, endDate, recurrence,
+    onSubmit({ ...base, summary: form.summary, playerDescription: form.playerDescription.trim() || undefined, gmDescription: form.gmDescription.trim() || undefined, visibility: form.visibility, allDay: form.allDay, endDate, recurrence,
       notifyOnTrigger: form.notifyOnTrigger,
       deleteAfterTrigger: form.deleteAfterTrigger,
       archiveAfterTrigger: form.archiveAfterTrigger,
@@ -139,6 +143,8 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
       <label>{t(project.locale, "events.name")}</label><input value={form.name} onChange={(e)=>updateForm("name", e.target.value)} style={inputStyle}/>{nameError ? <div style={{ color: "#fca5a5", fontSize: 12 }}>{nameError}</div>:null}
       <label>{t(project.locale, "events.icon")}</label><input value={form.icon} onChange={(e)=>updateForm("icon", e.target.value)} style={inputStyle}/>
       <label>{t(project.locale, "events.summary")}</label><input value={form.summary} onChange={(e)=>updateForm("summary", e.target.value)} style={inputStyle}/>
+      <label>{t(project.locale, "events.playerDescription")}</label><textarea value={form.playerDescription} onChange={(e)=>updateForm("playerDescription", e.target.value)} rows={2} style={inputStyle}/>
+      <label>{t(project.locale, "events.gmDescription")}</label><textarea value={form.gmDescription} onChange={(e)=>updateForm("gmDescription", e.target.value)} rows={2} style={inputStyle}/>
       <div><label>{t(project.locale, "events.visibility")}</label><select value={form.visibility} onChange={(e)=>updateForm("visibility", e.target.value as CalendarEvent["visibility"])} style={inputStyle}><option value="gm">{t(project.locale, "events.visibilityGm")}</option><option value="players">{t(project.locale, "events.visibilityPlayers")}</option><option value="revealOnTrigger">{t(project.locale, "events.visibilityRevealOnTrigger")}</option></select></div>
     </CollapsibleSection>
     <CollapsibleSection title={t(project.locale, "events.sectionDateTime")} defaultOpen>

@@ -10,42 +10,50 @@ export const EventDetailsPopup = ({ project, event, onClose, onUpdate }: { proje
 
   if (isEditing && onUpdate) {
     return (
-      <div style={{ marginTop: 10, border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#0f172a" }}>
-        <EventForm
-          project={project}
-          mode="edit"
-          initialEvent={event}
-          onSubmit={(updated) => {
-            onUpdate(updated);
-            setIsEditing(false);
-          }}
-          onCancel={() => setIsEditing(false)}
-        />
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }} onClick={onClose}>
+        <div style={{ width: "100%", maxWidth: 340, maxHeight: "85vh", overflow: "auto", border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#0f172a" }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <strong>{t(project.locale, "events.details")}</strong>
+            <button type="button" onClick={onClose} style={{ fontSize: 11 }}>{t(project.locale, "month.closeDayDetails")}</button>
+          </div>
+          <EventForm
+            project={project}
+            mode="edit"
+            initialEvent={event}
+            onSubmit={(updated) => {
+              onUpdate(updated);
+              setIsEditing(false);
+            }}
+            onCancel={() => setIsEditing(false)}
+          />
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ marginTop: 10, border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <strong>{t(project.locale, "events.details")}</strong>
-        <button type="button" onClick={onClose} style={{ fontSize: 11 }}>{t(project.locale, "month.closeDayDetails")}</button>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-        <EventIcon icon={event.icon} locale={project.locale} />
-        <strong>{event.name}</strong>
-      </div>
-      <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.date")}:</strong> {formatEventDateTime(project, event)}</div>
-      <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.recurrence")}:</strong> {formatEventRecurrence(project, event)}</div>
-      <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.status")}:</strong> {formatEventStatus(project, event)}</div>
-      <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.visibility")}:</strong> {formatEventVisibility(project, event.visibility)}</div>
-      {event.summary ? <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.summary")}:</strong> {event.summary}</div> : null}
-      {event.playerDescription ? <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.playerDescription")}:</strong> {event.playerDescription}</div> : null}
-      {event.gmDescription ? <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.gmDescription")}:</strong> {event.gmDescription}</div> : null}
-      <div style={{ fontSize: 12, marginBottom: 8 }}><strong>{t(project.locale, "events.triggerActions")}:</strong> {formatEventTriggerOptions(project, event)}</div>
-      <div style={{ display: "flex", gap: 6 }}>
-        <button type="button" onClick={onClose}>{t(project.locale, "month.closeDayDetails")}</button>
-        {onUpdate ? <button type="button" onClick={() => setIsEditing(true)}>{t(project.locale, "events.edit")}</button> : null}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }} onClick={onClose}>
+      <div style={{ width: "100%", maxWidth: 340, maxHeight: "85vh", overflow: "auto", border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <strong>{t(project.locale, "events.details")}</strong>
+          <button type="button" onClick={onClose} style={{ fontSize: 11 }}>{t(project.locale, "month.closeDayDetails")}</button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+          <EventIcon icon={event.icon} locale={project.locale} />
+          <strong>{event.name}</strong>
+        </div>
+        <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.date")}:</strong> {formatEventDateTime(project, event)}</div>
+        <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.recurrence")}:</strong> {formatEventRecurrence(project, event)}</div>
+        <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.status")}:</strong> {formatEventStatus(project, event)}</div>
+        <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.visibility")}:</strong> {formatEventVisibility(project, event.visibility)}</div>
+        {event.summary ? <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.summary")}:</strong> {event.summary}</div> : null}
+        {event.playerDescription ? <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.playerDescription")}:</strong> {event.playerDescription}</div> : null}
+        {event.gmDescription ? <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.gmDescription")}:</strong> {event.gmDescription}</div> : null}
+        <div style={{ fontSize: 12, marginBottom: 8 }}><strong>{t(project.locale, "events.triggerOptions")}:</strong> {formatEventTriggerOptions(project, event)}</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button type="button" onClick={onClose}>{t(project.locale, "month.closeDayDetails")}</button>
+          {onUpdate ? <button type="button" onClick={() => setIsEditing(true)}>{t(project.locale, "events.edit")}</button> : null}
+        </div>
       </div>
     </div>
   );
