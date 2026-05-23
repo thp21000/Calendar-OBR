@@ -49,4 +49,25 @@ describe("publicSnapshot moon events", () => {
     expect(JSON.stringify(snapshot)).not.toContain("secret player-note gm");
     expect(snapshot.dayNotesToday.map((n) => n.id)).toEqual(["d1"]);
   });
+  
+  it("keeps playerDescription and never exposes event gmDescription", () => {
+    const project = createDefaultCalendarProject();
+    project.events = [{
+      id: "e1",
+      name: "Public event",
+      summary: "Summary",
+      date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 10, minute: 0 },
+      visibility: "players",
+      status: "active",
+      recurrence: { type: "none" },
+      notifyOnTrigger: true,
+      deleteAfterTrigger: false,
+      archiveAfterTrigger: false,
+      playerDescription: "player text",
+      gmDescription: "secret gm text"
+    }];
+    const snapshot = createPublicCalendarTodaySnapshot(project, 1);
+    expect(snapshot.eventsToday[0]?.playerDescription).toBe("player text");
+    expect(JSON.stringify(snapshot)).not.toContain("secret gm text");
+  });
 });
