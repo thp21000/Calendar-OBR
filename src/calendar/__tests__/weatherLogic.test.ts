@@ -290,4 +290,36 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
       expect(entry.weather.rain).toBeGreaterThanOrEqual(0);
     }
   });
+  
+  it("generateWeatherForTime utilise la pluie horaire issue du plan journalier", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "rain-plan";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const morning = generateWeatherForTime(project, 6, 8);
+    const afternoon = generateWeatherForTime(project, 6, 16);
+    expect(morning).toBeDefined();
+    expect(afternoon).toBeDefined();
+    if (!morning || !afternoon) return;
+    expect(morning.dailyRainTotal).toBeDefined();
+    expect(afternoon.dailyRainTotal).toBeDefined();
+    expect(morning.dailyRainTotal).toBe(afternoon.dailyRainTotal);
+    expect(typeof morning.rain).toBe("number");
+    expect(typeof afternoon.rain).toBe("number");
+  });
+
+  it("la somme des pluies horaires sur 24h reste proche du cumul journalier", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "sum-rain";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const day = 9;
+    const snapshots = Array.from({ length: 24 }, (_, hour) => generateWeatherForTime(project, day, hour)).filter(
+      (entry): entry is NonNullable<typeof entry> => Boolean(entry)
+    );
+    expect(snapshots).toHaveLength(24);
+    const total = snapshots.reduce((acc, snapshot) => acc + snapshot.rain, 0);
+    const daily = snapshots[0].dailyRainTotal ?? 0;
+    expect(Math.abs(total - daily)).toBeLessThanOrEqual(0.5);
+  });
 });

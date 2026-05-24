@@ -1065,3 +1065,14 @@ Ce qui reste pour les phases suivantes :
 - pluie par épisodes horaires,
 - vent horaire plus stable,
 - affinage avancé des tendances.
+
+## Météo v2 — Phase 4 : pluie horaire par épisodes
+
+La phase 4 remplace la pluie horaire indépendante par une répartition en épisodes déterministes sur la journée.
+
+- `dailyRainTotal` reste le cumul journalier (`rainTotal24h`) calculé par `getDailyWeatherSummary`.
+- `WeatherSnapshot.rain` représente désormais la pluie actuelle à l'heure demandée (mm/h), issue du plan d'épisodes horaires.
+- La pluie horaire est recalculée à la volée à partir de la seed météo, du projet, du jour et de l'état dominant, puis arrondie à 1 décimale.
+- Les données horaires ne sont pas stockées dans le projet ; elles sont entièrement déterministes et régénérées au besoin.
+
+Étape suivante prévue : stabilisation du vent horaire (direction et variations plus progressives).
