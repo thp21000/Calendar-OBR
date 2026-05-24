@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject, Season } from "../../domain/types";
 import { generateWeatherForTime, getCurrentWeather, getDailyWeatherForecast, getForecastWeatherForTime, getHourlyWeatherForecast } from "../weatherLogic";
+import { getDailyWeatherSummary } from "../weatherDaily";
 
 const buildProject = (): CalendarProject => ({
   schemaVersion: 1,
@@ -334,5 +335,68 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
 
     expect(dailyRainTotal).toBeDefined();
     expect(Math.abs(rainSum - (dailyRainTotal ?? 0))).toBeLessThanOrEqual(0.5);
+  });
+
+  it("generateWeatherForTime utilise le vent horaire issu du plan journalier", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "wind-plan";
+    project.seasons = [{
+      id: "s1",
+      name: "Vent",
+      start: { monthId: "m1", dayOfMonth: 1 },
+      end: { monthId: "m2", dayOfMonth: 30 },
+      weatherProfile: {
+        temperature: { min: 5, max: 16, average: 10 },
+        windSpeed: { min: 2, max: 40, average: 18 },
+        rain: { min: 0, max: 8, average: 2 }
+      }
+    }];
+
+    const day = 14;
+    const snapshots = Array.from({ length: 24 }, (_, hour) => generateWeatherForTime(project, day, hour)).filter(
+      (entry): entry is NonNullable<typeof entry> => Boolean(entry)
+    );
+    expect(snapshots).toHaveLength(24);
+    expect(snapshots.every((entry) => entry.windSpeed >= 0)).toBe(true);
+    expect(snapshots.every((entry) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"].includes(entry.windDirection))).toBe(true);
+  });
+
+  it("sur 24h les directions restent localement cohérentes", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "wind-direction";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const day = 15;
+    const snapshots = Array.from({ length: 24 }, (_, hour) => generateWeatherForTime(project, day, hour)).filter(
+      (entry): entry is NonNullable<typeof entry> => Boolean(entry)
+    );
+    const idx = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    let coherentTransitions = 0;
+    for (let i = 1; i < snapshots.length; i++) {
+      const a = idx.indexOf(snapshots[i - 1].windDirection);
+      const b = idx.indexOf(snapshots[i].windDirection);
+      const diff = Math.abs(a - b);
+      const circular = Math.min(diff, 8 - diff);
+      if (circular <= 2) coherentTransitions++;
+    }
+    expect(coherentTransitions).toBeGreaterThanOrEqual(18);
+  });
+
+  it("le max horaire reste dans une limite raisonnable proche du max journalier", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "wind-max";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const day = 11;
+    const snapshots = Array.from({ length: 24 }, (_, hour) => generateWeatherForTime(project, day, hour)).filter(
+      (entry): entry is NonNullable<typeof entry> => Boolean(entry)
+    );
+    expect(snapshots).toHaveLength(24);
+
+    const hourlyMax = Math.max(...snapshots.map((entry) => entry.windSpeed));
+    const dailySummary = getDailyWeatherSummary(project, day);
+    expect(dailySummary).toBeDefined();
+    if (!dailySummary) return;
+    expect(hourlyMax).toBeLessThanOrEqual(dailySummary.maxWindSpeed * 1.35);
   });
 });

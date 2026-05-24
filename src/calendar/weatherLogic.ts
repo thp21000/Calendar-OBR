@@ -2,6 +2,7 @@ import { createDefaultSeasonWeatherProfile, getCurrentSeason } from "./seasonsLo
 import { getWeatherState } from "./weatherState";
 import { getDailyWeatherSummary } from "./weatherDaily";
 import { getHourlyRainForDay } from "./weatherRain";
+import { getHourlyWindForDay } from "./weatherWind";
 import type { CalendarProject, WeatherSnapshot, WindDirection } from "../domain/types";
 
 const WIND_DIRECTIONS: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -58,11 +59,17 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
         return round1(dailySummary.minTemperature + (dailySummary.maxTemperature - dailySummary.minTemperature) * normalized);
       })()
     : aroundAverage(profile.temperature.min, profile.temperature.max, profile.temperature.average, seed, "t");
-  const windSpeed = Math.max(0, aroundAverage(profile.windSpeed.min, profile.windSpeed.max, profile.windSpeed.average, seed, "w"));
+  const hourlyIndex = ((hour % 24) + 24) % 24;
+  const hourlyWind = dailySummary ? getHourlyWindForDay(project, absoluteDay, dailySummary)[hourlyIndex] : undefined;
+  const windSpeed = hourlyWind
+    ? hourlyWind.windSpeed
+    : Math.max(0, aroundAverage(profile.windSpeed.min, profile.windSpeed.max, profile.windSpeed.average, seed, "w"));
   const rain = dailySummary
-    ? getHourlyRainForDay(project, absoluteDay, dailySummary)[((hour % 24) + 24) % 24]
+    ? getHourlyRainForDay(project, absoluteDay, dailySummary)[hourlyIndex]
     : Math.max(0, aroundAverage(profile.rain.min, profile.rain.max, profile.rain.average, seed, "r"));
-  const windDirection = WIND_DIRECTIONS[Math.floor(seeded(seed, "dir") * WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
+  const windDirection = hourlyWind
+    ? hourlyWind.windDirection
+    : WIND_DIRECTIONS[Math.floor(seeded(seed, "dir") * WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
 
   return {
     temperature,

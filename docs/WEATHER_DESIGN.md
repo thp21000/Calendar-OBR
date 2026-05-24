@@ -1076,3 +1076,14 @@ La phase 4 remplace la pluie horaire indépendante par une répartition en épis
 - Les données horaires ne sont pas stockées dans le projet ; elles sont entièrement déterministes et régénérées au besoin.
 
 Étape suivante prévue : stabilisation du vent horaire (direction et variations plus progressives).
+
+## Météo v2 — Phase 5 : vent horaire plus stable
+
+La phase 5 introduit un plan de vent horaire déterministe basé sur le résumé journalier.
+
+- La direction dominante du jour (`dominantWindDirection`) sert de base au vent horaire.
+- Heure par heure, la direction reste majoritairement identique, avec de faibles variations adjacentes selon la variabilité de saison.
+- La vitesse horaire reste cohérente avec `maxWindSpeed` du résumé journalier, avec des pics limités et narrativement plausibles.
+- Le vent horaire est recalculé à la volée (non stocké) depuis la seed météo, le projet, le jour et l'état dominant.
+
+Étape suivante prévue : amélioration des états météo en s'appuyant sur les données horaires enrichies (température/pluie/vent).
