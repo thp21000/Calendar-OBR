@@ -546,11 +546,27 @@ it("événement désactivé non déclenché", () => {
     expect(getPlayerVisibleWeatherEvents(project, weather, project.currentTime)).toEqual([]);
   });
 
-  it("description joueur conservée dans visibilité publique", () => {
-    const event = { ...createDefaultWeatherEvent("fr"), id: "desc", visibility: "players" as const, playerDescription: "public", gmDescription: "secret", conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 30 }] };
+  it("retour public météo n'expose pas les champs MJ/internes", () => {
+    const event = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "desc",
+      visibility: "players" as const,
+      playerDescription: "public",
+      gmDescription: "secret",
+      durationHours: 2,
+      cooldownHours: 4,
+      notifyOnTrigger: false,
+      conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 30 }]
+    };
     const project = buildProject([event]);
     const visible = getPlayerVisibleWeatherEvents(project, weather, project.currentTime);
     expect(visible[0]?.playerDescription).toBe("public");
-    expect(visible[0]?.gmDescription).toBe("secret");
+    const serialized = JSON.stringify(visible);
+    expect(serialized).not.toContain("secret");
+    expect(serialized).not.toContain("conditions");
+    expect(serialized).not.toContain("durationHours");
+    expect(serialized).not.toContain("cooldownHours");
+    expect(serialized).not.toContain("visibility");
+    expect(serialized).not.toContain("notifyOnTrigger");
   });
 });

@@ -4,6 +4,15 @@ import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
 import type { CalendarProject, InternalTime, WeatherCondition, WeatherConditionMetric, WeatherEvent, WeatherSnapshot, WeatherState } from "../domain/types";
 
+export type PlayerVisibleWeatherEvent = {
+  id: string;
+  name: string;
+  icon?: string;
+  summary?: string;
+  playerDescription?: string;
+  link?: string;
+};
+
 type WeatherConditionContext = {
   project?: CalendarProject;
   time?: InternalTime;
@@ -124,7 +133,7 @@ export const getPlayerVisibleWeatherEvents = (
   weather: WeatherSnapshot,
   currentTime: InternalTime,
   lastTriggeredAtMinutesByEventId?: Record<string, number>
-): WeatherEvent[] => {
+): PlayerVisibleWeatherEvent[] => {
   const activeNow = getActiveWeatherEventsWithDuration(project, weather, currentTime, lastTriggeredAtMinutesByEventId);
   const activeIds = new Set(activeNow.map((event) => event.id));
   return project.weatherEvents.filter((event) => {
@@ -134,7 +143,14 @@ export const getPlayerVisibleWeatherEvents = (
     if (visibility === "players") return activeIds.has(event.id);
     if (visibility === "revealOnTrigger") return activeIds.has(event.id);
     return false;
-  });
+  }).map((event) => ({
+    id: event.id,
+    name: event.name,
+    icon: event.icon,
+    summary: event.summary || undefined,
+    playerDescription: event.playerDescription || undefined,
+    link: event.link || undefined
+  }));
 };
 
 export const createDefaultWeatherEvent = (locale: CalendarProject["locale"]): WeatherEvent => ({
