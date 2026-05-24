@@ -1,5 +1,5 @@
 import { createDefaultSeasonWeatherProfile, getCurrentSeason } from "./seasonsLogic";
-import { getWeatherState } from "./weatherState";
+import { getHourlyWeatherState, getWeatherState } from "./weatherState";
 import { getDailyWeatherSummary } from "./weatherDaily";
 import { getHourlyRainForDay } from "./weatherRain";
 import { getHourlyWindForDay } from "./weatherWind";
@@ -76,7 +76,14 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
     windSpeed,
     windDirection,
     rain,
-    state: getWeatherState({ temperature, windSpeed, rain }),
+    state: getHourlyWeatherState({
+      temperature,
+      windSpeed,
+      rain,
+      dailyRainTotal: dailySummary?.rainTotal24h,
+      dominantState: dailySummary?.dominantState,
+      hour
+    }),
     dailyMinTemperature: dailySummary?.minTemperature,
     dailyMaxTemperature: dailySummary?.maxTemperature,
     dailyRainTotal: dailySummary?.rainTotal24h,

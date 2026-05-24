@@ -399,4 +399,56 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
     if (!dailySummary) return;
     expect(hourlyMax).toBeLessThanOrEqual(dailySummary.maxWindSpeed * 1.35);
   });
+
+  it("generateWeatherForTime utilise l'état horaire enrichi", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "state-enriched";
+    project.seasons = [{
+      id: "s1",
+      name: "S",
+      start: { monthId: "m1", dayOfMonth: 1 },
+      end: { monthId: "m2", dayOfMonth: 30 },
+      weatherProfile: {
+        temperature: { min: 6, max: 18, average: 11 },
+        windSpeed: { min: 1, max: 26, average: 12 },
+        rain: { min: 0, max: 12, average: 5 }
+      }
+    }];
+
+    const day = 18;
+    const snapshots = Array.from({ length: 24 }, (_, hour) => generateWeatherForTime(project, day, hour)).filter(
+      (entry): entry is NonNullable<typeof entry> => Boolean(entry)
+    );
+    expect(snapshots).toHaveLength(24);
+    expect(snapshots.some((entry) => entry.dominantState !== undefined)).toBe(true);
+  });
+
+  it("jour dominé storm/heavyRain n'affiche pas uniquement clear hors épisodes", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "state-dominant";
+    project.seasons = [{
+      id: "s1",
+      name: "Pluvieux",
+      start: { monthId: "m1", dayOfMonth: 1 },
+      end: { monthId: "m2", dayOfMonth: 30 },
+      weatherProfile: {
+        temperature: { min: 8, max: 16, average: 11 },
+        windSpeed: { min: 4, max: 50, average: 22 },
+        rain: { min: 0, max: 20, average: 10 }
+      }
+    }];
+
+    const day = 20;
+    const snapshots = Array.from({ length: 24 }, (_, hour) => generateWeatherForTime(project, day, hour)).filter(
+      (entry): entry is NonNullable<typeof entry> => Boolean(entry)
+    );
+    expect(snapshots).toHaveLength(24);
+
+    const dominant = snapshots[0].dominantState;
+    if (dominant !== "storm" && dominant !== "heavyRain" && dominant !== "tempest") return;
+
+    const dryHours = snapshots.filter((entry) => entry.rain < 0.5);
+    if (dryHours.length === 0) return;
+    expect(dryHours.some((entry) => entry.state !== "clear")).toBe(true);
+  });
 });

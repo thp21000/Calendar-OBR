@@ -1087,3 +1087,14 @@ La phase 5 introduit un plan de vent horaire déterministe basé sur le résumé
 - Le vent horaire est recalculé à la volée (non stocké) depuis la seed météo, le projet, le jour et l'état dominant.
 
 Étape suivante prévue : amélioration des états météo en s'appuyant sur les données horaires enrichies (température/pluie/vent).
+
+## Météo v2 — Phase 6 : cohérence état dominant / état horaire
+
+La phase 6 clarifie la relation entre l'état météo horaire (`state`) et l'ambiance dominante journalière (`dominantState`).
+
+- `state` reste l'état **actuel** de l'heure (pluie, vent, température instantanés prioritaires).
+- `dominantState` représente l'ambiance globale du jour et sert d'influence secondaire.
+- Hors épisode fort, `dominantState` peut orienter l'affichage vers des états cohérents (`cloudy`/`overcast`, brouillard matinal, etc.) sans forcer en permanence l'état dominant.
+- Les états horaires restent recalculés à la volée et ne sont pas stockés.
+
+Étape suivante prévue : conditions météo avancées basées sur `dailyRainTotal`, `dailyMinTemperature`, `dailyMaxTemperature` et `dominantState`.

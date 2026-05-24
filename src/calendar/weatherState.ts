@@ -38,3 +38,50 @@ export const getWeatherStateIcon = (state: WeatherState): string => {
     case "tempest": return "🌩️";
   }
 };
+
+type HourlyWeatherStateInput = Pick<WeatherSnapshot, "temperature" | "windSpeed" | "rain"> & {
+  dailyRainTotal?: number;
+  dominantState?: WeatherState;
+  hour?: number;
+};
+
+export const getHourlyWeatherState = (input: HourlyWeatherStateInput): WeatherState => {
+  const { temperature, windSpeed, rain, dailyRainTotal, dominantState, hour } = input;
+
+  // Primary instantaneous weather remains priority.
+  const instant = getWeatherState({ temperature, windSpeed, rain });
+  if (rain >= 1 || windSpeed >= 45 || (temperature <= 1 && rain > 0)) return instant;
+
+  const safeHour = ((hour ?? 12) % 24 + 24) % 24;
+  const rain24h = Math.max(0, dailyRainTotal ?? 0);
+
+  switch (dominantState) {
+    case "tempest":
+    case "storm":
+      if (windSpeed >= 45) return "strongWind";
+      return rain24h > 0.5 ? "overcast" : "cloudy";
+    case "heavyRain":
+      return rain24h > 1 ? "overcast" : "cloudy";
+    case "lightRain":
+      return rain24h > 0.2 ? "cloudy" : instant;
+    case "fog": {
+      const isMorningOrNight = safeHour <= 8 || safeHour >= 21;
+      if (windSpeed <= 12 && isMorningOrNight) return "fog";
+      return windSpeed <= 18 ? "cloudy" : instant;
+    }
+    case "snow":
+      if (temperature <= 1) return "snow";
+      return "overcast";
+    case "strongWind":
+      if (windSpeed >= 40) return "strongWind";
+      return windSpeed >= 20 ? "overcast" : "cloudy";
+    case "clear":
+      if (rain <= 0 && windSpeed <= 10) return "clear";
+      return instant;
+    case "cloudy":
+    case "overcast":
+      return dominantState;
+    default:
+      return instant;
+  }
+};
