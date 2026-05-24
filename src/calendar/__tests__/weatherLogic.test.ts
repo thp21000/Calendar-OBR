@@ -311,15 +311,28 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
   it("la somme des pluies horaires sur 24h reste proche du cumul journalier", () => {
     const project = buildProject();
     project.weatherSettings.seed = "sum-rain";
-    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    project.seasons = [{
+      id: "s1",
+      name: "Saison pluvieuse",
+      start: { monthId: "m1", dayOfMonth: 1 },
+      end: { monthId: "m2", dayOfMonth: 30 },
+      weatherProfile: {
+        temperature: { min: 8, max: 18, average: 12 },
+        windSpeed: { min: 3, max: 26, average: 12 },
+        rain: { min: 0, max: 18, average: 9 }
+      }
+    }];
 
-    const day = 9;
-    const snapshots = Array.from({ length: 24 }, (_, hour) => generateWeatherForTime(project, day, hour)).filter(
+    const absoluteDay = 9;
+    const snapshots = Array.from({ length: 24 }, (_, hour) => generateWeatherForTime(project, absoluteDay, hour)).filter(
       (entry): entry is NonNullable<typeof entry> => Boolean(entry)
     );
     expect(snapshots).toHaveLength(24);
-    const total = snapshots.reduce((acc, snapshot) => acc + snapshot.rain, 0);
-    const daily = snapshots[0].dailyRainTotal ?? 0;
-    expect(Math.abs(total - daily)).toBeLessThanOrEqual(0.5);
+
+    const rainSum = snapshots.reduce((sum, weather) => sum + weather.rain, 0);
+    const dailyRainTotal = snapshots[0]?.dailyRainTotal;
+
+    expect(dailyRainTotal).toBeDefined();
+    expect(Math.abs(rainSum - (dailyRainTotal ?? 0))).toBeLessThanOrEqual(0.5);
   });
 });
