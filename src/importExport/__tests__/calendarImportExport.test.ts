@@ -547,4 +547,26 @@ it("sanitizes invalid weather visibility/notifyOnTrigger", () => {
   expect(sanitized.project.weatherEvents[0].visibility).toBe("gm");
   expect(sanitized.project.weatherEvents[0].notifyOnTrigger).toBe(true);
 });
+
+  it("weather event status valide conservé", () => {
+  const project = createDefaultCalendarProject() as any;
+  project.weatherEvents = [{ id: "s1", name: "S", status: "triggered", lastTriggeredAtMinutes: 10, archiveAfterTrigger: true, disableAfterTrigger: false, requireAllConditions: true, enabled: true, conditions: [{ metric: "temperature", operator: "gte", value: 0 }] }];
+  const imported = importCalendarProject(exportCalendarProject(project), project);
+  expect(imported.ok).toBe(true);
+  if (!imported.ok) return;
+  expect(imported.project.weatherEvents[0].status).toBe("triggered");
+  expect(imported.project.weatherEvents[0].lastTriggeredAtMinutes).toBe(10);
+});
+
+it("weather event status invalide nettoyé", () => {
+  const project = createDefaultCalendarProject() as any;
+  project.weatherEvents = [{ id: "s2", name: "S", status: "bad", lastTriggeredAtMinutes: -4, archiveAfterTrigger: "x", disableAfterTrigger: "y", requireAllConditions: true, enabled: true, conditions: [{ metric: "temperature", operator: "gte", value: 0 }] }];
+  const sanitized = sanitizeCalendarProject(project);
+  expect(sanitized.ok).toBe(true);
+  if (!sanitized.ok) return;
+  expect(sanitized.project.weatherEvents[0].status).toBe("active");
+  expect(sanitized.project.weatherEvents[0].lastTriggeredAtMinutes).toBeUndefined();
+  expect(sanitized.project.weatherEvents[0].archiveAfterTrigger).toBe(false);
+  expect(sanitized.project.weatherEvents[0].disableAfterTrigger).toBe(false);
+});
 });

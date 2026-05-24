@@ -10,6 +10,7 @@ import {
   getNewlyTriggeredWeatherEventsBetween,
   getActiveWeatherEventsWithDuration,
   getPlayerVisibleWeatherEvents,
+  applyWeatherEventTriggerActions,
   isWeatherConditionMet,
   isWeatherEventTriggered,
   isWithinCooldownWindow,
@@ -568,5 +569,42 @@ it("événement désactivé non déclenché", () => {
     expect(serialized).not.toContain("cooldownHours");
     expect(serialized).not.toContain("visibility");
     expect(serialized).not.toContain("notifyOnTrigger");
+  });
+
+  it("createDefaultWeatherEvent crée status active", () => {
+    const created = createDefaultWeatherEvent("fr");
+    expect(created.status).toBe("active");
+  });
+
+  it("status archived ne se déclenche pas", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), status: "archived" as const, conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 0 }] };
+    expect(isWeatherEventTriggered(weather, event)).toBe(false);
+  });
+
+  it("status disabled ne se déclenche pas", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), status: "disabled" as const, conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 0 }] };
+    expect(isWeatherEventTriggered(weather, event)).toBe(false);
+  });
+
+  it("applyWeatherEventTriggerActions met status triggered et lastTriggeredAtMinutes", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), id: "a1" };
+    const project = buildProject([event]);
+    const next = applyWeatherEventTriggerActions(project, [event], { absoluteDay: 0, hour: 10, minute: 0 });
+    expect(next.weatherEvents[0].status).toBe("triggered");
+    expect(next.weatherEvents[0].lastTriggeredAtMinutes).toBe(toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }));
+  });
+
+  it("archiveAfterTrigger met status archived", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), id: "a2", archiveAfterTrigger: true };
+    const project = buildProject([event]);
+    const next = applyWeatherEventTriggerActions(project, [event], { absoluteDay: 0, hour: 10, minute: 0 });
+    expect(next.weatherEvents[0].status).toBe("archived");
+  });
+
+  it("disableAfterTrigger met status disabled", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), id: "a3", disableAfterTrigger: true };
+    const project = buildProject([event]);
+    const next = applyWeatherEventTriggerActions(project, [event], { absoluteDay: 0, hour: 10, minute: 0 });
+    expect(next.weatherEvents[0].status).toBe("disabled");
   });
 });

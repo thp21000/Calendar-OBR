@@ -86,7 +86,8 @@ export const getActiveWeatherEventsWithDuration = (
   const nowMinutes = toAbsoluteMinutes(currentTime);
   return project.weatherEvents.filter((event) => {
     if (isWeatherEventTriggered(weather, event, { project, time: currentTime })) return true;
-    const lastTriggeredAt = lastTriggeredAtMinutesByEventId?.[event.id];
+    if (event.enabled === false || event.status === "archived" || event.status === "disabled") return false;
+    const lastTriggeredAt = typeof event.lastTriggeredAtMinutes === "number" ? event.lastTriggeredAtMinutes : lastTriggeredAtMinutesByEventId?.[event.id];
     if (typeof lastTriggeredAt !== "number") return false;
     return isWithinDurationWindow(lastTriggeredAt, nowMinutes, event.durationHours);
   });
@@ -105,13 +106,31 @@ export const getNewlyTriggeredWeatherEventsBetween = (
   const fromTriggeredIds = new Set(project.weatherEvents.filter((event) => isWeatherEventTriggered(fromWeather, event, { project, time: fromTime })).map((event) => event.id));
   const toMinutes = toAbsoluteMinutes(toTime);
   return project.weatherEvents.filter((event) => isWeatherEventTriggered(toWeather, event, { project, time: toTime })).filter((event) => {
-    const lastTriggeredAt = lastTriggeredAtMinutesByEventId?.[event.id];
+    if (event.enabled === false || event.status === "archived" || event.status === "disabled") return false;
+    const lastTriggeredAt = typeof event.lastTriggeredAtMinutes === "number" ? event.lastTriggeredAtMinutes : lastTriggeredAtMinutesByEventId?.[event.id];
     if (typeof lastTriggeredAt === "number") {
       if (isWithinDurationWindow(lastTriggeredAt, toMinutes, event.durationHours)) return false;
       if (isWithinCooldownWindow(lastTriggeredAt, toMinutes, event.cooldownHours)) return false;
     }
     return !fromTriggeredIds.has(event.id);
   });
+};
+
+export const applyWeatherEventTriggerActions = (
+  project: CalendarProject,
+  triggeredWeatherEvents: WeatherEvent[],
+  triggerTime: InternalTime
+): CalendarProject => {
+  const ids = new Set(triggeredWeatherEvents.map((event) => event.id));
+  const at = toAbsoluteMinutes(triggerTime);
+  return {
+    ...project,
+    weatherEvents: project.weatherEvents.map((event) => {
+      if (!ids.has(event.id)) return event;
+      const nextStatus = event.disableAfterTrigger ? "disabled" : event.archiveAfterTrigger ? "archived" : "triggered";
+      return { ...event, lastTriggeredAtMinutes: at, status: nextStatus };
+    })
+  };
 };
 
 export const toAbsoluteMinutes = (time: InternalTime): number => time.absoluteDay * 24 * 60 + time.hour * 60 + time.minute;
@@ -138,6 +157,7 @@ export const getPlayerVisibleWeatherEvents = (
   const activeIds = new Set(activeNow.map((event) => event.id));
   return project.weatherEvents.filter((event) => {
     if (event.enabled === false) return false;
+    if (event.status === "archived" || event.status === "disabled") return false;
     const visibility = event.visibility ?? "gm";
     if (visibility === "gm") return false;
     if (visibility === "players") return activeIds.has(event.id);
@@ -163,6 +183,9 @@ export const createDefaultWeatherEvent = (locale: CalendarProject["locale"]): We
   playerDescription: "",
   visibility: "gm",
   notifyOnTrigger: true,
+  status: "active",
+  archiveAfterTrigger: false,
+  disableAfterTrigger: false,
   enabled: true,
   requireAllConditions: true,
   conditions: [{ type: "metric", metric: "temperature", operator: "gte", value: 35 }]

@@ -1146,3 +1146,20 @@ Sécurité côté joueur :
 - Les joueurs ne voient jamais les conditions météo.
 - Les joueurs ne voient jamais les descriptions MJ.
 - Les joueurs ne voient jamais les seeds ni la logique interne de génération.
+
+## Météo v2 — Phase 9 : statut et cycle de vie des événements météo
+
+Cycle de vie :
+- `active` : événement utilisable normalement.
+- `triggered` : déjà déclenché au moins une fois, encore utilisable selon durée/cooldown.
+- `archived` : conservé mais ne se déclenche plus.
+- `disabled` : désactivé manuellement ou automatiquement.
+
+Champs ajoutés :
+- `lastTriggeredAtMinutes`
+- `archiveAfterTrigger`
+- `disableAfterTrigger`
+
+Notes :
+- Pas d’historique complet à ce stade : seul le dernier déclenchement est stocké.
+- Les joueurs ne voient jamais ces champs internes.

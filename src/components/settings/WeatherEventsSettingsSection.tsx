@@ -104,6 +104,26 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
               <span>{t(project.locale, "weatherEvents.notifyOnTrigger")}</span>
             </label>
             <label style={{ display: "block" }}>
+              <div style={labelStyle}>{t(project.locale, "weatherEvents.status")}</div>
+              <select value={event.status ?? "active"} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { status: e.target.value as "active" | "triggered" | "archived" | "disabled" }))} style={inputStyle}>
+                <option value="active">{t(project.locale, "weatherEvents.statusActive")}</option>
+                <option value="triggered">{t(project.locale, "weatherEvents.statusTriggered")}</option>
+                <option value="archived">{t(project.locale, "weatherEvents.statusArchived")}</option>
+                <option value="disabled">{t(project.locale, "weatherEvents.statusDisabled")}</option>
+              </select>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <input type="checkbox" checked={event.archiveAfterTrigger === true} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { archiveAfterTrigger: e.target.checked }))} />
+              <span>{t(project.locale, "weatherEvents.archiveAfterTrigger")}</span>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <input type="checkbox" checked={event.disableAfterTrigger === true} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { disableAfterTrigger: e.target.checked }))} />
+              <span>{t(project.locale, "weatherEvents.disableAfterTrigger")}</span>
+            </label>
+            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>
+              {t(project.locale, "weatherEvents.lastTriggeredAtMinutes")}: {typeof event.lastTriggeredAtMinutes === "number" ? event.lastTriggeredAtMinutes : t(project.locale, "weatherEvents.neverTriggered")}
+            </div>
+            <label style={{ display: "block" }}>
               <div style={labelStyle}>{t(project.locale, "weatherEvents.durationHours")}</div>
               <input
                 type="number"

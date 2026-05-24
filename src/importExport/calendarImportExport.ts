@@ -246,6 +246,10 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         if (typeof next.playerDescription !== "string") delete next.playerDescription;
         if (!(next.visibility === "gm" || next.visibility === "players" || next.visibility === "revealOnTrigger")) next.visibility = "gm";
         if (typeof next.notifyOnTrigger !== "boolean") next.notifyOnTrigger = true;
+        if (!(next.status === "active" || next.status === "triggered" || next.status === "archived" || next.status === "disabled")) next.status = "active";
+        if (typeof next.lastTriggeredAtMinutes !== "number" || !Number.isFinite(next.lastTriggeredAtMinutes) || next.lastTriggeredAtMinutes < 0) delete next.lastTriggeredAtMinutes;
+        if (typeof next.archiveAfterTrigger !== "boolean") next.archiveAfterTrigger = false;
+        if (typeof next.disableAfterTrigger !== "boolean") next.disableAfterTrigger = false;
         if (typeof next.durationHours !== "number" || !Number.isFinite(next.durationHours) || next.durationHours < 0) {
           delete next.durationHours;
         } else {
@@ -275,6 +279,10 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         if (!(next.visibility === "gm" || next.visibility === "players" || next.visibility === "revealOnTrigger")) next.visibility = "gm";
         if (typeof next.enabled !== "boolean") next.enabled = true;
         if (typeof next.notifyOnTrigger !== "boolean") next.notifyOnTrigger = true;
+        if (!(next.status === "active" || next.status === "triggered" || next.status === "archived" || next.status === "disabled")) next.status = "active";
+        if (typeof next.lastTriggeredAtMinutes !== "number" || !Number.isFinite(next.lastTriggeredAtMinutes) || next.lastTriggeredAtMinutes < 0) delete next.lastTriggeredAtMinutes;
+        if (typeof next.archiveAfterTrigger !== "boolean") next.archiveAfterTrigger = false;
+        if (typeof next.disableAfterTrigger !== "boolean") next.disableAfterTrigger = false;
         if (!(next.status === "active" || next.status === "triggered" || next.status === "archived" || next.status === "disabled")) next.status = "active";
         return next;
       });

@@ -213,6 +213,10 @@ export type WeatherEvent = {
   playerDescription?: string;
   visibility?: "gm" | "players" | "revealOnTrigger";
   notifyOnTrigger?: boolean;
+  status?: "active" | "triggered" | "archived" | "disabled";
+  lastTriggeredAtMinutes?: number;
+  archiveAfterTrigger?: boolean;
+  disableAfterTrigger?: boolean;
   conditions: WeatherCondition[];
   requireAllConditions: boolean;
   enabled: boolean;

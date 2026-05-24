@@ -9,6 +9,7 @@ import { getCurrentSeason } from "../calendar/seasonsLogic";
 import {
   getActiveWeatherEventsWithDuration,
   getNewlyTriggeredWeatherEventsBetween,
+  applyWeatherEventTriggerActions,
   toAbsoluteMinutes
 } from "../calendar/weatherEventsLogic";
 import { getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../calendar/weatherLogic";
@@ -101,6 +102,8 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       });
       const withTime = { ...project, currentTime: nextTime };
       const withEventsCompletion = applyEventCompletionActions(withTime, completed);
+      const withWeatherTriggers = applyWeatherEventTriggerActions(withEventsCompletion, triggeredWeather, nextTime);
+      const withMoonEventStatus = applyMoonEventTriggerActions(withWeatherTriggers, triggeredMoon);
       const withMoonEventStatus = applyMoonEventTriggerActions(withEventsCompletion, triggeredMoon);
       onProjectUpdate(withMoonEventStatus);
       return;
