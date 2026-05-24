@@ -209,6 +209,10 @@ export type WeatherEvent = {
   icon?: string;
   summary?: string;
   link?: string;
+  gmDescription?: string;
+  playerDescription?: string;
+  visibility?: "gm" | "players" | "revealOnTrigger";
+  notifyOnTrigger?: boolean;
   conditions: WeatherCondition[];
   requireAllConditions: boolean;
   enabled: boolean;

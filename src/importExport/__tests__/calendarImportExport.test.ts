@@ -256,7 +256,9 @@ describe("calendarImportExport", () => {
     const imported = importCalendarProject(exportCalendarProject(project), project);
     expect(imported.ok).toBe(true);
     if (!imported.ok) return;
-    expect(imported.project.weatherEvents).toEqual(project.weatherEvents);
+    expect(imported.project.weatherEvents[0]).toMatchObject(project.weatherEvents[0]);
+    expect(imported.project.weatherEvents[0].visibility).toBe("gm");
+    expect(imported.project.weatherEvents[0].notifyOnTrigger).toBe(true);
   });
 
   it("keeps negative temperature condition value", () => {
@@ -505,4 +507,44 @@ it("keeps new advanced weather conditions on import", () => {
     if (!sanitized.ok) return;
     expect(sanitized.project.weatherEvents[0].conditions).toEqual([{ type: "metric", metric: "dailyRainTotal", operator: "gte", value: 5 }]);
   });
+
+  it("keeps weather event gm/player descriptions visibility notifyOnTrigger", () => {
+  const project = createDefaultCalendarProject();
+  project.weatherEvents = [{
+    id: "v1",
+    name: "Visible",
+    gmDescription: "gm desc",
+    playerDescription: "player desc",
+    visibility: "players",
+    notifyOnTrigger: true,
+    requireAllConditions: true,
+    enabled: true,
+    conditions: [{ metric: "temperature", operator: "gte", value: 0 }]
+  }];
+  const imported = importCalendarProject(exportCalendarProject(project), project);
+  expect(imported.ok).toBe(true);
+  if (!imported.ok) return;
+  expect(imported.project.weatherEvents[0].gmDescription).toBe("gm desc");
+  expect(imported.project.weatherEvents[0].playerDescription).toBe("player desc");
+  expect(imported.project.weatherEvents[0].visibility).toBe("players");
+  expect(imported.project.weatherEvents[0].notifyOnTrigger).toBe(true);
+});
+
+it("sanitizes invalid weather visibility/notifyOnTrigger", () => {
+  const project: any = createDefaultCalendarProject();
+  project.weatherEvents = [{
+    id: "v2",
+    name: "Bad",
+    visibility: "invalid",
+    notifyOnTrigger: "bad",
+    requireAllConditions: true,
+    enabled: true,
+    conditions: [{ metric: "temperature", operator: "gte", value: 0 }]
+  }];
+  const sanitized = sanitizeCalendarProject(project);
+  expect(sanitized.ok).toBe(true);
+  if (!sanitized.ok) return;
+  expect(sanitized.project.weatherEvents[0].visibility).toBe("gm");
+  expect(sanitized.project.weatherEvents[0].notifyOnTrigger).toBe(true);
+});
 });

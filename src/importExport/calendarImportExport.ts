@@ -242,6 +242,10 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         if (typeof next.summary !== "string") delete next.summary;
         if (typeof next.link !== "string") delete next.link;
         if (typeof next.icon !== "string") delete next.icon;
+        if (typeof next.gmDescription !== "string") delete next.gmDescription;
+        if (typeof next.playerDescription !== "string") delete next.playerDescription;
+        if (!(next.visibility === "gm" || next.visibility === "players" || next.visibility === "revealOnTrigger")) next.visibility = "gm";
+        if (typeof next.notifyOnTrigger !== "boolean") next.notifyOnTrigger = true;
         if (typeof next.durationHours !== "number" || !Number.isFinite(next.durationHours) || next.durationHours < 0) {
           delete next.durationHours;
         } else {

@@ -1,9 +1,9 @@
 import { t } from "../../i18n/messages";
 import type { PublicEventDetails } from "./PublicEventDetailsPopup";
 
-export const PlayerPublicEventsCard = ({ locale, events, onSelectEvent }: { locale: "fr" | "en"; events: PublicEventDetails[]; onSelectEvent: (event: PublicEventDetails) => void }) => (
+export const PlayerPublicEventsCard = ({ locale, events, onSelectEvent, title }: { locale: "fr" | "en"; events: PublicEventDetails[]; onSelectEvent: (event: PublicEventDetails) => void; title?: string }) => (
   <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8 }}>
-    <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(locale, "player.eventsToday")}</div>
+    <div style={{ fontWeight: 700, marginBottom: 6 }}>{title ?? t(locale, "player.eventsToday")}</div>
     {events.length === 0 ? (
       <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(locale, "player.noPublicEvents")}</div>
     ) : (

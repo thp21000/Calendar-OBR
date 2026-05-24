@@ -84,6 +84,26 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
               <input value={event.link ?? ""} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { link: e.target.value }))} style={inputStyle} />
             </label>
             <label style={{ display: "block" }}>
+              <div style={labelStyle}>{t(project.locale, "weatherEvents.gmDescription")}</div>
+              <textarea value={event.gmDescription ?? ""} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { gmDescription: e.target.value }))} style={{ ...inputStyle, minHeight: 56 }} />
+            </label>
+            <label style={{ display: "block" }}>
+              <div style={labelStyle}>{t(project.locale, "weatherEvents.playerDescription")}</div>
+              <textarea value={event.playerDescription ?? ""} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { playerDescription: e.target.value }))} style={{ ...inputStyle, minHeight: 56 }} />
+            </label>
+            <label style={{ display: "block" }}>
+              <div style={labelStyle}>{t(project.locale, "weatherEvents.visibility")}</div>
+              <select value={event.visibility ?? "gm"} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { visibility: e.target.value as "gm" | "players" | "revealOnTrigger" }))} style={inputStyle}>
+                <option value="gm">{t(project.locale, "weatherEvents.visibilityGm")}</option>
+                <option value="players">{t(project.locale, "weatherEvents.visibilityPlayers")}</option>
+                <option value="revealOnTrigger">{t(project.locale, "weatherEvents.visibilityRevealOnTrigger")}</option>
+              </select>
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <input type="checkbox" checked={event.notifyOnTrigger !== false} onChange={(e) => onProjectUpdate(updateWeatherEvent(project, event.id, { notifyOnTrigger: e.target.checked }))} />
+              <span>{t(project.locale, "weatherEvents.notifyOnTrigger")}</span>
+            </label>
+            <label style={{ display: "block" }}>
               <div style={labelStyle}>{t(project.locale, "weatherEvents.durationHours")}</div>
               <input
                 type="number"

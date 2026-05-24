@@ -71,4 +71,19 @@ describe("publicSnapshot moon events", () => {
     expect(snapshot.eventsToday[0]?.playerDescription).toBe("player text");
     expect(JSON.stringify(snapshot)).not.toContain("secret gm text");
   });
+  
+  it("weatherEventsToday contains only player-visible weather events", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];
+    project.weatherEvents = [
+      { id: "wg", name: "GM", visibility: "gm", enabled: true, requireAllConditions: true, conditions: [{ metric: "temperature", operator: "gte", value: -100 }] },
+      { id: "wp", name: "Players", visibility: "players", enabled: true, requireAllConditions: true, playerDescription: "public desc", gmDescription: "secret", conditions: [{ metric: "temperature", operator: "gte", value: -100 }] }
+    ];
+    const snapshot = createPublicCalendarTodaySnapshot(project, 1);
+    expect(snapshot.weatherEventsToday.map((e) => e.id)).toEqual(["wp"]);
+    expect(snapshot.weatherEventsToday[0]?.playerDescription).toBe("public desc");
+    const serialized = JSON.stringify(snapshot);
+    expect(serialized).not.toContain("secret");
+    expect(serialized).not.toContain("conditions");
+  });
 });

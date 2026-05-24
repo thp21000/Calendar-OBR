@@ -9,6 +9,7 @@ import {
   getTriggeredWeatherEvents,
   getNewlyTriggeredWeatherEventsBetween,
   getActiveWeatherEventsWithDuration,
+  getPlayerVisibleWeatherEvents,
   isWeatherConditionMet,
   isWeatherEventTriggered,
   isWithinCooldownWindow,
@@ -507,5 +508,49 @@ it("événement désactivé non déclenché", () => {
       { "dur-expired": toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }) }
     );
     expect(active).toEqual([]);
+  });
+  it("createDefaultWeatherEvent initialise visibilité gm et notifyOnTrigger true", () => {
+    const created = createDefaultWeatherEvent("fr");
+    expect(created.visibility).toBe("gm");
+    expect(created.notifyOnTrigger).toBe(true);
+  });
+
+  it("visibility absent est traité comme gm (non visible joueur)", () => {
+    const project = buildProject([{ ...createDefaultWeatherEvent("fr"), id: "w1", visibility: undefined }]);
+    const visible = getPlayerVisibleWeatherEvents(project, weather, project.currentTime);
+    expect(visible).toEqual([]);
+  });
+
+  it("notifyOnTrigger absent est traité comme true", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), notifyOnTrigger: undefined };
+    expect(event.notifyOnTrigger !== false).toBe(true);
+  });
+
+  it("visibility players actif est visible joueur", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), id: "p", visibility: "players" as const, conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 30 }] };
+    const project = buildProject([event]);
+    const visible = getPlayerVisibleWeatherEvents(project, weather, project.currentTime);
+    expect(visible.map((e) => e.id)).toContain("p");
+  });
+
+  it("visibility revealOnTrigger actif est visible joueur", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), id: "r", visibility: "revealOnTrigger" as const, conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 30 }] };
+    const project = buildProject([event]);
+    const visible = getPlayerVisibleWeatherEvents(project, weather, project.currentTime);
+    expect(visible.map((e) => e.id)).toContain("r");
+  });
+
+  it("événement disabled jamais visible joueur", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), id: "d", enabled: false, visibility: "players" as const, conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 30 }] };
+    const project = buildProject([event]);
+    expect(getPlayerVisibleWeatherEvents(project, weather, project.currentTime)).toEqual([]);
+  });
+
+  it("description joueur conservée dans visibilité publique", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), id: "desc", visibility: "players" as const, playerDescription: "public", gmDescription: "secret", conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 30 }] };
+    const project = buildProject([event]);
+    const visible = getPlayerVisibleWeatherEvents(project, weather, project.currentTime);
+    expect(visible[0]?.playerDescription).toBe("public");
+    expect(visible[0]?.gmDescription).toBe("secret");
   });
 });

@@ -119,12 +119,34 @@ export const isWithinCooldownWindow = (triggeredAtMinutes: number, currentMinute
   return currentMinutes - triggeredAtMinutes < safeHours * 60;
 };
 
+export const getPlayerVisibleWeatherEvents = (
+  project: CalendarProject,
+  weather: WeatherSnapshot,
+  currentTime: InternalTime,
+  lastTriggeredAtMinutesByEventId?: Record<string, number>
+): WeatherEvent[] => {
+  const activeNow = getActiveWeatherEventsWithDuration(project, weather, currentTime, lastTriggeredAtMinutesByEventId);
+  const activeIds = new Set(activeNow.map((event) => event.id));
+  return project.weatherEvents.filter((event) => {
+    if (event.enabled === false) return false;
+    const visibility = event.visibility ?? "gm";
+    if (visibility === "gm") return false;
+    if (visibility === "players") return activeIds.has(event.id);
+    if (visibility === "revealOnTrigger") return activeIds.has(event.id);
+    return false;
+  });
+};
+
 export const createDefaultWeatherEvent = (locale: CalendarProject["locale"]): WeatherEvent => ({
   id: `weather-event-${Date.now()}`,
   name: locale === "fr" ? "Nouvelle alerte météo" : "New weather alert",
   icon: "🌩️",
   summary: "",
   link: "",
+  gmDescription: "",
+  playerDescription: "",
+  visibility: "gm",
+  notifyOnTrigger: true,
   enabled: true,
   requireAllConditions: true,
   conditions: [{ type: "metric", metric: "temperature", operator: "gte", value: 35 }]

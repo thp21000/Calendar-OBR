@@ -8,6 +8,7 @@ import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getCurrentWeather } from "../calendar/weatherLogic";
+import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getWeatherStateIcon } from "../calendar/weatherState";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import type { CalendarProject } from "../domain/types";
@@ -29,6 +30,15 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
       : t(snapshot.locale, "calendar.noWeather");
 
     const publicEvents: PublicEventDetails[] = snapshot.eventsToday.map((event) => ({ ...event }));
+    const publicWeatherEvents: PublicEventDetails[] = (snapshot.weatherEventsToday ?? []).map((event) => ({
+      id: event.id,
+      name: event.name,
+      icon: event.icon,
+      summary: event.summary || undefined,
+      playerDescription: event.playerDescription || undefined,
+      link: event.link || undefined
+    }));
+
     const publicMoonEvents: PublicEventDetails[] = snapshot.moonEventsToday.map((event) => ({
       id: event.id,
       name: event.name,
@@ -68,6 +78,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
         ) : null}
 
         <PlayerPublicEventsCard locale={snapshot.locale} events={publicEvents} onSelectEvent={setSelectedPublicEvent} />
+        {publicWeatherEvents.length > 0 ? <PlayerPublicEventsCard locale={snapshot.locale} title={t(snapshot.locale, "calendar.weatherEvents")} events={publicWeatherEvents} onSelectEvent={setSelectedPublicEvent} /> : null}
         <PlayerPublicMoonEventsCard locale={snapshot.locale} events={publicMoonEvents} onSelectEvent={setSelectedPublicEvent} />
         <PlayerDayNotesCard locale={snapshot.locale} notes={snapshot.dayNotesToday} />
 
@@ -81,6 +92,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
   const currentMoonPhases = getCurrentMoonPhases(project);
+  const visibleWeatherEvents = currentWeather ? getPlayerVisibleWeatherEvents(project, currentWeather, project.currentTime) : [];
   const visibleMoonEvents = getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay);
   const visibleDayNotes = getPlayerVisibleDayNotesForDay(project, displayDate);
   const weatherUnits = getWeatherUnitLabels(project.locale);
@@ -96,6 +108,15 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
     summary: event.summary || undefined,
     playerDescription: event.playerDescription || undefined,
     timeLabel: formatEventTimeShort(project, event)
+  }));
+
+  const publicWeatherEvents: PublicEventDetails[] = visibleWeatherEvents.map((event) => ({
+    id: event.id,
+    name: event.name,
+    icon: event.icon,
+    summary: event.summary || undefined,
+    playerDescription: event.playerDescription || undefined,
+    link: event.link || undefined
   }));
 
   const publicMoonEvents: PublicEventDetails[] = visibleMoonEvents.map((event) => {
@@ -140,6 +161,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
       ) : null}
 
       <PlayerPublicEventsCard locale={project.locale} events={publicEvents} onSelectEvent={setSelectedPublicEvent} />
+      {publicWeatherEvents.length > 0 ? <PlayerPublicEventsCard locale={project.locale} title={t(project.locale, "calendar.weatherEvents")} events={publicWeatherEvents} onSelectEvent={setSelectedPublicEvent} /> : null}
       <PlayerPublicMoonEventsCard locale={project.locale} events={publicMoonEvents} onSelectEvent={setSelectedPublicEvent} />
       <PlayerDayNotesCard locale={project.locale} notes={visibleDayNotes.map((n) => ({ id: n.id, playerNote: n.playerNote }))} />
 

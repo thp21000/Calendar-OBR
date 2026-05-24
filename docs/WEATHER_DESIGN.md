@@ -554,41 +554,38 @@ Conditions actuelles :
 - supérieur ou égal ;
 - inférieur ou égal.
 
-Conditions futures possibles :
+Conditions actuellement supportées :
 
 ```ts
 type WeatherConditionMetric =
   | "temperature"
   | "windSpeed"
   | "rain"
-  | "rainTotal24h"
-  | "weatherState"
-  | "dominantWeatherState"
-  | "season"
-  | "timeOfDay"
-  | "moonPhase";
+  | "dailyMinTemperature"
+  | "dailyMaxTemperature"
+  | "dailyRainTotal";
 ```
 
-Exemples :
-
-```txt
-temperature <= 0
-rainTotal24h >= 8
-windSpeed >= 50
-weatherState is fog
-dominantWeatherState is snow
-season is winter
-timeOfDay is night
-moonPhase is full
+```ts
+type WeatherCondition =
+  | { type?: "metric"; metric: WeatherConditionMetric; operator: "gte" | "lte"; value: number }
+  | { type: "state"; state: WeatherState }
+  | { type: "dominantState"; state: WeatherState }
+  | { type: "windDirection"; direction: WindDirection }
+  | { type: "season"; seasonId: string }
+  | { type: "timeOfDay"; startHour: number; endHour: number }
+  | { type: "moonPhase"; moonId: string; phaseId: MoonPhaseId };
 ```
 
-La priorité est :
+Clarifications :
 
-1. `rainTotal24h`
-2. `weatherState`
-3. `season`
-4. `timeOfDay`
-5. `moonPhase`
+- `state` = état météo horaire actuel.
+- `dominantState` = état dominant de la journée.
+- `rain` = pluie actuelle à l’heure donnée.
+- `dailyRainTotal` = cumul de pluie de la journée.
+- `dailyMinTemperature` = température minimale du jour.
+- `dailyMaxTemperature` = température maximale du jour.
+- `windDirection` = direction actuelle du vent.
 
 ## Exemples d’événements météo avancés
 
@@ -597,6 +594,7 @@ La priorité est :
 Conditions possibles :
 
 - pluie cumulée sur 24 h >= 8 mm.
+- `dailyRainTotal >= 8`.
 
 Effet narratif :
 
@@ -610,6 +608,7 @@ Effet narratif :
 Conditions possibles :
 
 - pluie cumulée sur 24 h >= 20 mm ;
+- `dailyRainTotal >= 20`.
 - ou pluie forte pendant plusieurs heures.
 
 Effet narratif :
@@ -624,6 +623,7 @@ Effet narratif :
 Conditions possibles :
 
 - température minimale <= 0 °C ;
+- `dailyMinTemperature <= 0`.
 - période de nuit ou matin.
 
 Effet narratif :
@@ -668,6 +668,7 @@ Effet narratif :
 Conditions possibles :
 
 - température maximale >= seuil élevé ;
+- `dailyMaxTemperature >= 35`.
 - plusieurs jours chauds consécutifs si les tendances sont disponibles.
 
 Effet narratif :
@@ -1097,13 +1098,15 @@ La phase 6 clarifie la relation entre l'état météo horaire (`state`) et l'amb
 - Hors épisode fort, `dominantState` peut orienter l'affichage vers des états cohérents (`cloudy`/`overcast`, brouillard matinal, etc.) sans forcer en permanence l'état dominant.
 - Les états horaires restent recalculés à la volée et ne sont pas stockés.
 
+Étape suivante prévue : conditions météo avancées basées sur `dailyRainTotal`, `dailyMinTemperature`, `dailyMaxTemperature` et `dominantState`.
+
+## Météo v2 — Clarification state vs dominantState
+
 - `state` = état météo horaire actuel.
 - `dominantState` = ambiance météo dominante du jour.
 - `state` reste prioritaire pour la météo instantanée.
 - `dominantState` influence l'état horaire surtout quand la météo actuelle est calme ou ambiguë.
 - Ces données sont recalculées de façon déterministe et ne sont pas stockées heure par heure.
-
-Étape suivante prévue : conditions météo avancées basées sur `dailyRainTotal`, `dailyMinTemperature`, `dailyMaxTemperature` et `dominantState`.
 
 ## Météo v2 — Phase 7 : conditions météo avancées pour événements
 
@@ -1116,10 +1119,30 @@ Nouveaux types de conditions :
 - `dominantState` (état dominant du jour)
 - `windDirection` (direction du vent actuelle)
 
-Exemples :
+## Exemples de conditions météo v2 (alignés code)
+
 - Gel nocturne : `dailyMinTemperature <= 0`
 - Canicule : `dailyMaxTemperature >= 35`
 - Routes boueuses : `dailyRainTotal >= 8`
 - Crue : `dailyRainTotal >= 20`
 - Journée orageuse : `dominantState = storm`
 - Vent du nord : `windDirection = N`
+
+## Météo v2 — Phase 8 : visibilité joueur des événements météo
+
+Nouveaux champs d'événement météo :
+- `gmDescription`
+- `playerDescription`
+- `visibility` (`gm` | `players` | `revealOnTrigger`)
+- `notifyOnTrigger`
+
+Règles :
+- `gm` : visible seulement MJ.
+- `players` : visible côté joueur quand l'événement est actif.
+- `revealOnTrigger` : visible côté joueur quand déclenché/actif (incluant la fenêtre de durée).
+- `notifyOnTrigger` : contrôle la notification interne au déclenchement (`absent => true`).
+
+Sécurité côté joueur :
+- Les joueurs ne voient jamais les conditions météo.
+- Les joueurs ne voient jamais les descriptions MJ.
+- Les joueurs ne voient jamais les seeds ni la logique interne de génération.

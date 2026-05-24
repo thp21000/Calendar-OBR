@@ -7,6 +7,7 @@ import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getCurrentWeather } from "../calendar/weatherLogic";
+import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import type { CalendarCurrentTime, CalendarProject, LocaleCode, MoonPhaseId, WeatherSnapshot } from "../domain/types";
 
@@ -61,6 +62,14 @@ export type PublicCalendarTodaySnapshot = {
   weather?: PublicCalendarWeatherSnapshot;
   moons: PublicCalendarMoonSnapshot[];
   eventsToday: PublicCalendarEventSnapshot[];
+  weatherEventsToday: Array<{
+    id: string;
+    name: string;
+    icon?: string;
+    summary?: string;
+    playerDescription?: string;
+    link?: string;
+  }>;
   moonEventsToday: Array<{
     id: string;
     name: string;
@@ -90,6 +99,9 @@ export const createPublicCalendarTodaySnapshot = (
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
   const weatherUnits = getWeatherUnitLabels(project.locale);
+  const visibleWeatherEvents = currentWeather
+    ? getPlayerVisibleWeatherEvents(project, currentWeather, project.currentTime)
+    : [];
 
   return {
     schemaVersion: 1,
@@ -116,6 +128,14 @@ export const createPublicCalendarTodaySnapshot = (
       playerDescription: event.playerDescription || undefined,
       timeLabel: formatEventTimeShort(project, event)
       })),
+    weatherEventsToday: visibleWeatherEvents.map((event) => ({
+      id: event.id,
+      name: event.name,
+      icon: event.icon,
+      summary: event.summary || undefined,
+      playerDescription: event.playerDescription || undefined,
+      link: event.link || undefined
+    })),
     moonEventsToday: getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay).map((event) => ({
       id: event.id,
       name: event.name,
@@ -159,6 +179,7 @@ export const isPublicCalendarTodaySnapshot = (value: unknown): value is PublicCa
   if (typeof value.formattedDate !== "string") return false;
   if (!Array.isArray(value.moons)) return false;
   if (!Array.isArray(value.eventsToday)) return false;
+  if (!Array.isArray(value.weatherEventsToday)) return false;
   if (!Array.isArray(value.moonEventsToday)) return false;
   if (!Array.isArray(value.dayNotesToday)) return false;
   return true;
