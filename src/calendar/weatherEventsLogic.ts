@@ -2,7 +2,7 @@ import { generateWeatherForTime } from "./weatherLogic";
 import { absoluteDayToCalendarDate } from "./dateEngine";
 import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
-import type { CalendarProject, InternalTime, WeatherCondition, WeatherEvent, WeatherSnapshot, WeatherState } from "../domain/types";
+import type { CalendarProject, InternalTime, WeatherCondition, WeatherConditionMetric, WeatherEvent, WeatherSnapshot, WeatherState } from "../domain/types";
 
 type WeatherConditionContext = {
   project?: CalendarProject;
@@ -12,6 +12,12 @@ type WeatherConditionContext = {
 export const isWeatherConditionMet = (weather: WeatherSnapshot, condition: WeatherCondition, context?: WeatherConditionContext): boolean => {
   if (condition.type === "state") {
     return (weather.state ?? "clear") === condition.state;
+  }
+  if (condition.type === "dominantState") {
+    return weather.dominantState === condition.state;
+  }
+  if (condition.type === "windDirection") {
+    return weather.windDirection === condition.direction;
   }
   if (condition.type === "season") {
     if (!context?.project || !context?.time) return false;
@@ -35,6 +41,7 @@ export const isWeatherConditionMet = (weather: WeatherSnapshot, condition: Weath
   }
 
   const metricValue = weather[condition.metric];
+  if (typeof metricValue !== "number") return false;
   if (condition.operator === "gte") return metricValue >= condition.value;
   return metricValue <= condition.value;
 };
@@ -154,6 +161,30 @@ export const addWeatherCondition = (project: CalendarProject, eventId: string): 
   )
 });
 
+export const addWeatherDominantStateCondition = (project: CalendarProject, eventId: string): CalendarProject => ({
+  ...project,
+  weatherEvents: project.weatherEvents.map((event) =>
+    event.id === eventId
+      ? {
+          ...event,
+          conditions: [...(event.conditions ?? []), { type: "dominantState", state: "heavyRain" }]
+        }
+      : event
+  )
+});
+
+export const addWeatherWindDirectionCondition = (project: CalendarProject, eventId: string): CalendarProject => ({
+  ...project,
+  weatherEvents: project.weatherEvents.map((event) =>
+    event.id === eventId
+      ? {
+          ...event,
+          conditions: [...(event.conditions ?? []), { type: "windDirection", direction: "N" }]
+        }
+      : event
+  )
+});
+
 export const addWeatherStateCondition = (project: CalendarProject, eventId: string): CalendarProject => ({
   ...project,
   weatherEvents: project.weatherEvents.map((event) =>
@@ -214,7 +245,7 @@ export const updateWeatherCondition = (
     const conditions = [...(event.conditions ?? [])];
     const target = conditions[conditionIndex];
     if (!target) return event;
-    const asMetric = (fallback?: { metric: "temperature" | "windSpeed" | "rain"; operator: "gte" | "lte"; value: number }) => ({
+    const asMetric = (fallback?: { metric: WeatherConditionMetric; operator: "gte" | "lte"; value: number }) => ({
       type: "metric" as const,
       metric: patch.type === "metric" && patch.metric ? patch.metric : ("metric" in patch && patch.metric ? patch.metric : fallback?.metric ?? "temperature"),
       operator: patch.type === "metric" && patch.operator ? patch.operator : ("operator" in patch && patch.operator ? patch.operator : fallback?.operator ?? "gte"),
@@ -222,6 +253,8 @@ export const updateWeatherCondition = (
     });
     const asState = (fallbackState: WeatherState = "storm") => ({ type: "state" as const, state: patch.type === "state" && patch.state ? patch.state : fallbackState });
     const asSeason = (fallbackSeasonId = "") => ({ type: "season" as const, seasonId: patch.type === "season" && typeof patch.seasonId === "string" ? patch.seasonId : fallbackSeasonId });
+    const asDominantState = (fallbackState: WeatherState = "heavyRain") => ({ type: "dominantState" as const, state: patch.type === "dominantState" && patch.state ? patch.state : fallbackState });
+    const asWindDirection = (fallbackDirection: "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW" = "N") => ({ type: "windDirection" as const, direction: patch.type === "windDirection" && patch.direction ? patch.direction : fallbackDirection });
     const asMoonPhase = (fallbackMoonId = "", fallbackPhaseId: "new" | "waxingCrescent" | "firstQuarter" | "waxingGibbous" | "full" | "waningGibbous" | "lastQuarter" | "waningCrescent" = "full") => ({
       type: "moonPhase" as const,
       moonId: patch.type === "moonPhase" && typeof patch.moonId === "string" ? patch.moonId : fallbackMoonId,
@@ -236,6 +269,8 @@ export const updateWeatherCondition = (
     if (patch.type === "state") conditions[conditionIndex] = asState(target.type === "state" ? target.state : "storm");
     else if (patch.type === "season") conditions[conditionIndex] = asSeason(target.type === "season" ? target.seasonId : "");
     else if (patch.type === "timeOfDay") conditions[conditionIndex] = asTimeOfDay(target.type === "timeOfDay" ? target.startHour : 22, target.type === "timeOfDay" ? target.endHour : 6);
+    else if (patch.type === "dominantState") conditions[conditionIndex] = asDominantState(target.type === "dominantState" ? target.state : "heavyRain");
+    else if (patch.type === "windDirection") conditions[conditionIndex] = asWindDirection(target.type === "windDirection" ? target.direction : "N");
     else if (patch.type === "moonPhase") conditions[conditionIndex] = asMoonPhase(target.type === "moonPhase" ? target.moonId : "", target.type === "moonPhase" ? target.phaseId : "full");
     else {
       conditions[conditionIndex] =

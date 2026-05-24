@@ -4,6 +4,8 @@ import {
   addWeatherTimeOfDayCondition,
   addWeatherMoonPhaseCondition,
   addWeatherStateCondition,
+  addWeatherDominantStateCondition,
+  addWeatherWindDirectionCondition,
   addWeatherEvent,
   createDefaultWeatherEvent,
   deleteWeatherCondition,
@@ -12,7 +14,7 @@ import {
   updateWeatherEvent
 } from "../../calendar/weatherEventsLogic";
 import { parseWeatherInput } from "../../calendar/seasonsLogic";
-import type { CalendarProject, MoonPhaseId, WeatherCondition, WeatherConditionMetric, WeatherConditionOperator, WeatherState } from "../../domain/types";
+import type { CalendarProject, MoonPhaseId, WeatherCondition, WeatherConditionMetric, WeatherConditionOperator, WeatherState, WindDirection } from "../../domain/types";
 import { useEffect, useState } from "react";
 import { t } from "../../i18n/messages";
 
@@ -25,6 +27,9 @@ type Props = {
 const metricLabel = (locale: CalendarProject["locale"], metric: WeatherConditionMetric): string => {
   if (metric === "temperature") return t(locale, "weatherEvents.metricTemperature");
   if (metric === "windSpeed") return t(locale, "weatherEvents.metricWindSpeed");
+  if (metric === "dailyMinTemperature") return t(locale, "weatherEvents.metricDailyMinTemperature");
+  if (metric === "dailyMaxTemperature") return t(locale, "weatherEvents.metricDailyMaxTemperature");
+  if (metric === "dailyRainTotal") return t(locale, "weatherEvents.metricDailyRainTotal");
   return t(locale, "weatherEvents.metricRain");
 };
 
@@ -33,11 +38,14 @@ const operatorLabel = (locale: CalendarProject["locale"], operator: WeatherCondi
 
 const weatherStates: WeatherState[] = ["clear", "cloudy", "overcast", "fog", "lightRain", "heavyRain", "storm", "snow", "strongWind", "tempest"];
 const moonPhases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
+const windDirections: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 
 const conditionSummary = (locale: CalendarProject["locale"], condition: WeatherCondition): string => {
   if (condition.type === "state") {
     return `${t(locale, "weatherEvents.state")} = ${t(locale, `weather.state.${condition.state}`)}`;
   }
+  if (condition.type === "dominantState") return `${t(locale, "weatherEvents.dominantState")} = ${t(locale, `weather.state.${condition.state}`)}`;
+  if (condition.type === "windDirection") return `${t(locale, "weatherEvents.windDirection")} = ${condition.direction}`;
   if (condition.type === "season") return `${t(locale, "weatherEvents.season")} = ${condition.seasonId || "?"}`;
   if (condition.type === "timeOfDay") return `${t(locale, "weatherEvents.timeOfDay")} ${condition.startHour}→${condition.endHour}`;
   if (condition.type === "moonPhase") return `${t(locale, "weatherEvents.moonPhase")} = ${condition.phaseId}`;
@@ -148,7 +156,7 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                 <label style={{ display: "block" }}>
                   <div style={labelStyle}>{t(project.locale, "weatherEvents.conditionType")}</div>
                   <select
-                    value={condition.type === "state" ? "state" : condition.type === "season" ? "season" : condition.type === "timeOfDay" ? "timeOfDay" : condition.type === "moonPhase" ? "moonPhase" : "metric"}
+                    value={condition.type === "state" ? "state" : condition.type === "dominantState" ? "dominantState" : condition.type === "windDirection" ? "windDirection" : condition.type === "season" ? "season" : condition.type === "timeOfDay" ? "timeOfDay" : condition.type === "moonPhase" ? "moonPhase" : "metric"}
                     onChange={(e) =>
                       onProjectUpdate(
                         updateWeatherCondition(
@@ -157,6 +165,10 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                           index,
                           e.target.value === "state"
                             ? { type: "state", state: "storm" }
+                            : e.target.value === "dominantState"
+                            ? { type: "dominantState", state: "heavyRain" }
+                            : e.target.value === "windDirection"
+                            ? { type: "windDirection", direction: "N" }
                             : e.target.value === "season"
                             ? { type: "season", seasonId: project.seasons[0]?.id ?? "" }
                             : e.target.value === "timeOfDay"
@@ -171,6 +183,8 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                   >
                     <option value="metric">{t(project.locale, "weatherEvents.conditionTypeMetric")}</option>
                     <option value="state">{t(project.locale, "weatherEvents.conditionTypeState")}</option>
+                    <option value="dominantState">{t(project.locale, "weatherEvents.conditionDominantState")}</option>
+                    <option value="windDirection">{t(project.locale, "weatherEvents.conditionWindDirection")}</option>
                     <option value="season">{t(project.locale, "weatherEvents.conditionTypeSeason")}</option>
                     <option value="timeOfDay">{t(project.locale, "weatherEvents.conditionTypeTimeOfDay")}</option>
                     <option value="moonPhase">{t(project.locale, "weatherEvents.conditionTypeMoonPhase")}</option>
@@ -191,7 +205,21 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                       ))}
                     </select>
                   </label>
-                  ) : condition.type === "season" ? (
+                  ) : condition.type === "dominantState" ? (
+                  <label style={{ display: "block" }}>
+                    <div style={labelStyle}>{t(project.locale, "weatherEvents.dominantState")}</div>
+                    <select value={condition.state} onChange={(e) => onProjectUpdate(updateWeatherCondition(project, event.id, index, { type: "dominantState", state: e.target.value as WeatherState }))} style={inputStyle}>
+                      {weatherStates.map((state) => <option key={state} value={state}>{t(project.locale, `weather.state.${state}`)}</option>)}
+                    </select>
+                  </label>
+                ) : condition.type === "windDirection" ? (
+                  <label style={{ display: "block" }}>
+                    <div style={labelStyle}>{t(project.locale, "weatherEvents.windDirection")}</div>
+                    <select value={condition.direction} onChange={(e) => onProjectUpdate(updateWeatherCondition(project, event.id, index, { type: "windDirection", direction: e.target.value as WindDirection }))} style={inputStyle}>
+                      {windDirections.map((direction) => <option key={direction} value={direction}>{direction}</option>)}
+                    </select>
+                  </label>
+                ) : condition.type === "season" ? (
                   project.seasons.length === 0 ? (
                     <div style={{ fontSize: 11, color: "#fca5a5" }}>{t(project.locale, "weatherEvents.noSeasonAvailable")}</div>
                   ) : (
@@ -253,6 +281,9 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                     <option value="temperature">{t(project.locale, "weatherEvents.metricTemperature")}</option>
                     <option value="windSpeed">{t(project.locale, "weatherEvents.metricWindSpeed")}</option>
                     <option value="rain">{t(project.locale, "weatherEvents.metricRain")}</option>
+                    <option value="dailyMinTemperature">{t(project.locale, "weatherEvents.metricDailyMinTemperature")}</option>
+                    <option value="dailyMaxTemperature">{t(project.locale, "weatherEvents.metricDailyMaxTemperature")}</option>
+                    <option value="dailyRainTotal">{t(project.locale, "weatherEvents.metricDailyRainTotal")}</option>
                   </select>
                 </label>
                 <label style={{ display: "block" }}>

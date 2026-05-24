@@ -121,7 +121,38 @@ describe("weatherEventsLogic", () => {
     expect(isWeatherConditionMet(weather, { type: "moonPhase", moonId: "missing", phaseId: "full" }, { project, time: { absoluteDay: 0, hour: 10, minute: 0 } })).toBe(false);
   });
 
-  it("événement désactivé non déclenché", () => {
+  it("condition metric dailyRainTotal gte vraie", () => {
+    expect(isWeatherConditionMet({ ...weather, dailyRainTotal: 10 }, { type: "metric", metric: "dailyRainTotal", operator: "gte", value: 8 })).toBe(true);
+  });
+
+  it("condition metric dailyRainTotal false si undefined", () => {
+    expect(isWeatherConditionMet({ ...weather, dailyRainTotal: undefined }, { type: "metric", metric: "dailyRainTotal", operator: "gte", value: 8 })).toBe(false);
+  });
+
+  it("condition metric dailyMinTemperature lte vraie", () => {
+    expect(isWeatherConditionMet({ ...weather, dailyMinTemperature: -2 }, { type: "metric", metric: "dailyMinTemperature", operator: "lte", value: 0 })).toBe(true);
+  });
+
+  it("condition metric dailyMaxTemperature gte vraie", () => {
+    expect(isWeatherConditionMet({ ...weather, dailyMaxTemperature: 38 }, { type: "metric", metric: "dailyMaxTemperature", operator: "gte", value: 35 })).toBe(true);
+  });
+
+  it("condition dominantState match", () => {
+    expect(isWeatherConditionMet({ ...weather, dominantState: "storm" }, { type: "dominantState", state: "storm" })).toBe(true);
+  });
+
+  it("condition dominantState false si undefined", () => {
+    expect(isWeatherConditionMet({ ...weather, dominantState: undefined }, { type: "dominantState", state: "storm" })).toBe(false);
+  });
+
+  it("condition windDirection match", () => {
+    expect(isWeatherConditionMet({ ...weather, windDirection: "N" }, { type: "windDirection", direction: "N" })).toBe(true);
+  });
+
+  it("condition state vérifie état horaire et non dominant", () => {
+    expect(isWeatherConditionMet({ ...weather, state: "clear", dominantState: "storm" }, { type: "state", state: "storm" })).toBe(false);
+  });
+it("événement désactivé non déclenché", () => {
     const event: WeatherEvent = {
       id: "e1", name: "Tempête", conditions: [{ metric: "windSpeed", operator: "gte", value: 80 }], requireAllConditions: true, enabled: false
     };

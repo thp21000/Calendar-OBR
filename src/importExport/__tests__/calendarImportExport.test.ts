@@ -447,9 +447,8 @@ describe("calendarImportExport", () => {
     expect(imported.project.dayNotes?.map((n) => n.id)).toEqual(["n1"]);
     expect(imported.project.dayNotes?.[0].visibility).toBe("gm");
   });
-});
 
-it("sanitizeCalendarProject normalizes invalid reminder fields", () => {
+  it("sanitizeCalendarProject normalizes invalid reminder fields", () => {
     const project = createDefaultCalendarProject() as unknown as Record<string, unknown>;
     project.events = [{
       ...(createDefaultCalendarProject().events[0] ?? {
@@ -464,4 +463,46 @@ it("sanitizeCalendarProject normalizes invalid reminder fields", () => {
     const event = sanitized.project.events[0] as Record<string, unknown>;
     expect(event.reminderEnabled).toBeUndefined();
     expect(event.reminderMinutesBefore).toBeUndefined();
+
+    });
+
+it("keeps new advanced weather conditions on import", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherEvents = [{
+      id: "adv",
+      name: "Advanced",
+      requireAllConditions: true,
+      enabled: true,
+      conditions: [
+        { type: "metric", metric: "dailyRainTotal", operator: "gte", value: 8 },
+        { type: "metric", metric: "dailyMinTemperature", operator: "lte", value: 0 },
+        { type: "metric", metric: "dailyMaxTemperature", operator: "gte", value: 35 },
+        { type: "dominantState", state: "storm" },
+        { type: "windDirection", direction: "N" }
+      ]
+    }];
+    const imported = importCalendarProject(exportCalendarProject(project), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherEvents[0].conditions).toEqual(project.weatherEvents[0].conditions);
   });
+
+  it("sanitizes invalid dominantState and windDirection conditions", () => {
+    const project = createDefaultCalendarProject() as any;
+    project.weatherEvents = [{
+      id: "bad",
+      name: "Bad",
+      requireAllConditions: true,
+      enabled: true,
+      conditions: [
+        { type: "dominantState", state: "invalid" },
+        { type: "windDirection", direction: "BAD" },
+        { type: "metric", metric: "dailyRainTotal", operator: "gte", value: 5 }
+      ]
+    }];
+    const sanitized = sanitizeCalendarProject(project);
+    expect(sanitized.ok).toBe(true);
+    if (!sanitized.ok) return;
+    expect(sanitized.project.weatherEvents[0].conditions).toEqual([{ type: "metric", metric: "dailyRainTotal", operator: "gte", value: 5 }]);
+  });
+});

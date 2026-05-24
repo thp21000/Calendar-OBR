@@ -180,6 +180,26 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                     condition.state === "snow" ||
                     condition.state === "strongWind" ||
                     condition.state === "tempest")) ||
+                (condition.type === "dominantState" &&
+                  (condition.state === "clear" ||
+                    condition.state === "cloudy" ||
+                    condition.state === "overcast" ||
+                    condition.state === "fog" ||
+                    condition.state === "lightRain" ||
+                    condition.state === "heavyRain" ||
+                    condition.state === "storm" ||
+                    condition.state === "snow" ||
+                    condition.state === "strongWind" ||
+                    condition.state === "tempest")) ||
+                (condition.type === "windDirection" &&
+                  (condition.direction === "N" ||
+                    condition.direction === "NE" ||
+                    condition.direction === "E" ||
+                    condition.direction === "SE" ||
+                    condition.direction === "S" ||
+                    condition.direction === "SW" ||
+                    condition.direction === "W" ||
+                    condition.direction === "NW")) ||
                 (condition.type === "season" && typeof condition.seasonId === "string" && condition.seasonId.trim().length > 0) ||
                   (condition.type === "timeOfDay" &&
                     typeof condition.startHour === "number" &&
@@ -198,7 +218,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                       condition.phaseId === "lastQuarter" ||
                       condition.phaseId === "waningCrescent")) ||
                   ((condition.type === undefined || condition.type === "metric") &&
-                    (condition.metric === "temperature" || condition.metric === "windSpeed" || condition.metric === "rain") &&
+                    (condition.metric === "temperature" || condition.metric === "windSpeed" || condition.metric === "rain" || condition.metric === "dailyMinTemperature" || condition.metric === "dailyMaxTemperature" || condition.metric === "dailyRainTotal") &&
                     (condition.operator === "gte" || condition.operator === "lte") &&
                     typeof condition.value === "number" &&
                     Number.isFinite(condition.value)))

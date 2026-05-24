@@ -1097,4 +1097,29 @@ La phase 6 clarifie la relation entre l'état météo horaire (`state`) et l'amb
 - Hors épisode fort, `dominantState` peut orienter l'affichage vers des états cohérents (`cloudy`/`overcast`, brouillard matinal, etc.) sans forcer en permanence l'état dominant.
 - Les états horaires restent recalculés à la volée et ne sont pas stockés.
 
+- `state` = état météo horaire actuel.
+- `dominantState` = ambiance météo dominante du jour.
+- `state` reste prioritaire pour la météo instantanée.
+- `dominantState` influence l'état horaire surtout quand la météo actuelle est calme ou ambiguë.
+- Ces données sont recalculées de façon déterministe et ne sont pas stockées heure par heure.
+
 Étape suivante prévue : conditions météo avancées basées sur `dailyRainTotal`, `dailyMinTemperature`, `dailyMaxTemperature` et `dominantState`.
+
+## Météo v2 — Phase 7 : conditions météo avancées pour événements
+
+Nouvelles métriques météo utilisables dans les conditions métriques :
+- `dailyMinTemperature`
+- `dailyMaxTemperature`
+- `dailyRainTotal`
+
+Nouveaux types de conditions :
+- `dominantState` (état dominant du jour)
+- `windDirection` (direction du vent actuelle)
+
+Exemples :
+- Gel nocturne : `dailyMinTemperature <= 0`
+- Canicule : `dailyMaxTemperature >= 35`
+- Routes boueuses : `dailyRainTotal >= 8`
+- Crue : `dailyRainTotal >= 20`
+- Journée orageuse : `dominantState = storm`
+- Vent du nord : `windDirection = N`

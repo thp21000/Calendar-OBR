@@ -159,7 +159,7 @@ export type MoonPhase = {
   illumination: number;
 };
 
-export type WeatherConditionMetric = "temperature" | "windSpeed" | "rain";
+export type WeatherConditionMetric = "temperature" | "windSpeed" | "rain" | "dailyMinTemperature" | "dailyMaxTemperature" | "dailyRainTotal";
 export type WeatherConditionOperator = "gte" | "lte";
 
 export type WeatherMetricCondition = {
@@ -191,7 +191,17 @@ export type WeatherMoonPhaseCondition = {
   phaseId: MoonPhaseId;
 };
 
-export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition | WeatherSeasonCondition | WeatherTimeOfDayCondition | WeatherMoonPhaseCondition;
+export type WeatherDominantStateCondition = {
+  type: "dominantState";
+  state: WeatherState;
+};
+
+export type WeatherWindDirectionCondition = {
+  type: "windDirection";
+  direction: WindDirection;
+};
+
+export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition | WeatherDominantStateCondition | WeatherWindDirectionCondition | WeatherSeasonCondition | WeatherTimeOfDayCondition | WeatherMoonPhaseCondition;
 
 export type WeatherEvent = {
   id: string;
