@@ -22,13 +22,13 @@ import { TriggeredEventsCard } from "./today/TriggeredEventsCard";
 import { TriggeredWeatherAlertsCard } from "./today/TriggeredWeatherAlertsCard";
 import { WeatherAndSeasonCard } from "./today/WeatherAndSeasonCard";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
+import { PrimaryButton, SecondaryButton, SectionCard, SectionHeader, Toolbar } from "./ui";
 
 type QuickAction = { key: string; deltaMinutes: number };
 const quickActions: QuickAction[] = [
   { key: "time.minus2h", deltaMinutes: -120 }, { key: "time.minus1h", deltaMinutes: -60 }, { key: "time.minus15m", deltaMinutes: -15 }, { key: "time.minus5m", deltaMinutes: -5 },
   { key: "time.plus5m", deltaMinutes: 5 }, { key: "time.plus15m", deltaMinutes: 15 }, { key: "time.plus1h", deltaMinutes: 60 }, { key: "time.plus2h", deltaMinutes: 120 }
 ];
-const buttonStyle = { border: "1px solid #8b5cf6", borderRadius: 8, background: "#1a1530", color: "#c4b5fd", padding: "8px 6px", fontSize: 12, fontWeight: 700, textTransform: "uppercase" as const, cursor: "pointer" };
 
 export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotification }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; onReset: () => void; onOpenNotification?: (notification: CalendarNotification) => void; }) => {
   const dismissedStorageKey = `calendar-obr.notifications.dismissed.${project.id}`;
@@ -118,10 +118,24 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
 
   return (
     <>
-      <div style={{ marginBottom: 8, fontWeight: 700 }}>{project.name}</div>
-      <div style={{ marginBottom: 10, fontSize: 14, fontWeight: 700 }}>{formatDisplayDate(displayDate, project.locale)}</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>{quickActions.map((action) => <button key={action.key} type="button" onClick={() => applyTimeDelta(action.deltaMinutes)} style={buttonStyle}>{t(project.locale, action.key)}</button>)}</div>
-      <button type="button" onClick={() => applyTimeDelta(480)} style={{ ...buttonStyle, width: "100%", marginBottom: 10, textTransform: "none" }}>🛌 {t(project.locale, "time.longRest")}</button>
+      <SectionCard>
+        <SectionHeader title={formatDisplayDate(displayDate, project.locale)} subtitle={project.name} />
+        <div style={{ fontSize: 12, color: "#94a3b8" }}>{t(project.locale, "time.current")}: {String(project.currentTime.hour).padStart(2, "0")}:{String(project.currentTime.minute).padStart(2, "0")}</div>
+      </SectionCard>
+
+      <SectionCard>
+        <SectionHeader title={t(project.locale, "time.quickActions")} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>
+          {quickActions.map((action) => (
+            <SecondaryButton key={action.key} type="button" onClick={() => applyTimeDelta(action.deltaMinutes)} style={{ textTransform: "uppercase", fontWeight: 700 }}>
+              {t(project.locale, action.key)}
+            </SecondaryButton>
+          ))}
+        </div>
+        <Toolbar>
+          <PrimaryButton type="button" onClick={() => applyTimeDelta(480)} style={{ width: "100%" }}>🛌 {t(project.locale, "time.longRest")}</PrimaryButton>
+        </Toolbar>
+      </SectionCard>
 
       <TriggerSummaryCard
         locale={project.locale}
@@ -159,7 +173,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         currentMoonPhases={currentMoonPhases}
       />
 
-      <button type="button" onClick={onReset} style={{ border: "1px solid #7f1d1d", borderRadius: 6, background: "#991b1b", color: "#fff", padding: "7px 10px", fontSize: 12 }}>{t(project.locale, "settings.resetCalendar")}</button>
+      <PrimaryButton type="button" onClick={onReset} style={{ background: "#7f1d1d", borderColor: "#ef4444" }}>{t(project.locale, "settings.resetCalendar")}</PrimaryButton>
     </>
   );
 };
