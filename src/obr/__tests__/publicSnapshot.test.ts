@@ -86,4 +86,57 @@ describe("publicSnapshot moon events", () => {
     expect(serialized).not.toContain("secret");
     expect(serialized).not.toContain("conditions");
   });
+it("does not leak weather overrides internals and keeps final weather", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];
+    project.weatherOverrides = [
+      {
+        id: "ov1",
+        absoluteDay: project.currentTime.absoluteDay,
+        label: "Secret override label",
+        gmNote: "Top secret GM note",
+        temperature: 99,
+        state: "storm"
+      }
+    ];
+
+    const snapshot = createPublicCalendarTodaySnapshot(project, 3);
+    const raw = JSON.stringify(snapshot);
+
+    expect(snapshot.weather?.temperature).toBe(99);
+    expect(snapshot.weather?.state).toBe("storm");
+    expect((snapshot as unknown as { weatherOverrides?: unknown }).weatherOverrides).toBeUndefined();
+    expect(raw).not.toContain("weatherOverrides");
+    expect(raw).not.toContain("Top secret GM note");
+    expect(raw).not.toContain("Secret override label");
+    expect(raw).not.toContain("Météo forcée MJ");
+  });
+
+  it("does not leak gm-only weather event internals", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];
+    project.weatherEvents = [
+      {
+        id: "wp2",
+        name: "Players event",
+        visibility: "players",
+        enabled: true,
+        requireAllConditions: true,
+        playerDescription: "visible",
+        conditions: [{ metric: "temperature", operator: "gte", value: -100 }],
+        triggerHistory: [{ id: "h1", triggeredAtMinutes: 120 }],
+        cooldownHours: 4,
+        durationHours: 2
+      }
+    ];
+
+    const snapshot = createPublicCalendarTodaySnapshot(project, 4);
+    const raw = JSON.stringify(snapshot);
+
+    expect(snapshot.weatherEventsToday[0]?.id).toBe("wp2");
+    expect(raw).not.toContain("conditions");
+    expect(raw).not.toContain("triggerHistory");
+    expect(raw).not.toContain("cooldownHours");
+    expect(raw).not.toContain("durationHours");
+  });
 });
