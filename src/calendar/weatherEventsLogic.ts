@@ -62,7 +62,8 @@ type WeatherEventCompat = Omit<WeatherEvent, "conditions" | "enabled" | "require
 };
 
 export const isWeatherEventTriggered = (weather: WeatherSnapshot, event: WeatherEventCompat, context?: WeatherConditionContext): boolean => {
-  if (event.enabled === false) return false;
+  const status = event.status ?? "active";
+if (event.enabled === false || status === "archived" || status === "disabled") return false;
   const conditions = event.conditions ?? [];
   if (conditions.length === 0) return false;
   const requireAll = event.requireAllConditions ?? true;

@@ -104,7 +104,6 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       const withEventsCompletion = applyEventCompletionActions(withTime, completed);
       const withWeatherTriggers = applyWeatherEventTriggerActions(withEventsCompletion, triggeredWeather, nextTime);
       const withMoonEventStatus = applyMoonEventTriggerActions(withWeatherTriggers, triggeredMoon);
-      const withMoonEventStatus = applyMoonEventTriggerActions(withEventsCompletion, triggeredMoon);
       onProjectUpdate(withMoonEventStatus);
       return;
     } else {
