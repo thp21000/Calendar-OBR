@@ -617,3 +617,65 @@ it("conserve les weatherOverrides valides et nettoie invalides", () => {
   expect(sanitized.project.weatherOverrides?.length).toBe(1);
   expect(sanitized.project.weatherOverrides?.[0].id).toBe("o1");
 });
+
+describe("calendarImportExport phase17 integrity", () => {
+  it("roundtrip keeps current complete project structures", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];
+    project.weatherOverrides = [{ id: "ov1", absoluteDay: 2, temperature: 8, dailyRainTotal: 4, windSpeed: 6, rain: 1 }];
+    project.weatherEvents = [{ id: "we1", name: "W", enabled: true, requireAllConditions: true, conditions: [{ metric: "temperature", operator: "gte", value: 0 }] }];
+
+    const reimported = importCalendarProject(exportCalendarProject(project), project);
+    expect(reimported.ok).toBe(true);
+    if (!reimported.ok) return;
+    expect(reimported.project.weatherOverrides).toEqual(project.weatherOverrides);
+    expect(reimported.project.weatherEvents[0].id).toBe("we1");
+  });
+
+  it("sanitizes invalid numerics and keeps project saveable", () => {
+    const project = createDefaultCalendarProject();
+    const payload: any = {
+      ...project,
+      weatherOverrides: [{ id: "o1", absoluteDay: 1, windSpeed: -5, rain: -2, dailyRainTotal: -1 }],
+      weatherEvents: [{ id: "w1", name: "W", enabled: true, requireAllConditions: true, durationHours: Number.POSITIVE_INFINITY, cooldownHours: Number.NaN, conditions: [{ metric: "temperature", operator: "gte", value: 1 }] }]
+    };
+
+    const sanitized = sanitizeCalendarProject(payload);
+    expect(sanitized.ok).toBe(true);
+    if (!sanitized.ok) return;
+    expect(sanitized.project.weatherOverrides?.[0].windSpeed).toBe(0);
+    expect(sanitized.project.weatherOverrides?.[0].rain).toBe(0);
+    expect(sanitized.project.weatherOverrides?.[0].dailyRainTotal).toBe(0);
+    expect(sanitized.project.weatherEvents[0].durationHours).toBeUndefined();
+    expect(sanitized.project.weatherEvents[0].cooldownHours).toBeUndefined();
+    const memory = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => memory.get(k) ?? null,
+      setItem: (k: string, v: string) => memory.set(k, v),
+      removeItem: (k: string) => memory.delete(k)
+    });
+    expect(saveCalendarProject(sanitized.project).ok).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps import stable with invalid month reference in events", () => {
+    const project = createDefaultCalendarProject();
+    const payload: any = {
+      ...project,
+      events: [{
+        id: "e1",
+        name: "Bad month",
+        date: { year: 1000, monthId: "missing-month", dayOfMonth: 1, hour: 10, minute: 0 },
+        visibility: "players",
+        status: "active",
+        recurrence: { type: "none" },
+        notifyOnTrigger: true,
+        deleteAfterTrigger: false,
+        archiveAfterTrigger: false
+      }]
+    };
+
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+  });
+});
