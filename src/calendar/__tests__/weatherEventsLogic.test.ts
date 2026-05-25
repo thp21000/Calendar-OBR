@@ -557,6 +557,9 @@ it("événement désactivé non déclenché", () => {
       durationHours: 2,
       cooldownHours: 4,
       notifyOnTrigger: false,
+      lastTriggeredAtMinutes: 120,
+      status: "triggered" as const,
+      triggerHistory: [{ id: "th-1", triggeredAtMinutes: 120 }],
       conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 30 }]
     };
     const project = buildProject([event]);
@@ -569,6 +572,9 @@ it("événement désactivé non déclenché", () => {
     expect(serialized).not.toContain("cooldownHours");
     expect(serialized).not.toContain("visibility");
     expect(serialized).not.toContain("notifyOnTrigger");
+    expect(serialized).not.toContain("triggerHistory");
+    expect(serialized).not.toContain("lastTriggeredAtMinutes");
+    expect(serialized).not.toContain("status");
   });
 
   it("createDefaultWeatherEvent crée status active", () => {
@@ -601,6 +607,10 @@ it("événement désactivé non déclenché", () => {
     expect(next.weatherEvents[0].triggerHistory?.length).toBe(1);
     expect(next.weatherEvents[0].triggerHistory?.[0].triggeredAtMinutes).toBe(toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }));
     expect(next.weatherEvents[0].triggerHistory?.[0].weatherState).toBe(weather.state);
+    expect(next.weatherEvents[0].triggerHistory?.[0].dominantState).toBe(weather.dominantState);
+    expect(next.weatherEvents[0].triggerHistory?.[0].temperature).toBe(weather.temperature);
+    expect(next.weatherEvents[0].triggerHistory?.[0].rain).toBe(weather.rain);
+    expect(next.weatherEvents[0].triggerHistory?.[0].windSpeed).toBe(weather.windSpeed);
   });
 
   it("applyWeatherEventTriggerActions limite l'historique à 10", () => {

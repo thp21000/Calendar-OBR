@@ -1166,7 +1166,30 @@ Notes :
 
 ## Phase 10 — Historique léger des événements météo
 
-- `WeatherEvent.triggerHistory` stocke un historique limité (10 entrées max) des derniers déclenchements.
-- Chaque entrée garde: `triggeredAtMinutes`, état météo instantané (`weatherState`), état dominant (`dominantState`) et quelques métriques (`temperature`, `rain`, `windSpeed`).
-- Cet historique est destiné au MJ uniquement (jamais exposé aux joueurs via snapshot public).
-- Ce n'est pas une timeline météo complète: seul un historique court par événement est conservé.
+`triggerHistory` est un historique limité des derniers déclenchements d'un événement météo.
+
+- Ce n'est **pas** une timeline météo complète.
+- L'historique est limité à **10 entrées par événement**.
+- Quand la limite est dépassée, les **entrées les plus anciennes** sont supprimées automatiquement.
+- Cet historique est **réservé au MJ**.
+- Les joueurs ne voient jamais `triggerHistory`.
+
+Type documenté :
+
+```ts
+type WeatherEventTriggerHistoryEntry = {
+  id: string;
+  triggeredAtMinutes: number;
+  weatherState?: WeatherState;
+  dominantState?: WeatherState;
+  temperature?: number;
+  rain?: number;
+  windSpeed?: number;
+};
+```
+
+Précisions :
+
+- `triggeredAtMinutes` est exprimé en **minutes absolues internes**.
+- Les états/valeurs météo reflètent l'instant du déclenchement.
+- L'historique ne stocke pas toute la météo heure par heure.
