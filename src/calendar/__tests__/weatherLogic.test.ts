@@ -33,14 +33,28 @@ describe("weatherLogic", () => {
   it("override peut forcer la météo courante", () => {
     const project = buildProject();
     project.seasons = [{ id:"s1", name:"S", start:{monthId:"m1",dayOfMonth:1}, end:{monthId:"m2",dayOfMonth:30} }];
-    project.weatherOverrides = [{ id:"o1", absoluteDay: 4, temperature: 99, windSpeed: 1, rain: 7, state: "fog", windDirection: "SW" } as any];
+   project.weatherOverrides = [{ id:"o1", absoluteDay: 4, temperature: 99, windSpeed: 42, rain: 7, state: "storm", windDirection: "NE" } as any];
     const w = generateWeatherForTime(project, 4, 12)!;
     expect(w.temperature).toBe(99);
-    expect(w.windSpeed).toBe(1);
+    expect(w.windSpeed).toBe(42);
     expect(w.rain).toBe(7);
-    expect(w.state).toBe("fog");
-    expect(w.windDirection).toBe("SW");
+    expect(w.state).toBe("storm");
+    expect(w.windDirection).toBe("NE");
     expect(w.dailyMinTemperature).toBeDefined();
+  });
+
+
+
+
+  it("override partiel force seulement rain", () => {
+    const project = buildProject();
+    project.seasons = [{ id:"s1", name:"S", start:{monthId:"m1",dayOfMonth:1}, end:{monthId:"m2",dayOfMonth:30} }];
+    const base = generateWeatherForTime(project, 5, 12)!;
+    project.weatherOverrides = [{ id:"o2", absoluteDay: 5, rain: 11 } as any];
+    const w = generateWeatherForTime(project, 5, 12)!;
+    expect(w.rain).toBe(11);
+    expect(w.temperature).toBe(base.temperature);
+    expect(w.windSpeed).toBe(base.windSpeed);
   });
   it("retourne undefined si aucune saison", () => {
     expect(getCurrentWeather(buildProject())).toBeUndefined();
