@@ -157,5 +157,3 @@ export const App = () => {
     </> : publicSnapshot ? <PlayerView project={project} snapshot={publicSnapshot} /> : <SectionCard><EmptyState text={t(project.locale, "player.waitingForGmData")} /></SectionCard>}
   </main>;
 };
-
-const tabStyle = (active: boolean) => ({ border: "1px solid #374151", borderRadius: 6, background: active ? "#2563eb" : "#1f2937", color: "#f3f4f6", padding: "6px 8px", fontSize: 12 });

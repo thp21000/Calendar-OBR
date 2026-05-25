@@ -29,8 +29,8 @@ export const SectionHeader = ({ title, subtitle, right }: { title: string; subti
 export const Badge = ({ children, tone = "default" }: PropsWithChildren<{ tone?: "default" | "success" | "warning" | "danger" }>) => {
   const map = {
     default: { bg: ui.colors.surfaceSoft, text: ui.colors.textSecondary },
-    success: { bg: "#14532d", text: "#bbf7d0" },
-    warning: { bg: "#78350f", text: "#fde68a" },
+    success: { bg: ui.colors.success, text: ui.colors.successText },
+    warning: { bg: ui.colors.warning, text: ui.colors.warningText },
     danger: { bg: ui.colors.dangerSoft, text: "#fecaca" }
   } as const;
   return <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, fontSize: 11, background: map[tone].bg, color: map[tone].text }}>{children}</span>;

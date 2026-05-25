@@ -13,7 +13,11 @@ export const ui = {
     accent: "#3b82f6",
     accentSoft: "#1d4ed8",
     danger: "#ef4444",
-    dangerSoft: "#7f1d1d"
+    dangerSoft: "#7f1d1d",
+    success: "#14532d",
+    successText: "#bbf7d0",
+    warning: "#78350f",
+    warningText: "#fde68a"
   },
   radius: { sm: 6, md: 8, lg: 12 },
   spacing: { xs: 4, sm: 8, md: 12, lg: 16 }
