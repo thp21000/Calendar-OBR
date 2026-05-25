@@ -2,7 +2,7 @@ import { generateWeatherForTime } from "./weatherLogic";
 import { absoluteDayToCalendarDate } from "./dateEngine";
 import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
-import type { CalendarProject, InternalTime, WeatherCondition, WeatherConditionMetric, WeatherEvent, WeatherSnapshot, WeatherState } from "../domain/types";
+import type { CalendarProject, InternalTime, WeatherCondition, WeatherConditionMetric, WeatherEvent, WeatherEventTriggerHistoryEntry, WeatherSnapshot, WeatherState } from "../domain/types";
 
 export type PlayerVisibleWeatherEvent = {
   id: string;
@@ -120,7 +120,8 @@ export const getNewlyTriggeredWeatherEventsBetween = (
 export const applyWeatherEventTriggerActions = (
   project: CalendarProject,
   triggeredWeatherEvents: WeatherEvent[],
-  triggerTime: InternalTime
+  triggerTime: InternalTime,
+  weather?: WeatherSnapshot
 ): CalendarProject => {
   const ids = new Set(triggeredWeatherEvents.map((event) => event.id));
   const at = toAbsoluteMinutes(triggerTime);
@@ -129,7 +130,17 @@ export const applyWeatherEventTriggerActions = (
     weatherEvents: project.weatherEvents.map((event) => {
       if (!ids.has(event.id)) return event;
       const nextStatus = event.disableAfterTrigger ? "disabled" : event.archiveAfterTrigger ? "archived" : "triggered";
-      return { ...event, lastTriggeredAtMinutes: at, status: nextStatus };
+      const entry: WeatherEventTriggerHistoryEntry = {
+        id: `weather-trigger-${event.id}-${at}`,
+        triggeredAtMinutes: at,
+        weatherState: weather?.state,
+        dominantState: weather?.dominantState,
+        temperature: weather?.temperature,
+        rain: weather?.rain,
+        windSpeed: weather?.windSpeed
+      };
+      const nextHistory = [...(event.triggerHistory ?? []), entry].slice(-10);
+      return { ...event, lastTriggeredAtMinutes: at, status: nextStatus, triggerHistory: nextHistory };
     })
   };
 };

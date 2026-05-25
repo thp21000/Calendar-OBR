@@ -465,6 +465,40 @@ describe("calendarImportExport", () => {
     const event = sanitized.project.events[0] as Record<string, unknown>;
     expect(event.reminderEnabled).toBeUndefined();
     expect(event.reminderMinutesBefore).toBeUndefined();
+  });
+
+it("weather triggerHistory valide conservé et limité à 10", () => {
+  const project: any = createDefaultCalendarProject();
+  project.weatherEvents = [{
+    id: "th1",
+    name: "Hist",
+    requireAllConditions: true,
+    enabled: true,
+    conditions: [{ metric: "temperature", operator: "gte", value: 0 }],
+    triggerHistory: Array.from({ length: 12 }, (_, i) => ({ id: `h-${i}`, triggeredAtMinutes: i, weatherState: "clear", rain: i }))
+  }];
+  const sanitized = sanitizeCalendarProject(project);
+  expect(sanitized.ok).toBe(true);
+  if (!sanitized.ok) return;
+  expect(sanitized.project.weatherEvents[0].triggerHistory?.length).toBe(10);
+});
+
+it("weather triggerHistory invalide nettoyé", () => {
+  const project: any = createDefaultCalendarProject();
+  project.weatherEvents = [{
+    id: "th2",
+    name: "Hist2",
+    requireAllConditions: true,
+    enabled: true,
+    conditions: [{ metric: "temperature", operator: "gte", value: 0 }],
+    triggerHistory: [{ id: 1, triggeredAtMinutes: -2 }, { id: "ok", triggeredAtMinutes: 5, weatherState: "bad" }]
+  }];
+  const sanitized = sanitizeCalendarProject(project);
+  expect(sanitized.ok).toBe(true);
+  if (!sanitized.ok) return;
+  expect(sanitized.project.weatherEvents[0].triggerHistory?.length).toBe(1);
+  expect(sanitized.project.weatherEvents[0].triggerHistory?.[0].triggeredAtMinutes).toBe(5);
+});
 
     });
 
@@ -568,5 +602,4 @@ it("weather event status invalide nettoyé", () => {
   expect(sanitized.project.weatherEvents[0].lastTriggeredAtMinutes).toBeUndefined();
   expect(sanitized.project.weatherEvents[0].archiveAfterTrigger).toBe(false);
   expect(sanitized.project.weatherEvents[0].disableAfterTrigger).toBe(false);
-});
 });

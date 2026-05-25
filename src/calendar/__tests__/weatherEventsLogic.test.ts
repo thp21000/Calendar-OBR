@@ -589,9 +589,25 @@ it("événement désactivé non déclenché", () => {
   it("applyWeatherEventTriggerActions met status triggered et lastTriggeredAtMinutes", () => {
     const event = { ...createDefaultWeatherEvent("fr"), id: "a1" };
     const project = buildProject([event]);
-    const next = applyWeatherEventTriggerActions(project, [event], { absoluteDay: 0, hour: 10, minute: 0 });
+    const next = applyWeatherEventTriggerActions(project, [event], { absoluteDay: 0, hour: 10, minute: 0 }, weather);
     expect(next.weatherEvents[0].status).toBe("triggered");
     expect(next.weatherEvents[0].lastTriggeredAtMinutes).toBe(toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }));
+  });
+
+  it("applyWeatherEventTriggerActions ajoute une entrée d'historique", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), id: "h1" };
+    const project = buildProject([event]);
+    const next = applyWeatherEventTriggerActions(project, [event], { absoluteDay: 0, hour: 10, minute: 0 }, weather);
+    expect(next.weatherEvents[0].triggerHistory?.length).toBe(1);
+    expect(next.weatherEvents[0].triggerHistory?.[0].triggeredAtMinutes).toBe(toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }));
+    expect(next.weatherEvents[0].triggerHistory?.[0].weatherState).toBe(weather.state);
+  });
+
+  it("applyWeatherEventTriggerActions limite l'historique à 10", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), id: "h2", triggerHistory: Array.from({ length: 10 }, (_, i) => ({ id: `x-${i}`, triggeredAtMinutes: i })) };
+    const project = buildProject([event as any]);
+    const next = applyWeatherEventTriggerActions(project, [event as any], { absoluteDay: 0, hour: 10, minute: 0 }, weather);
+    expect(next.weatherEvents[0].triggerHistory?.length).toBe(10);
   });
 
   it("archiveAfterTrigger met status archived", () => {

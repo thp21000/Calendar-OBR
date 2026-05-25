@@ -101,8 +101,9 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         return [...merged.values()];
       });
       const withTime = { ...project, currentTime: nextTime };
+      const nextWeather = getCurrentWeather(withTime);
       const withEventsCompletion = applyEventCompletionActions(withTime, completed);
-      const withWeatherTriggers = applyWeatherEventTriggerActions(withEventsCompletion, triggeredWeather, nextTime);
+      const withWeatherTriggers = applyWeatherEventTriggerActions(withEventsCompletion, triggeredWeather, nextTime, nextWeather);
       const withMoonEventStatus = applyMoonEventTriggerActions(withWeatherTriggers, triggeredMoon);
       onProjectUpdate(withMoonEventStatus);
       return;

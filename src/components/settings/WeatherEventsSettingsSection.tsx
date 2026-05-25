@@ -123,6 +123,25 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
             <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>
               {t(project.locale, "weatherEvents.lastTriggeredAtMinutes")}: {typeof event.lastTriggeredAtMinutes === "number" ? event.lastTriggeredAtMinutes : t(project.locale, "weatherEvents.neverTriggered")}
             </div>
+            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{t(project.locale, "weatherEvents.history")}</div>
+              {(event.triggerHistory ?? []).length === 0 ? (
+                <div>{t(project.locale, "weatherEvents.noHistory")}</div>
+              ) : (
+                <div style={{ display: "grid", gap: 4 }}>
+                  {(event.triggerHistory ?? []).slice(-5).reverse().map((entry) => (
+                    <div key={entry.id}>
+                      {t(project.locale, "weatherEvents.historyAt")} {entry.triggeredAtMinutes}
+                      {entry.weatherState ? ` · ${t(project.locale, `weather.state.${entry.weatherState}`)}` : ""}
+                      {entry.dominantState ? ` · ${t(project.locale, `weather.state.${entry.dominantState}`)}` : ""}
+                      {typeof entry.temperature === "number" ? ` · T:${entry.temperature}` : ""}
+                      {typeof entry.rain === "number" ? ` · R:${entry.rain}` : ""}
+                      {typeof entry.windSpeed === "number" ? ` · W:${entry.windSpeed}` : ""}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <label style={{ display: "block" }}>
               <div style={labelStyle}>{t(project.locale, "weatherEvents.durationHours")}</div>
               <input

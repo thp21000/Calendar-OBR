@@ -1163,3 +1163,10 @@ Champs ajoutés :
 Notes :
 - Pas d’historique complet à ce stade : seul le dernier déclenchement est stocké.
 - Les joueurs ne voient jamais ces champs internes.
+
+## Phase 10 — Historique léger des événements météo
+
+- `WeatherEvent.triggerHistory` stocke un historique limité (10 entrées max) des derniers déclenchements.
+- Chaque entrée garde: `triggeredAtMinutes`, état météo instantané (`weatherState`), état dominant (`dominantState`) et quelques métriques (`temperature`, `rain`, `windSpeed`).
+- Cet historique est destiné au MJ uniquement (jamais exposé aux joueurs via snapshot public).
+- Ce n'est pas une timeline météo complète: seul un historique court par événement est conservé.

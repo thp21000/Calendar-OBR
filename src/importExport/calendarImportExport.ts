@@ -250,6 +250,27 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         if (typeof next.lastTriggeredAtMinutes !== "number" || !Number.isFinite(next.lastTriggeredAtMinutes) || next.lastTriggeredAtMinutes < 0) delete next.lastTriggeredAtMinutes;
         if (typeof next.archiveAfterTrigger !== "boolean") next.archiveAfterTrigger = false;
         if (typeof next.disableAfterTrigger !== "boolean") next.disableAfterTrigger = false;
+        if (Array.isArray(next.triggerHistory)) {
+          next.triggerHistory = next.triggerHistory
+            .filter(isRecord)
+            .map((entry) => {
+              if (typeof entry.triggeredAtMinutes !== "number" || !Number.isFinite(entry.triggeredAtMinutes) || entry.triggeredAtMinutes < 0) return null;
+              const out: Record<string, unknown> = {
+                id: typeof entry.id === "string" && entry.id.trim().length > 0 ? entry.id : `weather-trigger-${Math.trunc(entry.triggeredAtMinutes as number)}`,
+                triggeredAtMinutes: Math.trunc(entry.triggeredAtMinutes as number)
+              };
+              if (entry.weatherState === "clear" || entry.weatherState === "cloudy" || entry.weatherState === "overcast" || entry.weatherState === "fog" || entry.weatherState === "lightRain" || entry.weatherState === "heavyRain" || entry.weatherState === "storm" || entry.weatherState === "snow" || entry.weatherState === "strongWind" || entry.weatherState === "tempest") out.weatherState = entry.weatherState;
+              if (entry.dominantState === "clear" || entry.dominantState === "cloudy" || entry.dominantState === "overcast" || entry.dominantState === "fog" || entry.dominantState === "lightRain" || entry.dominantState === "heavyRain" || entry.dominantState === "storm" || entry.dominantState === "snow" || entry.dominantState === "strongWind" || entry.dominantState === "tempest") out.dominantState = entry.dominantState;
+              if (typeof entry.temperature === "number" && Number.isFinite(entry.temperature)) out.temperature = entry.temperature;
+              if (typeof entry.rain === "number" && Number.isFinite(entry.rain)) out.rain = entry.rain;
+              if (typeof entry.windSpeed === "number" && Number.isFinite(entry.windSpeed)) out.windSpeed = entry.windSpeed;
+              return out;
+            })
+            .filter((entry): entry is Record<string, unknown> => entry !== null)
+            .slice(-10);
+        } else {
+          delete next.triggerHistory;
+        }
         if (typeof next.durationHours !== "number" || !Number.isFinite(next.durationHours) || next.durationHours < 0) {
           delete next.durationHours;
         } else {

@@ -203,6 +203,16 @@ export type WeatherWindDirectionCondition = {
 
 export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition | WeatherDominantStateCondition | WeatherWindDirectionCondition | WeatherSeasonCondition | WeatherTimeOfDayCondition | WeatherMoonPhaseCondition;
 
+export type WeatherEventTriggerHistoryEntry = {
+  id: string;
+  triggeredAtMinutes: number;
+  weatherState?: WeatherState;
+  dominantState?: WeatherState;
+  temperature?: number;
+  rain?: number;
+  windSpeed?: number;
+};
+
 export type WeatherEvent = {
   id: string;
   name: string;
@@ -217,6 +227,7 @@ export type WeatherEvent = {
   lastTriggeredAtMinutes?: number;
   archiveAfterTrigger?: boolean;
   disableAfterTrigger?: boolean;
+  triggerHistory?: WeatherEventTriggerHistoryEntry[];
   conditions: WeatherCondition[];
   requireAllConditions: boolean;
   enabled: boolean;
