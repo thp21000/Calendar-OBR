@@ -118,6 +118,9 @@ export const getForecastWeatherForTime = (
   const windSpeed = Math.max(0, round(realWeather.windSpeed + centered("wind") * errorScale * 1.5));
   const rain = Math.max(0, round(realWeather.rain + centered("rain") * errorScale * 0.8));
 
+const dailyTempErrorScale = mode === "wide" ? (0.9 + absOffset * 0.08) : (0.4 + absOffset * 0.03);
+  const dailyRainErrorScale = mode === "wide" ? (1.4 + absOffset * 0.14) : (0.6 + absOffset * 0.06);
+  
   let windDirection = realWeather.windDirection;
   if (mode === "wide") {
     const directionRoll = seeded(seed, "dir");
@@ -128,7 +131,38 @@ export const getForecastWeatherForTime = (
     }
   }
 
-  return { temperature, windSpeed, windDirection, rain, state: getWeatherState({ temperature, windSpeed, rain }) };
+  const forecastDailyMin = realWeather.dailyMinTemperature !== undefined
+    ? round(realWeather.dailyMinTemperature + centered("daily:min") * dailyTempErrorScale)
+    : undefined;
+  const forecastDailyMax = realWeather.dailyMaxTemperature !== undefined
+    ? round(realWeather.dailyMaxTemperature + centered("daily:max") * dailyTempErrorScale)
+    : undefined;
+
+  let dailyMinTemperature = forecastDailyMin;
+  let dailyMaxTemperature = forecastDailyMax;
+  if (dailyMinTemperature !== undefined && dailyMaxTemperature !== undefined && dailyMinTemperature > dailyMaxTemperature) {
+    const low = Math.min(dailyMinTemperature, dailyMaxTemperature);
+    const high = Math.max(dailyMinTemperature, dailyMaxTemperature);
+    dailyMinTemperature = low;
+    dailyMaxTemperature = high;
+  }
+
+  const dailyRainTotal = realWeather.dailyRainTotal !== undefined
+    ? Math.max(0, round(realWeather.dailyRainTotal + centered("daily:rain") * dailyRainErrorScale))
+    : undefined;
+
+  return {
+    temperature,
+    windSpeed,
+    windDirection,
+    rain,
+    state: getWeatherState({ temperature, windSpeed, rain }),
+    dailyMinTemperature,
+    dailyMaxTemperature,
+    dailyRainTotal,
+    dominantState: realWeather.dominantState,
+    trendKind: realWeather.trendKind
+  };
 };
 
 export const getHourlyWeatherForecast = (

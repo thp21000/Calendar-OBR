@@ -204,6 +204,32 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
     expect(a).toEqual(b);
   });
 
+  it("getForecastWeatherForTime conserve trendKind et dominantState", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const real = generateWeatherForTime(project, 8, 12);
+    const forecast = getForecastWeatherForTime(project, 8, 12, 24);
+    expect(real).toBeDefined();
+    expect(forecast).toBeDefined();
+    if (!real || !forecast) return;
+    expect(forecast.trendKind).toBe(real.trendKind);
+    expect(forecast.dominantState).toBe(real.dominantState);
+  });
+
+  it("getForecastWeatherForTime retourne les champs journaliers enrichis", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const forecast = getForecastWeatherForTime(project, 8, 12, 24);
+    expect(forecast).toBeDefined();
+    if (!forecast) return;
+    expect(forecast.dailyMinTemperature).toBeDefined();
+    expect(forecast.dailyMaxTemperature).toBeDefined();
+    expect(forecast.dailyRainTotal).toBeDefined();
+    expect(forecast.dominantState).toBeDefined();
+    expect((forecast.dailyMinTemperature ?? 0)).toBeLessThanOrEqual(forecast.dailyMaxTemperature ?? 0);
+    expect((forecast.dailyRainTotal ?? 0)).toBeGreaterThanOrEqual(0);
+  });
+
   it("getDailyWeatherForecast retourne 5 entrées si saison existe", () => {
     const project = buildProject();
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
@@ -234,6 +260,18 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
     const project = buildProject();
     expect(getDailyWeatherForecast(project, 5)).toEqual([]);
   });
+
+  it("getDailyWeatherForecast retourne des entrées enrichies avec trendKind", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const forecast = getDailyWeatherForecast(project, 5);
+    expect(forecast[0]?.weather.trendKind).toBeDefined();
+    expect(forecast[0]?.weather.dailyMinTemperature).toBeDefined();
+    expect(forecast[0]?.weather.dailyMaxTemperature).toBeDefined();
+    expect(forecast[0]?.weather.dailyRainTotal).toBeDefined();
+    expect(forecast[0]?.weather.dominantState).toBeDefined();
+  });
+
 
   it("prévision journalière déterministe pour même projet et même heure", () => {
     const project = buildProject();

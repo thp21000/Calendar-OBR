@@ -75,8 +75,11 @@ export const WeatherAndSeasonCard = ({
         <div style={{ display: "grid", gap: 2, fontSize: 12 }}>
           {dailyForecast.map((entry) => (
             <div key={entry.offsetDays}>
-              +{entry.offsetDays} {project.locale === "fr" ? "j" : "d"} · {getWeatherStateIcon(entry.weather.state ?? "clear")} {t(project.locale, `weather.state.${entry.weather.state ?? "clear"}`)} · {entry.weather.temperature} {weatherUnits.temperature} ·{" "}
-              {entry.weather.windDirection} {entry.weather.windSpeed} {weatherUnits.windSpeed} · {entry.weather.rain} {weatherUnits.rain}
+              +{entry.offsetDays} {project.locale === "fr" ? "j" : "d"} · {getWeatherStateIcon(entry.weather.state ?? "clear")} {t(project.locale, `weather.state.${entry.weather.state ?? "clear"}`)} · {entry.weather.temperature} {weatherUnits.temperature} · {entry.weather.windDirection} {entry.weather.windSpeed} {weatherUnits.windSpeed} · {entry.weather.rain} {weatherUnits.rain}
+              {entry.weather.trendKind ? ` · ${t(project.locale, "weather.trend")} ${t(project.locale, `weather.trend.${entry.weather.trendKind}`)}` : ""}
+              {entry.weather.dominantState ? ` · ${t(project.locale, "weather.dominantState")} ${t(project.locale, `weather.state.${entry.weather.dominantState}`)}` : ""}
+              {entry.weather.dailyMinTemperature !== undefined && entry.weather.dailyMaxTemperature !== undefined ? ` · ${t(project.locale, "weather.dailyMinMax")} ${entry.weather.dailyMinTemperature} / ${entry.weather.dailyMaxTemperature} ${weatherUnits.temperature}` : ""}
+              {entry.weather.dailyRainTotal !== undefined ? ` · ${t(project.locale, "weather.dailyRainTotal")} ${entry.weather.dailyRainTotal} ${weatherUnits.rain}` : ""}
             </div>
           ))}
         </div>
