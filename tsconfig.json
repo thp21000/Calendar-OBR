@@ -5,13 +5,11 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "jsx": "react-jsx",
-    "declaration": true,
-    "outDir": "dist-types",
-    "rootDir": "src",
     "skipLibCheck": true,
     "types": [
       "vite/client"
-    ]
+    ],
+    "noEmit": true
   },
   "include": [
     "src"
