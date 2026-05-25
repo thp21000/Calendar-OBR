@@ -1,0 +1,97 @@
+import { absoluteDayToCalendarDate } from "./dateEngine";
+import { deriveSeasonWeatherTraits } from "./seasonWeatherProfile";
+import { createDefaultSeasonWeatherProfile, getSeasonForDate } from "./seasonsLogic";
+import type { CalendarProject, WeatherTrendKind } from "../domain/types";
+
+export type WeatherTrendSummary = {
+  kind: WeatherTrendKind;
+  startAbsoluteDay: number;
+  endAbsoluteDay: number;
+  durationDays: number;
+  temperatureOffset: number;
+  rainMultiplier: number;
+  windMultiplier: number;
+  stormChanceModifier: number;
+  stabilityModifier: number;
+};
+
+const hashSeed = (input: string): number => {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+};
+const seeded = (seed: string, salt: string): number => hashSeed(`${seed}|${salt}`) / 4294967295;
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+const chooseKind = (weights: Record<WeatherTrendKind, number>, roll: number): WeatherTrendKind => {
+  const entries = Object.entries(weights) as Array<[WeatherTrendKind, number]>;
+  const total = entries.reduce((s, [, w]) => s + Math.max(0.0001, w), 0);
+  let acc = 0;
+  for (const [k, w] of entries) {
+    acc += Math.max(0.0001, w) / total;
+    if (roll <= acc) return k;
+  }
+  return "stable";
+};
+
+const profileForKind = (kind: WeatherTrendKind): Omit<WeatherTrendSummary, "kind" | "startAbsoluteDay" | "endAbsoluteDay" | "durationDays"> => {
+  switch (kind) {
+    case "cold": return { temperatureOffset: -3, rainMultiplier: 1.05, windMultiplier: 1, stormChanceModifier: 0, stabilityModifier: 0 };
+    case "warm": return { temperatureOffset: 3, rainMultiplier: 0.95, windMultiplier: 1, stormChanceModifier: 0, stabilityModifier: 0 };
+    case "wet": return { temperatureOffset: 0, rainMultiplier: 1.25, windMultiplier: 1.05, stormChanceModifier: 0.05, stabilityModifier: -0.08 };
+    case "dry": return { temperatureOffset: 0.5, rainMultiplier: 0.65, windMultiplier: 0.95, stormChanceModifier: -0.05, stabilityModifier: 0.08 };
+    case "windy": return { temperatureOffset: 0, rainMultiplier: 1, windMultiplier: 1.25, stormChanceModifier: 0.05, stabilityModifier: -0.08 };
+    case "calm": return { temperatureOffset: 0, rainMultiplier: 0.95, windMultiplier: 0.75, stormChanceModifier: -0.03, stabilityModifier: 0.12 };
+    case "stormy": return { temperatureOffset: -0.5, rainMultiplier: 1.35, windMultiplier: 1.3, stormChanceModifier: 0.18, stabilityModifier: -0.18 };
+    case "unstable": return { temperatureOffset: 0, rainMultiplier: 1.1, windMultiplier: 1.1, stormChanceModifier: 0.08, stabilityModifier: -0.2 };
+    case "stable":
+    default:
+      return { temperatureOffset: 0, rainMultiplier: 0.95, windMultiplier: 0.9, stormChanceModifier: -0.02, stabilityModifier: 0.2 };
+  }
+};
+
+export const getWeatherTrendForDay = (project: CalendarProject, absoluteDay: number): WeatherTrendSummary => {
+  const date = absoluteDayToCalendarDate({ absoluteDay, hour: 12, minute: 0 }, project.calendarSystem);
+  const season = getSeasonForDate(project, date);
+  const profile = season?.weatherProfile ?? createDefaultSeasonWeatherProfile();
+  const traits = deriveSeasonWeatherTraits(profile);
+  const seedBase = project.weatherSettings.seed || project.id;
+
+  const avgDuration = traits.stability >= 0.7 ? 8 : traits.stability >= 0.4 ? 5.5 : 3;
+  const durationMin = traits.stability >= 0.7 ? 6 : traits.stability >= 0.4 ? 4 : 2;
+  const durationMax = traits.stability >= 0.7 ? 10 : traits.stability >= 0.4 ? 7 : 4;
+
+  const cycleLength = 60;
+  const cycleStart = Math.floor(absoluteDay / cycleLength) * cycleLength;
+  const cycleSeed = `${seedBase}|trend|${project.id}|${season?.id ?? "none"}|${cycleStart}`;
+  let start = cycleStart;
+  let idx = 0;
+  while (true) {
+    const local = `${cycleSeed}|${idx}`;
+    const jitter = (seeded(local, "dur") - 0.5) * 2;
+    const dur = Math.round(clamp(avgDuration + jitter * 1.5, durationMin, durationMax));
+    const end = start + dur - 1;
+    if (absoluteDay <= end) {
+      const tAvg = profile.temperature.average;
+      const weights: Record<WeatherTrendKind, number> = {
+        cold: tAvg <= 6 ? 1.2 : 0.5,
+        warm: tAvg >= 18 ? 1.2 : 0.5,
+        wet: 0.4 + traits.precipitationChance * 1.6,
+        dry: 0.4 + (1 - traits.precipitationChance) * 1.6,
+        windy: 0.4 + traits.windVariability * 1.3,
+        calm: 0.4 + traits.stability * 1.2,
+        stormy: 0.2 + traits.stormChance * 2,
+        stable: 0.3 + traits.stability * 1.5,
+        unstable: 0.3 + (1 - traits.stability) * 1.8
+      };
+      const kind = chooseKind(weights, seeded(local, "kind"));
+      const modifiers = profileForKind(kind);
+      return { kind, startAbsoluteDay: start, endAbsoluteDay: end, durationDays: dur, ...modifiers };
+    }
+    start = end + 1;
+    idx += 1;
+  }
+};

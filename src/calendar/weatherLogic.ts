@@ -87,7 +87,8 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
     dailyMinTemperature: dailySummary?.minTemperature,
     dailyMaxTemperature: dailySummary?.maxTemperature,
     dailyRainTotal: dailySummary?.rainTotal24h,
-    dominantState: dailySummary?.dominantState
+    dominantState: dailySummary?.dominantState,
+    trendKind: dailySummary?.trendKind
   };
 };
 

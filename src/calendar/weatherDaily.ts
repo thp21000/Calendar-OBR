@@ -1,6 +1,7 @@
 import { absoluteDayToCalendarDate } from "./dateEngine";
 import { deriveSeasonWeatherTraits } from "./seasonWeatherProfile";
 import { createDefaultSeasonWeatherProfile, getSeasonForDate } from "./seasonsLogic";
+import { getWeatherTrendForDay } from "./weatherTrend";
 import type { CalendarProject, WeatherState, WindDirection } from "../domain/types";
 
 export type DailyWeatherSummary = {
@@ -12,6 +13,7 @@ export type DailyWeatherSummary = {
   maxWindSpeed: number;
   dominantWindDirection: WindDirection;
   dominantState: WeatherState;
+  trendKind?: import("../domain/types").WeatherTrendKind;
 };
 
 const WIND_DIRECTIONS: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -78,29 +80,33 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
   const seedBase = project.weatherSettings.seed || project.id;
   const seed = `${seedBase}|daily|${project.id}|${season.id}|${absoluteDay}`;
 
+  const trend = getWeatherTrendForDay(project, absoluteDay);
+  const effectiveStability = clamp01(traits.stability + trend.stabilityModifier);
+  const effectiveStormChance = clamp01(traits.stormChance + trend.stormChanceModifier);
+
   const temperatureSpan = Math.max(0, profile.temperature.max - profile.temperature.min);
   const baseSwing = temperatureSpan * (0.25 + traits.temperatureSwing * 0.75);
   const swingNoise = (seeded(seed, "temp:swing") - 0.5) * 2;
-  const swingFactor = 1 + swingNoise * (1 - traits.stability) * 0.5;
+  const swingFactor = 1 + swingNoise * (1 - effectiveStability) * 0.5;
   const rawSwing = clamp(baseSwing * swingFactor, 0, temperatureSpan);
 
   const avgNoise = (seeded(seed, "temp:avg") - 0.5) * 2;
-  const avgVariance = temperatureSpan * (0.05 + (1 - traits.stability) * 0.2);
-  const averageTemperature = clamp(profile.temperature.average + avgNoise * avgVariance, profile.temperature.min, profile.temperature.max);
+  const avgVariance = temperatureSpan * (0.05 + (1 - effectiveStability) * 0.2);
+  const averageTemperature = clamp(profile.temperature.average + trend.temperatureOffset + avgNoise * avgVariance, profile.temperature.min, profile.temperature.max);
   const minTemperature = clamp(averageTemperature - rawSwing / 2, profile.temperature.min, profile.temperature.max);
   const maxTemperature = clamp(averageTemperature + rawSwing / 2, profile.temperature.min, profile.temperature.max);
 
   const rainNoise = seeded(seed, "rain:roll");
   const rainHit = rainNoise < traits.precipitationChance;
   const rainIntensity = seeded(seed, "rain:intensity");
-  const rainBase = rainHit ? profile.rain.average * (0.3 + rainIntensity * (0.7 + (1 - traits.stability) * 0.6)) : 0;
-  const rainBoost = profile.rain.max * traits.stormChance * seeded(seed, "rain:storm");
+  const rainBase = rainHit ? profile.rain.average * trend.rainMultiplier * (0.3 + rainIntensity * (0.7 + (1 - effectiveStability) * 0.6)) : 0;
+  const rainBoost = profile.rain.max * effectiveStormChance * trend.rainMultiplier * seeded(seed, "rain:storm");
   const rainTotal24h = Math.max(0, clamp(rainBase + rainBoost, 0, profile.rain.max * 1.8));
 
   const windNoise = (seeded(seed, "wind:avg") - 0.5) * 2;
-  const windVariance = (profile.windSpeed.max - profile.windSpeed.min) * (0.15 + traits.windVariability * 0.85);
-  const windBase = clamp(profile.windSpeed.average + windNoise * windVariance, profile.windSpeed.min, profile.windSpeed.max);
-  const gustFactor = 1 + traits.stormChance * seeded(seed, "wind:gust") * 0.8;
+  const windVariance = (profile.windSpeed.max - profile.windSpeed.min) * (0.15 + traits.windVariability * 0.85) * (1 + (1 - effectiveStability) * 0.25);
+  const windBase = clamp(profile.windSpeed.average * trend.windMultiplier + windNoise * windVariance, profile.windSpeed.min, profile.windSpeed.max);
+  const gustFactor = 1 + effectiveStormChance * seeded(seed, "wind:gust") * 0.8;
   const maxWindSpeed = Math.max(0, clamp(windBase * gustFactor, profile.windSpeed.min, profile.windSpeed.max * 1.25));
 
   const dominantWindDirection = WIND_DIRECTIONS[Math.floor(seeded(seed, "wind:dir") * WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
@@ -109,7 +115,7 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
     maxTemperature,
     rainTotal24h,
     maxWindSpeed,
-    stormChance: traits.stormChance,
+    stormChance: effectiveStormChance,
     fogChance: traits.fogChance,
     precipitationChance: traits.precipitationChance,
     rainAverage: profile.rain.average
@@ -125,6 +131,7 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
     rainTotal24h: round1(rainTotal24h),
     maxWindSpeed: round1(maxWindSpeed),
     dominantWindDirection,
-    dominantState: safeState
+    dominantState: safeState,
+    trendKind: trend.kind
   };
 };

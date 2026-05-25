@@ -71,6 +71,11 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
             {t(snapshot.locale, "weather.dailyRainTotal")}: {snapshot.weather.dailyRainTotal} {snapshot.weather.units.rain}
           </div>
         ) : null}
+        {snapshot.weather?.trendKind ? (
+          <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
+            {t(snapshot.locale, "weather.trend")}: {t(snapshot.locale, `weather.trend.${snapshot.weather.trendKind}`)}
+          </div>
+        ) : null}
         {snapshot.weather?.dominantState ? (
           <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 6 }}>
             {t(snapshot.locale, "weather.dominantState")}: {getWeatherStateIcon(snapshot.weather.dominantState)} {t(snapshot.locale, `weather.state.${snapshot.weather.dominantState}`)}
@@ -152,6 +157,11 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
       {currentWeather?.dailyRainTotal !== undefined ? (
         <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
           {t(project.locale, "weather.dailyRainTotal")}: {currentWeather.dailyRainTotal} {weatherUnits.rain}
+        </div>
+      ) : null}
+      {currentWeather?.trendKind ? (
+        <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
+          {t(project.locale, "weather.trend")}: {t(project.locale, `weather.trend.${currentWeather.trendKind}`)}
         </div>
       ) : null}
       {currentWeather?.dominantState ? (

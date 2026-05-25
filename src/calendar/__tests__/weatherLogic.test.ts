@@ -89,6 +89,13 @@ describe("weatherLogic", () => {
     expect(weather.dominantState).toBeDefined();
   });
 
+  it("generateWeatherForTime ajoute trendKind au snapshot", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    const weather = generateWeatherForTime(project, 4, 12);
+    expect(weather?.trendKind).toBeDefined();
+  });
+
   it("temperature horaire reste entre min/max journaliers", () => {
     const project = buildProject();
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];

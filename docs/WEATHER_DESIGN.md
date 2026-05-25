@@ -1191,5 +1191,7 @@ type WeatherEventTriggerHistoryEntry = {
 Précisions :
 
 - `triggeredAtMinutes` est exprimé en **minutes absolues internes**.
-- Les états/valeurs météo reflètent l'instant du déclenchement.
-- L'historique ne stocke pas toute la météo heure par heure.
+- `weatherState` correspond à l'état météo horaire au moment du déclenchement.
+- `dominantState` correspond à l'état dominant du jour au moment du déclenchement.
+- `temperature`, `rain` et `windSpeed` correspondent aux valeurs météo au moment du déclenchement.
+- L'historique ne stocke pas toute la météo heure par heure, seulement un résumé du moment du déclenchement.

@@ -95,6 +95,8 @@ export type WeatherSettings = {
 
 export type WindDirection = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 
+export type WeatherTrendKind = "cold" | "warm" | "wet" | "dry" | "windy" | "calm" | "stormy" | "stable" | "unstable";
+
 export type WeatherState = "clear" | "cloudy" | "overcast" | "fog" | "lightRain" | "heavyRain" | "storm" | "snow" | "strongWind" | "tempest";
 
 export type WeatherSnapshot = {
@@ -107,6 +109,7 @@ export type WeatherSnapshot = {
   dailyMaxTemperature?: number;
   dailyRainTotal?: number;
   dominantState?: WeatherState;
+  trendKind?: WeatherTrendKind;
 };
 
 export type Season = {
@@ -208,6 +211,7 @@ export type WeatherEventTriggerHistoryEntry = {
   triggeredAtMinutes: number;
   weatherState?: WeatherState;
   dominantState?: WeatherState;
+  trendKind?: WeatherTrendKind;
   temperature?: number;
   rain?: number;
   windSpeed?: number;

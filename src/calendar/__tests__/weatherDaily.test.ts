@@ -203,4 +203,31 @@ describe("weatherDaily", () => {
       summary.dominantState
     );
   });
+
+  it("la tendance influence température/pluie/vent et reste déterministe", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherSettings.seed = "trend-daily";
+    project.seasons = [{
+      id: "s1",
+      name: "Season",
+      start: { monthId: "month-1", dayOfMonth: 1 },
+      end: { monthId: "month-2", dayOfMonth: 30 },
+      weatherProfile: {
+        temperature: { min: 0, average: 12, max: 22 },
+        windSpeed: { min: 0, average: 12, max: 30 },
+        rain: { min: 0, average: 3, max: 9 },
+        stability: 0.5,
+        precipitationChance: 0.5,
+        stormChance: 0.5,
+        windVariability: 0.5
+      }
+    }];
+
+    const a = getDailyWeatherSummary(project, 10)!;
+    const b = getDailyWeatherSummary(project, 10)!;
+    const c = getDailyWeatherSummary(project, 25)!;
+    expect(a).toEqual(b);
+    expect(a.trendKind).toBeDefined();
+    expect(a.averageTemperature !== c.averageTemperature || a.rainTotal24h !== c.rainTotal24h || a.maxWindSpeed !== c.maxWindSpeed).toBe(true);
+  });
 });
