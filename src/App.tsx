@@ -8,6 +8,7 @@ import { MonthView } from "./components/MonthView";
 import { SettingsView } from "./components/SettingsView";
 import { TodayView } from "./components/TodayView";
 import { PlayerView } from "./components/PlayerView";
+import { appShellStyle, tabButtonStyle, tabsGridStyle, titleStyle } from "./components/ui/styles";
 import { getStorageScope, type StorageScope } from "./obr/roomScope";
 import { getViewerRole, type ViewerRole } from "./obr/playerRole";
 import { loadCalendarProject, resetCalendarProject, saveCalendarProject } from "./storage/calendarStorage";
@@ -83,7 +84,7 @@ export const App = () => {
   }, []);
 
   if (!scope || !project || !viewerRole) {
-    return <main style={{ width: 360, minHeight: 480, padding: 12, color: "#e5e7eb", background: "#10131a" }}>{t("fr", "common.loading")}</main>;
+    return <main style={appShellStyle}>{t("fr", "common.loading")}</main>;
   }
 
   const updateProject = (nextProject: CalendarProject) => {
@@ -141,15 +142,15 @@ export const App = () => {
     if (viewerRole === "gm") publishPublicIndex(buildPublicCalendarIndex(reset, nextRev));
   };
 
-  return <main style={{ width: "100%", maxWidth: 360, minHeight: 480, boxSizing: "border-box", fontFamily: "Inter, system-ui, sans-serif", fontSize: 13, background: "#10131a", color: "#e5e7eb", padding: 12, borderRadius: 8, overflowX: "hidden" }}>
-    <h1 style={{ fontSize: 16, margin: "0 0 10px" }}>{t(project.locale, "app.title")}</h1>
+  return <main style={appShellStyle}>
+    <h1 style={titleStyle}>{t(project.locale, "app.title")}</h1>
     {viewerRole === "gm" ? <>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6, marginBottom: 10 }}>
-        <button type="button" onClick={() => setActiveTab("today")} style={tabStyle(project.uiSettings.activeTab === "today")}>{t(project.locale, "nav.today")}</button>
-        <button type="button" onClick={() => setActiveTab("month")} style={tabStyle(project.uiSettings.activeTab === "month")}>{t(project.locale, "nav.month")}</button>
-        <button type="button" onClick={() => setActiveTab("events")} style={tabStyle(project.uiSettings.activeTab === "events")}>{t(project.locale, "nav.events")}</button>
-        <button type="button" onClick={() => setActiveTab("settings")} style={tabStyle(project.uiSettings.activeTab === "settings")}>{t(project.locale, "nav.settings")}</button>
-        <button type="button" onClick={() => setActiveTab("player")} style={tabStyle(project.uiSettings.activeTab === "player")}>{t(project.locale, "nav.player")}</button>
+      <div style={tabsGridStyle}>
+        <button type="button" onClick={() => setActiveTab("today")} style={tabButtonStyle(project.uiSettings.activeTab === "today")}>{t(project.locale, "nav.today")}</button>
+        <button type="button" onClick={() => setActiveTab("month")} style={tabButtonStyle(project.uiSettings.activeTab === "month")}>{t(project.locale, "nav.month")}</button>
+        <button type="button" onClick={() => setActiveTab("events")} style={tabButtonStyle(project.uiSettings.activeTab === "events")}>{t(project.locale, "nav.events")}</button>
+        <button type="button" onClick={() => setActiveTab("settings")} style={tabButtonStyle(project.uiSettings.activeTab === "settings")}>{t(project.locale, "nav.settings")}</button>
+        <button type="button" onClick={() => setActiveTab("player")} style={tabButtonStyle(project.uiSettings.activeTab === "player")}>{t(project.locale, "nav.player")}</button>
       </div>
       {project.uiSettings.activeTab === "month" ? <MonthView project={project} onProjectUpdate={updateProject} initialSelectedDate={pendingMonthSelectedDate} onCreateEventForDate={(date) => { setPendingCreateEventDate(date); setActiveTab("events"); }} /> : project.uiSettings.activeTab === "events" ? <EventsView project={project} onProjectUpdate={updateProject} initialCreateDate={pendingCreateEventDate} initialEditEventId={pendingEditEventId} onInitialCreateDateConsumed={() => setPendingCreateEventDate(null)} onInitialEditEventIdConsumed={() => setPendingEditEventId(null)} onOpenSearchResult={handleOpenSearchResult} /> : project.uiSettings.activeTab === "settings" ? <SettingsView project={project} onProjectUpdate={updateProject} saveError={saveError} scope={scope} onReset={handleReset} /> : project.uiSettings.activeTab === "player" ? <PlayerView project={project} /> : <TodayView project={project} onProjectUpdate={updateProject} onReset={handleReset} onOpenNotification={handleOpenNotification} />}
     </> : publicSnapshot ? <PlayerView project={project} snapshot={publicSnapshot} /> : <div style={{ color: "#9ca3af" }}>{t(project.locale, "player.waitingForGmData")}</div>}
