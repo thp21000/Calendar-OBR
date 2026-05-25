@@ -633,4 +633,30 @@ it("événement désactivé non déclenché", () => {
     const next = applyWeatherEventTriggerActions(project, [event], { absoluteDay: 0, hour: 10, minute: 0 });
     expect(next.weatherEvents[0].status).toBe("disabled");
   });
+
+  it("déclenche un event state via override", () => {
+    const project = buildProject([{ ...createDefaultWeatherEvent("fr"), id: "s", conditions: [{ type: "state", state: "storm" }], requireAllConditions: true, enabled: true }]);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } } as any];
+    project.currentTime = { absoluteDay: 4, hour: 12, minute: 0 };
+    project.weatherOverrides = [{ id: "o1", absoluteDay: 4, state: "storm" } as any];
+    const now = generateWeatherForTime(project, 4, 12)!;
+    expect(getTriggeredWeatherEvents(project, now).map((e) => e.id)).toContain("s");
+  });
+
+  it("déclenche des events dominantState/dailyRainTotal/windDirection via override", () => {
+    const events = [
+      { ...createDefaultWeatherEvent("fr"), id: "d", conditions: [{ type: "dominantState", state: "storm" }], requireAllConditions: true, enabled: true },
+      { ...createDefaultWeatherEvent("fr"), id: "r", conditions: [{ type: "metric", metric: "dailyRainTotal", operator: "gte", value: 8 }], requireAllConditions: true, enabled: true },
+      { ...createDefaultWeatherEvent("fr"), id: "w", conditions: [{ type: "windDirection", direction: "NE" }], requireAllConditions: true, enabled: true }
+    ];
+    const project = buildProject(events as any);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } } as any];
+    project.currentTime = { absoluteDay: 4, hour: 12, minute: 0 };
+    project.weatherOverrides = [{ id: "o2", absoluteDay: 4, dominantState: "storm", dailyRainTotal: 12, windDirection: "NE" } as any];
+    const now = generateWeatherForTime(project, 4, 12)!;
+    const ids = getTriggeredWeatherEvents(project, now).map((e) => e.id);
+    expect(ids).toContain("d");
+    expect(ids).toContain("r");
+    expect(ids).toContain("w");
+  });
 });
