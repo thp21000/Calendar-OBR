@@ -230,4 +230,14 @@ describe("weatherDaily", () => {
     expect(a.trendKind).toBeDefined();
     expect(a.averageTemperature !== c.averageTemperature || a.rainTotal24h !== c.rainTotal24h || a.maxWindSpeed !== c.maxWindSpeed).toBe(true);
   });
+
+  it("override force dailyRainTotal et dominantState", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [{ id:"s1", name:"S", start:{monthId:"month-1",dayOfMonth:1}, end:{monthId:"month-2",dayOfMonth:30} } as any];
+    project.weatherOverrides = [{ id:"o1", absoluteDay: 4, dailyRainTotal: 12, dominantState: "storm" }];
+    const s = getDailyWeatherSummary(project, 4)!;
+    expect(s.rainTotal24h).toBe(12);
+    expect(s.dominantState).toBe("storm");
+  });
+
 });

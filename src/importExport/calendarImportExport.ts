@@ -74,7 +74,8 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     moons: Array.isArray(data.moons) ? data.moons : [],
     dayNotes: Array.isArray(data.dayNotes) ? data.dayNotes : [],
     moonEvents: Array.isArray(data.moonEvents) ? data.moonEvents : [],
-    weatherEvents: Array.isArray(data.weatherEvents) ? data.weatherEvents : []
+    weatherEvents: Array.isArray(data.weatherEvents) ? data.weatherEvents : [],
+    weatherOverrides: Array.isArray((data as Record<string, unknown>).weatherOverrides) ? (data as Record<string, unknown>).weatherOverrides as unknown[] : []
   };
 
   if (!isRecord(maybeCompat.weatherSettings)) {
@@ -140,6 +141,29 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
       }
       return next;
     });
+  }
+
+  if (Array.isArray((maybeCompat as Record<string, unknown>).weatherOverrides)) {
+    (maybeCompat as Record<string, unknown>).weatherOverrides = ((maybeCompat as Record<string, unknown>).weatherOverrides as unknown[])
+      .filter(isRecord)
+      .filter((o) => typeof o.id === "string" && o.id.trim().length > 0)
+      .filter((o) => typeof o.absoluteDay === "number" && Number.isInteger(o.absoluteDay))
+      .map((o) => {
+        const n = { ...o } as Record<string, unknown>;
+        const num = (k: string, nonNeg = false) => {
+          const v = n[k];
+          if (typeof v !== "number" || !Number.isFinite(v)) { delete n[k]; return; }
+          if (nonNeg && v < 0) { n[k] = 0; return; }
+        };
+        for (const k of ["temperature", "dailyMinTemperature", "dailyMaxTemperature", "dailyRainTotal", "windSpeed", "rain"]) num(k, ["dailyRainTotal","windSpeed","rain"].includes(k));
+        if (typeof n.label !== "string") delete n.label;
+        if (typeof n.gmNote !== "string") delete n.gmNote;
+        if (!(n.windDirection === "N" || n.windDirection === "NE" || n.windDirection === "E" || n.windDirection === "SE" || n.windDirection === "S" || n.windDirection === "SW" || n.windDirection === "W" || n.windDirection === "NW")) delete n.windDirection;
+        if (!(n.state === "clear" || n.state === "cloudy" || n.state === "overcast" || n.state === "fog" || n.state === "lightRain" || n.state === "heavyRain" || n.state === "storm" || n.state === "snow" || n.state === "strongWind" || n.state === "tempest")) delete n.state;
+        if (!(n.dominantState === "clear" || n.dominantState === "cloudy" || n.dominantState === "overcast" || n.dominantState === "fog" || n.dominantState === "lightRain" || n.dominantState === "heavyRain" || n.dominantState === "storm" || n.dominantState === "snow" || n.dominantState === "strongWind" || n.dominantState === "tempest")) delete n.dominantState;
+        if (!(n.trendKind === "cold" || n.trendKind === "warm" || n.trendKind === "wet" || n.trendKind === "dry" || n.trendKind === "windy" || n.trendKind === "calm" || n.trendKind === "stormy" || n.trendKind === "stable" || n.trendKind === "unstable")) delete n.trendKind;
+        return n;
+      });
   }
 
   if (Array.isArray(maybeCompat.events)) {

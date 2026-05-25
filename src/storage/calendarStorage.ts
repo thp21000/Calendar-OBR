@@ -37,6 +37,7 @@ const defaultProject: CalendarProject = {
   dayNotes: [],
   weatherSettings: {},
   weatherEvents: [],
+  weatherOverrides: [],
   uiSettings: { activeTab: "today", compactMode: true, defaultMoonSystemInitialized: true }
 };
 

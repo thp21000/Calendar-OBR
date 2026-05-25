@@ -603,3 +603,17 @@ it("weather event status invalide nettoyé", () => {
   expect(sanitized.project.weatherEvents[0].archiveAfterTrigger).toBe(false);
   expect(sanitized.project.weatherEvents[0].disableAfterTrigger).toBe(false);
 });
+
+it("conserve les weatherOverrides valides et nettoie invalides", () => {
+  const project: any = createDefaultCalendarProject();
+  project.weatherOverrides = [
+    { id: "o1", absoluteDay: 2, dailyRainTotal: 3, windDirection: "N", trendKind: "wet" },
+    { id: "", absoluteDay: 3 },
+    { id: "o3", absoluteDay: 1.2, windSpeed: -4 }
+  ];
+  const sanitized = sanitizeCalendarProject(project);
+  expect(sanitized.ok).toBe(true);
+  if (!sanitized.ok) return;
+  expect(sanitized.project.weatherOverrides?.length).toBe(1);
+  expect(sanitized.project.weatherOverrides?.[0].id).toBe("o1");
+});

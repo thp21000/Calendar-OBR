@@ -16,7 +16,9 @@ type Props = {
 
 const rowStyle: React.CSSProperties = { fontSize: 12, color: "#d1d5db" };
 
-const CurrentWeatherSummary = ({ project, currentSeason, currentWeather, weatherUnits }: Pick<Props, "project" | "currentSeason" | "currentWeather" | "weatherUnits">) => (
+const CurrentWeatherSummary = ({ project, currentSeason, currentWeather, weatherUnits }: Pick<Props, "project" | "currentSeason" | "currentWeather" | "weatherUnits">) => {
+  const override = (project.weatherOverrides ?? []).find((o) => o.absoluteDay === project.currentTime.absoluteDay);
+  return (
   <>
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
       <span>{t(project.locale, "calendar.season")}:</span>
@@ -33,6 +35,10 @@ const CurrentWeatherSummary = ({ project, currentSeason, currentWeather, weather
     <div style={rowStyle}>
       {t(project.locale, "calendar.weather")}: {currentWeather ? `${getWeatherStateIcon(currentWeather.state ?? "clear")} ${t(project.locale, `weather.state.${currentWeather.state ?? "clear"}`)}` : t(project.locale, "calendar.noWeather")}
     </div>
+
+    {override ? (
+      <div style={rowStyle}>{override.label?.trim() ? `${t(project.locale, "weatherOverride.active")}: ${override.label}` : t(project.locale, "weatherOverride.active")}</div>
+    ) : null}
 
     {currentWeather ? (
       <div style={{ display: "grid", gap: 2 }}>
@@ -55,6 +61,7 @@ const CurrentWeatherSummary = ({ project, currentSeason, currentWeather, weather
     ) : null}
   </>
 );
+}
 
 const HourlyForecastList = ({ project, hourlyForecast, weatherUnits }: Pick<Props, "project" | "hourlyForecast" | "weatherUnits">) => (
   <div style={{ marginTop: 4 }}>

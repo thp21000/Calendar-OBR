@@ -2,6 +2,7 @@ import { absoluteDayToCalendarDate } from "./dateEngine";
 import { deriveSeasonWeatherTraits } from "./seasonWeatherProfile";
 import { createDefaultSeasonWeatherProfile, getSeasonForDate } from "./seasonsLogic";
 import { getWeatherTrendForDay } from "./weatherTrend";
+import { applyWeatherOverrideToDailySummary, getWeatherOverrideForDay } from "./weatherOverrides";
 import type { CalendarProject, WeatherState, WindDirection } from "../domain/types";
 
 export type DailyWeatherSummary = {
@@ -123,7 +124,7 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
 
   const safeState = WEATHER_STATES.includes(dominantState) ? dominantState : "clear";
 
-  return {
+  const summary: DailyWeatherSummary = {
     absoluteDay,
     minTemperature: round1(minTemperature),
     maxTemperature: round1(maxTemperature),
@@ -134,4 +135,5 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
     dominantState: safeState,
     trendKind: trend.kind
   };
+  return applyWeatherOverrideToDailySummary(summary, getWeatherOverrideForDay(project, absoluteDay));
 };

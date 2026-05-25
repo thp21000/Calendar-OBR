@@ -3,6 +3,7 @@ import { getHourlyWeatherState, getWeatherState } from "./weatherState";
 import { getDailyWeatherSummary } from "./weatherDaily";
 import { getHourlyRainForDay } from "./weatherRain";
 import { getHourlyWindForDay } from "./weatherWind";
+import { getWeatherOverrideForDay } from "./weatherOverrides";
 import type { CalendarProject, WeatherSnapshot, WindDirection } from "../domain/types";
 
 const WIND_DIRECTIONS: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -43,6 +44,7 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
   const seed = `${seedBase}|${absoluteDay}|${hour}|${season.id}`;
 
   const dailySummary = getDailyWeatherSummary(project, absoluteDay);
+  const weatherOverride = getWeatherOverrideForDay(project, absoluteDay);
   const temperature = dailySummary
     ? (() => {
         // Simple day/night curve: near min around 05:00, near max around 15:00.
@@ -71,24 +73,31 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
     ? hourlyWind.windDirection
     : WIND_DIRECTIONS[Math.floor(seeded(seed, "dir") * WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
 
+  const overriddenTemperature = typeof weatherOverride?.temperature === "number" ? weatherOverride.temperature : temperature;
+  const overriddenWindSpeed = typeof weatherOverride?.windSpeed === "number" ? Math.max(0, weatherOverride.windSpeed) : windSpeed;
+  const overriddenRain = typeof weatherOverride?.rain === "number" ? Math.max(0, weatherOverride.rain) : rain;
+  const overriddenWindDirection = weatherOverride?.windDirection ?? windDirection;
+  const computedState = getHourlyWeatherState({
+    temperature: overriddenTemperature,
+    windSpeed: overriddenWindSpeed,
+    rain: overriddenRain,
+    dailyRainTotal: dailySummary?.rainTotal24h,
+    dominantState: dailySummary?.dominantState,
+    hour
+  });
+  const overriddenState = weatherOverride?.state ?? computedState;
+
   return {
-    temperature,
-    windSpeed,
-    windDirection,
-    rain,
-    state: getHourlyWeatherState({
-      temperature,
-      windSpeed,
-      rain,
-      dailyRainTotal: dailySummary?.rainTotal24h,
-      dominantState: dailySummary?.dominantState,
-      hour
-    }),
+    temperature: overriddenTemperature,
+    windSpeed: overriddenWindSpeed,
+    windDirection: overriddenWindDirection,
+    rain: overriddenRain,
+    state: overriddenState,
     dailyMinTemperature: dailySummary?.minTemperature,
     dailyMaxTemperature: dailySummary?.maxTemperature,
     dailyRainTotal: dailySummary?.rainTotal24h,
-    dominantState: dailySummary?.dominantState,
-    trendKind: dailySummary?.trendKind
+    dominantState: weatherOverride?.dominantState ?? dailySummary?.dominantState,
+    trendKind: weatherOverride?.trendKind ?? dailySummary?.trendKind
   };
 };
 

@@ -30,6 +30,18 @@ const buildProject = (): CalendarProject => ({
 });
 
 describe("weatherLogic", () => {
+  it("override peut forcer la météo courante", () => {
+    const project = buildProject();
+    project.seasons = [{ id:"s1", name:"S", start:{monthId:"m1",dayOfMonth:1}, end:{monthId:"m2",dayOfMonth:30} }];
+    project.weatherOverrides = [{ id:"o1", absoluteDay: 4, temperature: 99, windSpeed: 1, rain: 7, state: "fog", windDirection: "SW" } as any];
+    const w = generateWeatherForTime(project, 4, 12)!;
+    expect(w.temperature).toBe(99);
+    expect(w.windSpeed).toBe(1);
+    expect(w.rain).toBe(7);
+    expect(w.state).toBe("fog");
+    expect(w.windDirection).toBe("SW");
+    expect(w.dailyMinTemperature).toBeDefined();
+  });
   it("retourne undefined si aucune saison", () => {
     expect(getCurrentWeather(buildProject())).toBeUndefined();
   });

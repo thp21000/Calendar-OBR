@@ -162,6 +162,23 @@ export type MoonPhase = {
   illumination: number;
 };
 
+export type WeatherOverride = {
+  id: string;
+  absoluteDay: number;
+  label?: string;
+  temperature?: number;
+  dailyMinTemperature?: number;
+  dailyMaxTemperature?: number;
+  rain?: number;
+  dailyRainTotal?: number;
+  windSpeed?: number;
+  windDirection?: WindDirection;
+  state?: WeatherState;
+  dominantState?: WeatherState;
+  trendKind?: WeatherTrendKind;
+  gmNote?: string;
+};
+
 export type WeatherConditionMetric = "temperature" | "windSpeed" | "rain" | "dailyMinTemperature" | "dailyMaxTemperature" | "dailyRainTotal";
 export type WeatherConditionOperator = "gte" | "lte";
 
@@ -279,6 +296,7 @@ export type CalendarProject = {
   dayNotes?: DayNote[];
   weatherSettings: WeatherSettings;
   weatherEvents: WeatherEvent[];
+  weatherOverrides?: WeatherOverride[];
   uiSettings: UiSettings;
 };
 
