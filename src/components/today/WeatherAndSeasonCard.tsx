@@ -42,6 +42,11 @@ export const WeatherAndSeasonCard = ({
         {t(project.locale, "weather.dailyRainTotal")}: {currentWeather.dailyRainTotal} {weatherUnits.rain}
       </div>
     ) : null}
+    {currentWeather?.trendKind ? (
+      <div style={{ fontSize: 12, color: "#d1d5db" }}>
+        {t(project.locale, "weather.trend")}: {t(project.locale, `weather.trend.${currentWeather.trendKind}`)}
+      </div>
+    ) : null}
     {currentWeather?.dominantState ? (
       <div style={{ fontSize: 12, color: "#d1d5db" }}>
         {t(project.locale, "weather.dominantState")}: {getWeatherStateIcon(currentWeather.dominantState)} {t(project.locale, `weather.state.${currentWeather.dominantState}`)}
