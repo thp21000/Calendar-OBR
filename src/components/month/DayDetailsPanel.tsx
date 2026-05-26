@@ -6,6 +6,8 @@ import type { DayDetails } from "../../calendar/dayDetails";
 import { EventIcon } from "../EventIcon";
 import { DayNotesEditor } from "./DayNotesEditor";
 import { getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIcon } from "../today/weatherIcons";
+import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
+import { formatEventTimeShort, formatEventVisibility } from "../../calendar/formatEvent";
 
 export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void }) => {
   const dayInternal = calendarDateToAbsoluteDay(dayDetails.date, project.calendarSystem);
@@ -28,8 +30,8 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
       {dayDetails.dailyWeather ? (
         <>
           <span>{getWeatherStateIcon(dayDetails.dailyWeather.dominantState)} {t(project.locale, `weather.state.${dayDetails.dailyWeather.dominantState}`)}</span>
-          <span>{getTemperatureIcon(dayDetails.dailyWeather.averageTemperature)} {dayDetails.dailyWeather.averageTemperature} °C</span>
-          <span>{getWindSpeedIcon(dayDetails.dailyWeather.averageWindSpeed)} {dayDetails.dailyWeather.averageWindSpeed} km/h <span title={dayDetails.dailyWeather.dominantWindDirection}>{getWindDirectionIcon(dayDetails.dailyWeather.dominantWindDirection)}</span></span>
+          <span>{getTemperatureIcon(dayDetails.dailyWeather.averageTemperature)} {t(project.locale, "weather.dailyAverage")} {dayDetails.dailyWeather.averageTemperature} °C</span>
+          <span>{getWindSpeedIcon(dayDetails.dailyWeather.averageWindSpeed)} {t(project.locale, "weather.averageWind")} {dayDetails.dailyWeather.averageWindSpeed} km/h <span title={dayDetails.dailyWeather.dominantWindDirection}>{getWindDirectionIcon(dayDetails.dailyWeather.dominantWindDirection)}</span></span>
           <span>24 h: {dayDetails.dailyWeather.rainTotal24h} mm/h</span>
         </>
       ) : t(project.locale, "calendar.noWeather")}
@@ -41,24 +43,33 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
         {dayDetails.dailyWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${t(project.locale, `weather.state.${dayDetails.dailyWeather.dominantState}`)}` : ""}
       </div>
     ) : null}
-    <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "month.dayEvents")}:</strong></div>
-    {dayDetails.events.length === 0 ? <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "month.noEventsForDay")}</div> : (
+    <SectionCard style={{ marginTop: 8 }}>
+      <SectionHeader title={t(project.locale, "month.dayEvents")} />
+    {dayDetails.events.length === 0 ? <EmptyState text={t(project.locale, "month.noEventsForDay")} /> : (
       <div style={{ display: "grid", gap: 4 }}>
         {dayDetails.events.map((event) => (
-          <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 4 }}>
+          <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <EventIcon icon={event.icon} locale={project.locale} size={14} />
-              <strong>{event.name}</strong>
-              {onOpenEvent ? <button type="button" style={{ marginLeft: "auto", fontSize: 11 }} onClick={() => onOpenEvent(event.id)}>{t(project.locale, "globalSearch.open")}</button> : null}
+              <strong style={{ color: "#f3f4f6" }}>{event.name}</strong>
+              <span style={{ marginLeft: "auto", color: "#cbd5e1", fontSize: 11 }}>{formatEventTimeShort(project, event)}</span>
+              {onOpenEvent ? <SecondaryButton type="button" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => onOpenEvent(event.id)}>{t(project.locale, "globalSearch.open")}</SecondaryButton> : null}
             </div>
-            {event.summary ? <div style={{ color: "#cbd5e1" }}>{event.summary}</div> : null}
+            {event.summary ? <div style={{ color: "#cbd5e1", marginTop: 4 }}>{event.summary}</div> : null}
+            <div style={{ marginTop: 4, opacity: 0.86 }}>
+              <Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge>
+            </div>
           </div>
         ))}
       </div>
     )}
-    {onCreateEventForDate ? <button type="button" onClick={() => onCreateEventForDate(dayDetails.date)} style={{ marginTop: 8, width: "100%" }}>{t(project.locale, "month.createEventForDay")}</button> : null}
-    <div style={{ fontSize: 12, marginTop: 8, marginBottom: 4 }}><strong>{t(project.locale, "dayNotes.title")}:</strong></div>
+    {onCreateEventForDate ? <PrimaryButton type="button" onClick={() => onCreateEventForDate(dayDetails.date)} style={{ marginTop: 8, width: "100%" }}>{t(project.locale, "month.createEventForDay")}</PrimaryButton> : null}
+    </SectionCard>
+
+    <SectionCard style={{ marginTop: 8 }}>
+      <SectionHeader title={t(project.locale, "dayNotes.title")} />
     <DayNotesEditor project={project} date={dayDetails.date} notes={notes} onProjectUpdate={onProjectUpdate} />
+    </SectionCard>
   </div>
 );
 };
