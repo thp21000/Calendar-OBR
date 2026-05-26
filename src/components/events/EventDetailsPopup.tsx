@@ -14,7 +14,7 @@ export const EventDetailsPopup = ({ project, event, onClose, onUpdate }: { proje
         <div style={{ width: "100%", maxWidth: 340, maxHeight: "85vh", overflow: "auto", border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#0f172a" }} onClick={(e) => e.stopPropagation()}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
             <strong>{t(project.locale, "events.details")}</strong>
-            <button type="button" onClick={onClose} style={{ fontSize: 11 }}>{t(project.locale, "month.closeDayDetails")}</button>
+            <button type="button" onClick={onClose} title={t(project.locale, "month.closeDayDetails")} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #374151", background: "#1f2937", color: "#e5e7eb", fontSize: 18, lineHeight: 1, cursor: "pointer" }}>×</button>
           </div>
           <EventForm
             project={project}
@@ -36,7 +36,7 @@ export const EventDetailsPopup = ({ project, event, onClose, onUpdate }: { proje
       <div style={{ width: "100%", maxWidth: 340, maxHeight: "85vh", overflow: "auto", border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
           <strong>{t(project.locale, "events.details")}</strong>
-          <button type="button" onClick={onClose} style={{ fontSize: 11 }}>{t(project.locale, "month.closeDayDetails")}</button>
+          <button type="button" onClick={onClose} title={t(project.locale, "month.closeDayDetails")} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #374151", background: "#1f2937", color: "#e5e7eb", fontSize: 18, lineHeight: 1, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
           <EventIcon icon={event.icon} locale={project.locale} />
@@ -51,7 +51,6 @@ export const EventDetailsPopup = ({ project, event, onClose, onUpdate }: { proje
         {event.gmDescription ? <div style={{ fontSize: 12, marginBottom: 4 }}><strong>{t(project.locale, "events.gmDescription")}:</strong> {event.gmDescription}</div> : null}
         <div style={{ fontSize: 12, marginBottom: 8 }}><strong>{t(project.locale, "events.triggerOptions")}:</strong> {formatEventTriggerOptions(project, event)}</div>
         <div style={{ display: "flex", gap: 6 }}>
-          <button type="button" onClick={onClose}>{t(project.locale, "month.closeDayDetails")}</button>
           {onUpdate ? <button type="button" onClick={() => setIsEditing(true)}>{t(project.locale, "events.edit")}</button> : null}
         </div>
       </div>

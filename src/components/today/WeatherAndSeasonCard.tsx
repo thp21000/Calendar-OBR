@@ -4,6 +4,7 @@ import type { CalendarProject, MoonPhase, Season, WeatherSnapshot } from "../../
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
 import { Badge, Panel, SectionCard, SectionHeader } from "../ui";
+import { ui } from "../ui/styles";
 import { getRainIcon, getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIcon } from "./weatherIcons";
 
 type Props = {
@@ -22,7 +23,7 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
 
   return (
     <SectionCard>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 18, fontWeight: 800, lineHeight: 1.25 }}>
         <span style={{ whiteSpace: "nowrap" }}>{displayDate.weekdayName}</span>
         <span style={{ whiteSpace: "nowrap" }}>{displayDate.dayOfMonth}</span>
         <span style={{ whiteSpace: "nowrap" }}>{displayDate.monthName}</span>
@@ -40,7 +41,10 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
                 {getWeatherStateIcon(currentWeather.state)} {t(project.locale, `weather.state.${currentWeather.state}`)}
               </span>
             ) : null}
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getTemperatureIcon(currentWeather.temperature)} {currentWeather.temperature} {weatherUnits.temperature}</span>
+            <<span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+              {getWindSpeedIcon(currentWeather.windSpeed)} {currentWeather.windSpeed} {weatherUnits.windSpeed}
+              {currentWeather.windDirection ? <span title={currentWeather.windDirection}>{getWindDirectionIcon(currentWeather.windDirection)}</span> : null}
+            </span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getWindSpeedIcon(currentWeather.windSpeed)} {currentWeather.windSpeed} {weatherUnits.windSpeed} {currentWeather.windDirection ? `${getWindDirectionIcon(currentWeather.windDirection)} ${currentWeather.windDirection}` : ""}</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getRainIcon(currentWeather)} {currentWeather.rain} {weatherUnits.rain}</span>
             {currentWeather.dailyRainTotal !== undefined ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>24 h: {currentWeather.dailyRainTotal} {weatherUnits.rain}</span> : null}
@@ -62,8 +66,8 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
         {triggeredWeatherEvents.map((event) => (
           <Panel key={event.id}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
-            {event.summary ? <div style={{ marginTop: 2, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
-            {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#93c5fd" }}>{t(project.locale, "common.openLink")}</a> : null}
+            {event.summary ? <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{event.summary}</div> : null}
+            {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: ui.colors.accent }}>{t(project.locale, "common.openLink")}</a> : null}
           </Panel>
         ))}
       </div> : null}
