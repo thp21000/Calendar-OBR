@@ -9,6 +9,20 @@ import { getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIco
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
 import { formatEventTimeShort, formatEventVisibility } from "../../calendar/formatEvent";
 
+const sendPlayerPopupNotification = (payload: {
+  type: "event";
+  audience: "players";
+  title: string;
+  body: string;
+  date: string;
+  icon?: string;
+  summary?: string;
+  playerDescription?: string;
+  timeLabel?: string;
+}) => {
+  console.info("[PopupPlaceholder]", payload);
+};
+
 export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void }) => {
   const dayInternal = calendarDateToAbsoluteDay(dayDetails.date, project.calendarSystem);
   const displayDate = absoluteDayToCalendarDate(dayInternal, project.calendarSystem);
@@ -53,6 +67,25 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
               <EventIcon icon={event.icon} locale={project.locale} size={14} />
               <strong style={{ color: "#f3f4f6" }}>{event.name}</strong>
               <span style={{ marginLeft: "auto", color: "#cbd5e1", fontSize: 11 }}>{formatEventTimeShort(project, event)}</span>
+              <SecondaryButton
+                type="button"
+                style={{ padding: "4px 8px", fontSize: 11 }}
+                onClick={() =>
+                  sendPlayerPopupNotification({
+                    type: "event",
+                    audience: "players",
+                    title: event.name,
+                    body: event.playerDescription?.trim() || event.summary || event.name,
+                    date: `${displayDate.weekdayName} ${dayDetails.date.dayOfMonth} ${displayDate.monthName} ${dayDetails.date.year}`,
+                    icon: event.icon,
+                    summary: event.summary,
+                    playerDescription: event.playerDescription,
+                    timeLabel: formatEventTimeShort(project, event)
+                  })
+                }
+              >
+                {project.locale === "fr" ? "Envoyer" : "Send"}
+              </SecondaryButton>
               {onOpenEvent ? <SecondaryButton type="button" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => onOpenEvent(event.id)}>{t(project.locale, "globalSearch.open")}</SecondaryButton> : null}
             </div>
             {event.summary ? <div style={{ color: "#cbd5e1", marginTop: 4 }}>{event.summary}</div> : null}

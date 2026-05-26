@@ -1,10 +1,32 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { addDayNote, createDefaultDayNote, deleteDayNote, updateDayNote } from "../../calendar/dayNotesLogic";
 import type { DayNote, CalendarDate, CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
-import { Badge, DangerButton, EmptyState, Panel, PrimaryButton, SecondaryButton, TextareaInput, Toolbar } from "../ui";
+import { DangerButton, EmptyState, Panel, PrimaryButton, SecondaryButton, Toolbar } from "../ui";
 
 const normalizeVisibility = (playerNote: string): "gm" | "players" => (playerNote.trim() ? "players" : "gm");
+
+const sendPopupNotification = (payload: {
+  type: "dayNote";
+  audience: "gm" | "players";
+  title: string;
+  body: string;
+  date: string;
+}) => {
+  console.info("[PopupPlaceholder]", payload);
+};
+
+const AutoResizeTextarea = ({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) => {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const resize = () => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+  useEffect(() => resize(), [value]);
+  return <textarea ref={ref} value={value} onChange={(e) => { onChange(e.target.value); resize(); }} rows={2} placeholder={placeholder} style={{ width: "100%", resize: "none", overflow: "hidden", boxSizing: "border-box", borderRadius: 6, border: "1px solid #475569", background: "#1f2937", color: "#f3f4f6", padding: "7px 8px", fontSize: 12 }} />;
+};
 
 export const DayNotesEditor = ({ project, date, notes, onProjectUpdate }: { project: CalendarProject; date: CalendarDate; notes: DayNote[]; onProjectUpdate?: (project: CalendarProject) => void }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -43,14 +65,13 @@ export const DayNotesEditor = ({ project, date, notes, onProjectUpdate }: { proj
           <Panel key={note.id} style={{ fontSize: 12, marginBottom: 6 }}>
             {isEditing ? (
               <>
-                <div style={{ marginBottom: 6 }}><Badge tone="warning">{t(project.locale, "dayNotes.editing")}</Badge></div>
                 <label style={{ display: "grid", gap: 3, marginBottom: 6 }}>
                   <span><strong>{t(project.locale, "dayNotes.gmNote")}:</strong></span>
-                  <TextareaInput value={draft.gmNote} onChange={(e) => setDrafts((prev) => ({ ...prev, [note.id]: { ...draft, gmNote: e.target.value } }))} rows={2} style={{ resize: "vertical" }} placeholder={t(project.locale, "dayNotes.emptyGmNote")} />
+                  <AutoResizeTextarea value={draft.gmNote} onChange={(value) => setDrafts((prev) => ({ ...prev, [note.id]: { ...draft, gmNote: value } }))} placeholder={t(project.locale, "dayNotes.emptyGmNote")} />
                 </label>
                 <label style={{ display: "grid", gap: 3, marginBottom: 6 }}>
                   <span><strong>{t(project.locale, "dayNotes.playerNote")}:</strong></span>
-                  <TextareaInput value={draft.playerNote} onChange={(e) => setDrafts((prev) => ({ ...prev, [note.id]: { ...draft, playerNote: e.target.value } }))} rows={2} style={{ resize: "vertical" }} placeholder={t(project.locale, "dayNotes.emptyPlayerNote")} />
+                  <AutoResizeTextarea value={draft.playerNote} onChange={(value) => setDrafts((prev) => ({ ...prev, [note.id]: { ...draft, playerNote: value } }))} placeholder={t(project.locale, "dayNotes.emptyPlayerNote")} />
                 </label>
                 <Toolbar>
                   <PrimaryButton type="button" onClick={() => {
@@ -70,26 +91,24 @@ export const DayNotesEditor = ({ project, date, notes, onProjectUpdate }: { proj
               <>
                 {note.gmNote?.trim() ? (
                   <div style={{ marginBottom: 8 }}>
-                    <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                      <strong>{t(project.locale, "dayNotes.gmNote")}</strong>
-                      <Badge>{project.locale === "fr" ? "Privée MJ" : "GM private"}</Badge>
-                    </div>
+                    <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}><strong>{t(project.locale, "dayNotes.gmNote")}</strong></div>
                     <div style={{ whiteSpace: "pre-wrap", color: "#d1d5db" }}>{note.gmNote}</div>
                   </div>
                 ) : null}
                 {note.playerNote?.trim() ? (
                   <div style={{ marginBottom: 8 }}>
-                    <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                      <strong>{t(project.locale, "dayNotes.playerNote")}</strong>
-                      <Badge tone="success">{project.locale === "fr" ? "Visible joueurs" : "Visible to players"}</Badge>
-                    </div>
+                    <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}><strong>{t(project.locale, "dayNotes.playerNote")}</strong></div>
                     <div style={{ whiteSpace: "pre-wrap", color: "#d1d5db" }}>{note.playerNote}</div>
                   </div>
                 ) : null}
                 <Toolbar>
                   <SecondaryButton type="button" onClick={() => beginEdit(note)}>{t(project.locale, "dayNotes.edit")}</SecondaryButton>
-                  {note.playerNote?.trim() ? (
-                    <SecondaryButton type="button" onClick={() => console.info("[DayNotesEditor] send placeholder", { noteId: note.id })}>
+                  {(note.gmNote?.trim() || note.playerNote?.trim()) ? (
+                    <SecondaryButton type="button" onClick={() => {
+                      const dateLabel = `${date.dayOfMonth}/${date.monthId}/${date.year}`;
+                      if (note.gmNote?.trim()) sendPopupNotification({ type: "dayNote", audience: "gm", title: t(project.locale, "dayNotes.gmNote"), body: note.gmNote, date: dateLabel });
+                      if (note.playerNote?.trim()) sendPopupNotification({ type: "dayNote", audience: "players", title: t(project.locale, "dayNotes.playerNote"), body: note.playerNote, date: dateLabel });
+                    }}>
                       {project.locale === "fr" ? "Envoyer" : "Send"}
                     </SecondaryButton>
                   ) : null}
@@ -105,11 +124,11 @@ export const DayNotesEditor = ({ project, date, notes, onProjectUpdate }: { proj
           <div style={{ marginBottom: 4, fontSize: 12 }}><strong>{t(project.locale, "dayNotes.create")}</strong></div>
           <label style={{ display: "grid", gap: 3, marginBottom: 6 }}>
             <span><strong>{t(project.locale, "dayNotes.gmNote")}:</strong></span>
-            <TextareaInput value={newDraft.gmNote} onChange={(e) => setNewDraft((prev) => ({ ...prev, gmNote: e.target.value }))} rows={2} style={{ resize: "vertical" }} placeholder={t(project.locale, "dayNotes.emptyGmNote")} />
+            <AutoResizeTextarea value={newDraft.gmNote} onChange={(value) => setNewDraft((prev) => ({ ...prev, gmNote: value }))} placeholder={t(project.locale, "dayNotes.emptyGmNote")} />
           </label>
           <label style={{ display: "grid", gap: 3, marginBottom: 6 }}>
             <span><strong>{t(project.locale, "dayNotes.playerNote")}:</strong></span>
-            <TextareaInput value={newDraft.playerNote} onChange={(e) => setNewDraft((prev) => ({ ...prev, playerNote: e.target.value }))} rows={2} style={{ resize: "vertical" }} placeholder={t(project.locale, "dayNotes.emptyPlayerNote")} />
+            <AutoResizeTextarea value={newDraft.playerNote} onChange={(value) => setNewDraft((prev) => ({ ...prev, playerNote: value }))} placeholder={t(project.locale, "dayNotes.emptyPlayerNote")} />
           </label>
           <Toolbar>
             <PrimaryButton type="button" onClick={() => {
