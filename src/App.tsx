@@ -9,7 +9,7 @@ import { SettingsView } from "./components/SettingsView";
 import { TodayView } from "./components/TodayView";
 import { PlayerView } from "./components/PlayerView";
 import { EmptyState, SectionCard } from "./components/ui";
-import { appShellStyle, tabButtonStyle, tabsGridStyle, titleStyle } from "./components/ui/styles";
+import { appShellStyle, tabButtonStyle, tabsGridStyle } from "./components/ui/styles";
 import { getStorageScope, type StorageScope } from "./obr/roomScope";
 import { getViewerRole, type ViewerRole } from "./obr/playerRole";
 import { loadCalendarProject, resetCalendarProject, saveCalendarProject } from "./storage/calendarStorage";
@@ -144,7 +144,6 @@ export const App = () => {
   };
 
   return <main style={appShellStyle}>
-    <h1 style={titleStyle}>{t(project.locale, "app.title")}</h1>
     {viewerRole === "gm" ? <>
       <div style={tabsGridStyle}>
         <button type="button" onClick={() => setActiveTab("today")} style={tabButtonStyle(project.uiSettings.activeTab === "today")}>{t(project.locale, "nav.today")}</button>
