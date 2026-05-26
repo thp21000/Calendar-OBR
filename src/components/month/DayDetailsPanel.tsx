@@ -30,8 +30,8 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
       {dayDetails.dailyWeather ? (
         <>
           <span>{getWeatherStateIcon(dayDetails.dailyWeather.dominantState)} {t(project.locale, `weather.state.${dayDetails.dailyWeather.dominantState}`)}</span>
-          <span>{getTemperatureIcon(dayDetails.dailyWeather.averageTemperature)} {t(project.locale, "weather.dailyAverage")} {dayDetails.dailyWeather.averageTemperature} °C</span>
-          <span>{getWindSpeedIcon(dayDetails.dailyWeather.averageWindSpeed)} {t(project.locale, "weather.averageWind")} {dayDetails.dailyWeather.averageWindSpeed} km/h <span title={dayDetails.dailyWeather.dominantWindDirection}>{getWindDirectionIcon(dayDetails.dailyWeather.dominantWindDirection)}</span></span>
+          <span>{getTemperatureIcon(dayDetails.dailyWeather.averageTemperature)} {dayDetails.dailyWeather.averageTemperature} °C</span>
+          <span>{getWindSpeedIcon(dayDetails.dailyWeather.averageWindSpeed)} {dayDetails.dailyWeather.averageWindSpeed} km/h <span title={dayDetails.dailyWeather.dominantWindDirection}>{getWindDirectionIcon(dayDetails.dailyWeather.dominantWindDirection)}</span></span>
           <span>24 h: {dayDetails.dailyWeather.rainTotal24h} mm/h</span>
         </>
       ) : t(project.locale, "calendar.noWeather")}
