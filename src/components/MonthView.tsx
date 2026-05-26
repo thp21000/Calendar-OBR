@@ -9,6 +9,7 @@ import { t } from "../i18n/messages";
 import { DayDetailsPanel } from "./month/DayDetailsPanel";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
 import { MonthGrid } from "./month/MonthGrid";
+import { SecondaryButton } from "./ui";
 
 export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, initialSelectedDate }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null }) => {
   const [viewedTime, setViewedTime] = useState(getMonthViewTimeForDate(project, absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)));
@@ -31,13 +32,16 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
 
   return (
     <>
-      <div style={{ marginBottom: 8, fontWeight: 700 }}>{project.name}</div>
-      <button type="button" title={t(project.locale, "month.previousMonth")} onClick={() => setViewedTime(getPreviousMonthViewTime(project, viewedTime))} style={{ width: "100%", marginBottom: 6 }}>‹ {labels.previous}</button>
-      <div style={{ marginBottom: 8, textAlign: "center" }}><strong>{labels.current}</strong></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <SecondaryButton type="button" title={t(project.locale, "month.previousMonth")} onClick={() => setViewedTime(getPreviousMonthViewTime(project, viewedTime))} style={{ justifySelf: "start", padding: "6px 8px", fontSize: 12 }}>
+          ‹ {labels.previous}
+        </SecondaryButton>
+        <div style={{ textAlign: "center", fontWeight: 800, fontSize: 14, whiteSpace: "nowrap" }}>{labels.current}</div>
+        <SecondaryButton type="button" title={t(project.locale, "month.nextMonth")} onClick={() => setViewedTime(getNextMonthViewTime(project, viewedTime))} style={{ justifySelf: "end", padding: "6px 8px", fontSize: 12 }}>
+          {labels.next} ›
+        </SecondaryButton>
+      </div>
       <MonthGrid project={project} viewedTime={viewedTime} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-      <button type="button" title={t(project.locale, "month.nextMonth")} onClick={() => setViewedTime(getNextMonthViewTime(project, viewedTime))} style={{ width: "100%", marginTop: 6 }}>
-        {labels.next} ›
-      </button>
       {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={onCreateEventForDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} /> : null}
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={onProjectUpdate ? (updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent)) : undefined} /> : null}
     </>
