@@ -22,7 +22,7 @@ import { TriggeredEventsCard } from "./today/TriggeredEventsCard";
 import { TriggeredWeatherAlertsCard } from "./today/TriggeredWeatherAlertsCard";
 import { WeatherAndSeasonCard } from "./today/WeatherAndSeasonCard";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
-import { PrimaryButton, SecondaryButton, SectionCard, SectionHeader, Toolbar } from "./ui";
+import { DangerButton, PrimaryButton, SecondaryButton, SectionCard, SectionHeader, Toolbar } from "./ui";
 
 type QuickAction = { key: string; deltaMinutes: number };
 const quickActions: QuickAction[] = [
@@ -173,7 +173,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         currentMoonPhases={currentMoonPhases}
       />
 
-      <PrimaryButton type="button" onClick={onReset} style={{ background: "#7f1d1d", borderColor: "#ef4444" }}>{t(project.locale, "settings.resetCalendar")}</PrimaryButton>
+      <DangerButton type="button" onClick={onReset} style={{ marginTop: 4 }}>{t(project.locale, "settings.resetCalendar")}</DangerButton>
     </>
   );
 };
