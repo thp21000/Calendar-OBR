@@ -12,15 +12,33 @@ export const useObrPopoverHeight = ({ containerRef, minHeight = 420, maxHeight =
   useEffect(() => {
     if (!OBR.isAvailable) return;
     let resizeObserver: ResizeObserver | null = null;
+    let mutationObserver: MutationObserver | null = null;
+    let rafId: number | null = null;
     let lastHeight = 0;
     let disposed = false;
 
-    const applyHeight = (rawHeight: number) => {
-      const nextHeight = Math.max(minHeight, Math.min(maxHeight, Math.ceil(rawHeight + padding)));
+    const clampHeight = (value: number) => Math.max(minHeight, Math.min(maxHeight, Math.ceil(value)));
+    const measureHeight = (element: HTMLElement) => {
+      const bodyHeight = document.body?.scrollHeight ?? 0;
+      const docHeight = document.documentElement?.scrollHeight ?? 0;
+      const containerHeight = element.scrollHeight;
+      return Math.max(containerHeight, docHeight, bodyHeight);
+    };
+
+    const applyHeight = (measuredHeight: number) => {
+      const nextHeight = clampHeight(measuredHeight + padding);
       if (Math.abs(nextHeight - lastHeight) < 2) return;
       lastHeight = nextHeight;
       OBR.action.setHeight(nextHeight).catch(() => {
         // noop hors contexte action/popover
+      });
+    };
+
+    const scheduleMeasure = (element: HTMLElement) => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        applyHeight(measureHeight(element));
       });
     };
 
@@ -29,19 +47,24 @@ export const useObrPopoverHeight = ({ containerRef, minHeight = 420, maxHeight =
       const element = containerRef.current;
       if (!element) return;
 
-      resizeObserver = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        if (!entry) return;
-        applyHeight(entry.contentRect.height);
+      resizeObserver = new ResizeObserver(() => {
+        scheduleMeasure(element);
+      });
+
+      mutationObserver = new MutationObserver(() => {
+        scheduleMeasure(element);
       });
 
       resizeObserver.observe(element);
-      applyHeight(element.getBoundingClientRect().height);
+      mutationObserver.observe(element, { childList: true, subtree: true, attributes: true, characterData: true });
+      scheduleMeasure(element);
     });
 
     return () => {
       disposed = true;
+      if (rafId !== null) cancelAnimationFrame(rafId);
       resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
     };
   }, [containerRef, minHeight, maxHeight, padding]);
 };
