@@ -12,11 +12,11 @@ export const TodayEventsCard = ({ project, eventsToday, onSelectEvent }: { proje
       {eventsToday.map((event) => <button key={event.id} type="button" onClick={onSelectEvent ? () => onSelectEvent(event.id) : undefined} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827", width: "100%", textAlign: "left", cursor: onSelectEvent ? "pointer" : "default" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
           <EventIcon icon={event.icon} locale={project.locale} />
-          <strong style={{ color: ui.colors.textPrimary, fontWeight: 700 }}>{event.name}</strong>
+          <strong style={{ color: ui.colors.textPrimary, fontWeight: 800 }}>{event.name}</strong>
           <span style={{ marginLeft: "auto", fontSize: 12, color: "#cbd5e1" }}>{formatEventTimeShort(project, event)}</span>
         </div>
         {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
-        <div style={{ marginTop: 4 }}><Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge></div>
+        <div style={{ marginTop: 4, opacity: 0.86 }}><Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge></div>
       </button>)}
     </div>}
   </SectionCard>

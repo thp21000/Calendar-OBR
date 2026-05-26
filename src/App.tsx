@@ -25,6 +25,7 @@ import {
   writeScopedCachedPublicSnapshot,
   type PublicCalendarTodaySnapshot
 } from "./obr/publicSync";
+import { useObrPopoverHeight } from "./obr/useObrPopoverHeight";
 
 export const App = () => {
   const [scope, setScope] = useState<StorageScope | null>(null);
@@ -38,6 +39,9 @@ export const App = () => {
   const [pendingEditEventId, setPendingEditEventId] = useState<string | null>(null);
   const projectRef = useRef<CalendarProject | null>(null);
   const revisionRef = useRef(0);
+  const shellRef = useRef<HTMLElement>(null);
+
+  useObrPopoverHeight({ containerRef: shellRef, minHeight: 420, maxHeight: 900, padding: 20 });
 
   useEffect(() => {
     let cleanupGmResponder: (() => void) | null = null;
@@ -143,7 +147,7 @@ export const App = () => {
     if (viewerRole === "gm") publishPublicIndex(buildPublicCalendarIndex(reset, nextRev));
   };
 
-  return <main style={appShellStyle}>
+  return <main ref={shellRef} style={appShellStyle}>
     {viewerRole === "gm" ? <>
       <div style={tabsGridStyle}>
         <button type="button" onClick={() => setActiveTab("today")} style={tabButtonStyle(project.uiSettings.activeTab === "today")}>{t(project.locale, "nav.today")}</button>

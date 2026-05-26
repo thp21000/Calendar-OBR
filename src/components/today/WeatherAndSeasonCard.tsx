@@ -22,7 +22,7 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
 
   return (
-    <SectionCard>
+    <SectionCard style={{ background: ui.colors.surfaceElevated, borderColor: "#475569", boxShadow: "0 2px 10px rgba(2,6,23,0.22)" }}>
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 18, fontWeight: 800, lineHeight: 1.25 }}>
         <span style={{ whiteSpace: "nowrap" }}>{displayDate.weekdayName}</span>
         <span style={{ whiteSpace: "nowrap" }}>{displayDate.dayOfMonth}</span>
@@ -33,7 +33,7 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
         {currentMoonPhases.map(({ moon, phase }) => <span key={moon.id} title={t(project.locale, `moon.phase.${phase.id}`)} style={{ whiteSpace: "nowrap" }}>{moon.icon ?? phase.icon}</span>)}
       </div>
 
-      <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 13 }}>
+      <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, rowGap: 6, fontSize: 13 }}>
         {currentWeather ? (
           <>
             {currentWeather.state ? (
@@ -84,7 +84,7 @@ export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits }: P
     <SectionHeader title={t(project.locale, "weather.forecast5h")} />
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(74px, 1fr))", gap: 6, width: "100%" }}>
       {hourlyForecast.map((entry) => (
-        <Panel key={entry.offsetHours} style={{ padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", gap: 3 }}>
+        <Panel key={entry.offsetHours} style={{ background: ui.colors.surfaceSoft, minHeight: 96, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
           <div style={{ fontSize: 12, fontWeight: 800 }}>+{entry.offsetHours} h</div>
           <div>{getTemperatureIcon(entry.weather.temperature)} {entry.weather.temperature} {weatherUnits.temperature}</div>
           <div>
