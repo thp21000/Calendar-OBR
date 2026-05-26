@@ -11,10 +11,10 @@ type Params = {
 export const useObrPopoverHeight = ({ containerRef, minHeight = 420, maxHeight = 900, padding = 20 }: Params) => {
   useEffect(() => {
     if (!OBR.isAvailable) return;
-    const element = containerRef.current;
-    if (!element) return;
-
+    let resizeObserver: ResizeObserver | null = null;
     let lastHeight = 0;
+    let disposed = false;
+
     const applyHeight = (rawHeight: number) => {
       const nextHeight = Math.max(minHeight, Math.min(maxHeight, Math.ceil(rawHeight + padding)));
       if (Math.abs(nextHeight - lastHeight) < 2) return;
@@ -24,15 +24,24 @@ export const useObrPopoverHeight = ({ containerRef, minHeight = 420, maxHeight =
       });
     };
 
-    const resizeObserver = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (!entry) return;
-      applyHeight(entry.contentRect.height);
+    OBR.onReady(() => {
+      if (disposed) return;
+      const element = containerRef.current;
+      if (!element) return;
+
+      resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        applyHeight(entry.contentRect.height);
+      });
+
+      resizeObserver.observe(element);
+      applyHeight(element.getBoundingClientRect().height);
     });
 
-    resizeObserver.observe(element);
-    applyHeight(element.getBoundingClientRect().height);
-
-    return () => resizeObserver.disconnect();
+    return () => {
+      disposed = true;
+      resizeObserver?.disconnect();
+    };
   }, [containerRef, minHeight, maxHeight, padding]);
 };

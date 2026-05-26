@@ -26,6 +26,7 @@ import {
   type PublicCalendarTodaySnapshot
 } from "./obr/publicSync";
 import { useObrPopoverHeight } from "./obr/useObrPopoverHeight";
+import { useObrTheme } from "./obr/useObrTheme";
 
 export const App = () => {
   const [scope, setScope] = useState<StorageScope | null>(null);
@@ -42,7 +43,8 @@ export const App = () => {
   const shellRef = useRef<HTMLElement>(null);
 
   useObrPopoverHeight({ containerRef: shellRef, minHeight: 420, maxHeight: 900, padding: 20 });
-
+  useObrTheme();
+  
   useEffect(() => {
     let cleanupGmResponder: (() => void) | null = null;
     let cleanupPlayerListener: (() => void) | null = null;
