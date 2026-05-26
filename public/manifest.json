@@ -1,12 +1,12 @@
 {
   "name": "Calendar OBR DEV",
-  "version": "0.2.78",
+  "version": "0.2.80",
   "manifest_version": 1,
   "action": {
     "title": "Calendar OBR DEV",
     "icon": "https://thp21000.github.io/Calendar-OBR/icon.svg",
     "popover": "https://thp21000.github.io/Calendar-OBR/index.html",
-    "height": 800,
+    "height": 900,
     "width": 550
   }
 }

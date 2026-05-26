@@ -125,15 +125,33 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
 
       <SectionCard>
         <SectionHeader title={t(project.locale, "time.quickActions")} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 6, marginBottom: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(58px, 1fr))", gap: 8, width: "100%", marginBottom: 8 }}>
           {quickActions.map((action) => (
-            <SecondaryButton key={action.key} type="button" onClick={() => applyTimeDelta(action.deltaMinutes)} style={{ textTransform: "uppercase", fontWeight: 700 }}>
+            <SecondaryButton
+              key={action.key}
+              type="button"
+              onClick={() => applyTimeDelta(action.deltaMinutes)}
+              style={{
+                padding: "8px 6px",
+                fontSize: 12,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                whiteSpace: "nowrap",
+                minWidth: 0
+              }}
+            >
               {t(project.locale, action.key)}
             </SecondaryButton>
           ))}
         </div>
         <Toolbar>
-          <PrimaryButton type="button" onClick={() => applyTimeDelta(480)} style={{ width: "100%" }}>🛌 {t(project.locale, "time.longRest")}</PrimaryButton>
+          <PrimaryButton
+            type="button"
+            onClick={() => applyTimeDelta(480)}
+            style={{ width: "100%", padding: "9px 10px", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.3 }}
+          >
+            🛌 {t(project.locale, "time.longRest")}
+          </PrimaryButton>
         </Toolbar>
       </SectionCard>
 
