@@ -81,7 +81,6 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const dailyForecast = getDailyWeatherForecast(project, 5);
   const weatherUnits = getWeatherUnitLabels(project.locale);
   const eventsToday = getEventsForCurrentDay(project);
-  const moonIcons = currentMoonPhases.map(({ moon, phase }) => ({ key: moon.id, icon: moon.icon ?? phase.icon, title: moon.name }));
   const [lastTriggeredEvents, setLastTriggeredEvents] = useState<CalendarEvent[]>([]);
   const [lastTriggeredWeatherEvents, setLastTriggeredWeatherEvents] = useState<CalendarProject["weatherEvents"]>([]);
   const [lastTriggeredMoonEvents, setLastTriggeredMoonEvents] = useState<NonNullable<CalendarProject["moonEvents"]>>([]);
@@ -155,17 +154,6 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
 
   return (
     <>
-      <SectionCard>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700 }}>
-          <span style={{ whiteSpace: "nowrap" }}>{t(project.locale, "calendar.day")} {displayDate.dayOfMonth}</span>
-          <span style={{ whiteSpace: "nowrap" }}>{displayDate.weekdayName}</span>
-          <span style={{ whiteSpace: "nowrap" }}>{project.locale === "fr" ? `An ${displayDate.year}` : `Year ${displayDate.year}`}</span>
-          <span style={{ whiteSpace: "nowrap" }}>{String(project.currentTime.hour).padStart(2, "0")}:{String(project.currentTime.minute).padStart(2, "0")}</span>
-          {currentSeason ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{currentSeason.icon ?? "🍃"} {currentSeason.name}</span> : null}
-          {moonIcons.map((m) => <span key={m.key} title={m.title} style={{ whiteSpace: "nowrap" }}>{m.icon}</span>)}
-        </div>
-      </SectionCard>
-
       <SectionCard>
         <SectionHeader title={t(project.locale, "time.quickActions")} />
         <div style={quickActionsGridStyle}>
