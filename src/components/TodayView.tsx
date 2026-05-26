@@ -17,10 +17,8 @@ import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import { TodayEventsCard } from "./today/TodayEventsCard";
-import { TriggerSummaryCard } from "./today/TriggerSummaryCard";
 import { TriggeredEventsCard } from "./today/TriggeredEventsCard";
-import { TriggeredWeatherAlertsCard } from "./today/TriggeredWeatherAlertsCard";
-import { WeatherAndSeasonCard } from "./today/WeatherAndSeasonCard";
+import { TodayStatusSummary, WeatherForecastCard } from "./today/WeatherAndSeasonCard";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
 import { DangerButton, PrimaryButton, SecondaryButton, SectionCard, SectionHeader, Toolbar } from "./ui";
 
@@ -154,6 +152,17 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
 
   return (
     <>
+      <TodayStatusSummary
+        project={project}
+        currentSeason={currentSeason}
+        currentWeather={currentWeather}
+        triggeredWeatherEvents={triggeredWeatherEvents}
+        weatherUnits={weatherUnits}
+        currentMoonPhases={currentMoonPhases}
+      />
+
+      <TodayEventsCard project={project} eventsToday={eventsToday} onSelectEvent={setSelectedEventId} />
+
       <SectionCard>
         <SectionHeader title={t(project.locale, "time.quickActions")} />
         <div style={quickActionsGridStyle}>
@@ -179,22 +188,8 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         </Toolbar>
       </SectionCard>
 
-      <TriggerSummaryCard
-        locale={project.locale}
-        notifications={notifications}
-        onOpen={onOpenNotification}
-        onDismiss={(id) => {
-          setNotifications((prev) => prev.filter((item) => item.id !== id));
-          const dismissed = readDismissed();
-          dismissed.add(id);
-          persistDismissed(dismissed);
-        }}
-      />
-
-      <TodayEventsCard project={project} eventsToday={eventsToday} onSelectEvent={setSelectedEventId} />
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={(updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent))} /> : null}
       <TriggeredEventsCard project={project} lastTriggeredEvents={lastTriggeredEvents} />
-      <TriggeredWeatherAlertsCard locale={project.locale} weatherEvents={lastTriggeredWeatherEvents} />
       {triggeredMoonEvents.length > 0 ? <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 8 }}>
         <strong style={{ fontSize: 13 }}>{t(project.locale, "moonEvents.triggeredToday")}</strong>
         <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
@@ -204,16 +199,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
           })}
         </ul>
       </div> : null}
-      <WeatherAndSeasonCard
-        project={project}
-        currentSeason={currentSeason}
-        currentWeather={currentWeather}
-        hourlyForecast={hourlyForecast}
-        dailyForecast={dailyForecast}
-        triggeredWeatherEvents={triggeredWeatherEvents}
-        weatherUnits={weatherUnits}
-        currentMoonPhases={currentMoonPhases}
-      />
+      <WeatherForecastCard project={project} hourlyForecast={hourlyForecast} dailyForecast={dailyForecast} weatherUnits={weatherUnits} />
 
       <DangerButton type="button" onClick={onReset} style={{ marginTop: 4 }}>{t(project.locale, "settings.resetCalendar")}</DangerButton>
     </>

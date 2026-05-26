@@ -16,7 +16,7 @@ type Props = {
   currentMoonPhases: Array<{ moon: CalendarProject["moons"][number]; phase: MoonPhase }>;
 };
 
-const StatusSummary = ({ project, currentSeason, currentWeather, triggeredWeatherEvents, weatherUnits, currentMoonPhases }: Pick<Props, "project"|"currentSeason"|"currentWeather"|"triggeredWeatherEvents"|"weatherUnits"|"currentMoonPhases">) => {
+export const TodayStatusSummary = ({ project, currentSeason, currentWeather, triggeredWeatherEvents, weatherUnits, currentMoonPhases }: Pick<Props, "project"|"currentSeason"|"currentWeather"|"triggeredWeatherEvents"|"weatherUnits"|"currentMoonPhases">) => {
   const override = (project.weatherOverrides ?? []).find((o) => o.absoluteDay === project.currentTime.absoluteDay);
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
 
@@ -66,7 +66,7 @@ const StatusSummary = ({ project, currentSeason, currentWeather, triggeredWeathe
   );
 };
 
-const ForecastCard = ({ project, hourlyForecast, dailyForecast, weatherUnits }: Pick<Props, "project"|"hourlyForecast"|"dailyForecast"|"weatherUnits">) => (
+export const WeatherForecastCard = ({ project, hourlyForecast, dailyForecast, weatherUnits }: Pick<Props, "project"|"hourlyForecast"|"dailyForecast"|"weatherUnits">) => (
   <SectionCard>
     <SectionHeader title={t(project.locale, "calendar.forecast")} />
     <div style={{ display: "grid", gap: 4, fontSize: 12 }}>
@@ -83,7 +83,7 @@ const ForecastCard = ({ project, hourlyForecast, dailyForecast, weatherUnits }: 
 
 export const WeatherAndSeasonCard = ({ project, currentSeason, currentWeather, hourlyForecast, dailyForecast, triggeredWeatherEvents, weatherUnits, currentMoonPhases }: Props) => (
   <>
-    <StatusSummary project={project} currentSeason={currentSeason} currentWeather={currentWeather} triggeredWeatherEvents={triggeredWeatherEvents} weatherUnits={weatherUnits} currentMoonPhases={currentMoonPhases} />
-    <ForecastCard project={project} hourlyForecast={hourlyForecast} dailyForecast={dailyForecast} weatherUnits={weatherUnits} />
+    <TodayStatusSummary project={project} currentSeason={currentSeason} currentWeather={currentWeather} triggeredWeatherEvents={triggeredWeatherEvents} weatherUnits={weatherUnits} currentMoonPhases={currentMoonPhases} />
+    <WeatherForecastCard project={project} hourlyForecast={hourlyForecast} dailyForecast={dailyForecast} weatherUnits={weatherUnits} />
   </>
 );
