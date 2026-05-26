@@ -27,7 +27,6 @@ export const ui = {
 export const appShellStyle: CSSProperties = {
   width: "100%",
   maxWidth: "none",
-  minHeight: 480,
   boxSizing: "border-box",
   fontFamily: "Inter, system-ui, sans-serif",
   fontSize: 13,

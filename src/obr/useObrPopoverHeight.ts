@@ -19,10 +19,9 @@ export const useObrPopoverHeight = ({ containerRef, minHeight = 420, maxHeight =
 
     const clampHeight = (value: number) => Math.max(minHeight, Math.min(maxHeight, Math.ceil(value)));
     const measureHeight = (element: HTMLElement) => {
-      const bodyHeight = document.body?.scrollHeight ?? 0;
-      const docHeight = document.documentElement?.scrollHeight ?? 0;
       const containerHeight = element.scrollHeight;
-      return Math.max(containerHeight, docHeight, bodyHeight);
+      const rectHeight = element.getBoundingClientRect().height;
+      return Math.max(containerHeight, rectHeight);
     };
 
     const applyHeight = (measuredHeight: number) => {
@@ -48,23 +47,3 @@ export const useObrPopoverHeight = ({ containerRef, minHeight = 420, maxHeight =
       if (!element) return;
 
       resizeObserver = new ResizeObserver(() => {
-        scheduleMeasure(element);
-      });
-
-      mutationObserver = new MutationObserver(() => {
-        scheduleMeasure(element);
-      });
-
-      resizeObserver.observe(element);
-      mutationObserver.observe(element, { childList: true, subtree: true, attributes: true, characterData: true });
-      scheduleMeasure(element);
-    });
-
-    return () => {
-      disposed = true;
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      resizeObserver?.disconnect();
-      mutationObserver?.disconnect();
-    };
-  }, [containerRef, minHeight, maxHeight, padding]);
-};

@@ -40,9 +40,9 @@ export const App = () => {
   const [pendingEditEventId, setPendingEditEventId] = useState<string | null>(null);
   const projectRef = useRef<CalendarProject | null>(null);
   const revisionRef = useRef(0);
-  const shellRef = useRef<HTMLElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
-  useObrPopoverHeight({ containerRef: shellRef, minHeight: 420, maxHeight: 900, padding: 20 });
+  useObrPopoverHeight({ containerRef: contentRef, minHeight: 420, maxHeight: 900, padding: 20 });
   useObrTheme();
   
   useEffect(() => {
@@ -91,7 +91,7 @@ export const App = () => {
   }, []);
 
   if (!scope || !project || !viewerRole) {
-    return <main style={appShellStyle}>{t("fr", "common.loading")}</main>;
+    return <main><div ref={contentRef} style={appShellStyle}>{t("fr", "common.loading")}</div></main>;
   }
 
   const updateProject = (nextProject: CalendarProject) => {
@@ -149,8 +149,9 @@ export const App = () => {
     if (viewerRole === "gm") publishPublicIndex(buildPublicCalendarIndex(reset, nextRev));
   };
 
-  return <main ref={shellRef} style={appShellStyle}>
-    {viewerRole === "gm" ? <>
+  return <main>
+    <div ref={contentRef} style={appShellStyle}>
+      {viewerRole === "gm" ? <>
       <div style={tabsGridStyle}>
         <button type="button" onClick={() => setActiveTab("today")} style={tabButtonStyle(project.uiSettings.activeTab === "today")}>{t(project.locale, "nav.today")}</button>
         <button type="button" onClick={() => setActiveTab("month")} style={tabButtonStyle(project.uiSettings.activeTab === "month")}>{t(project.locale, "nav.month")}</button>
@@ -160,5 +161,6 @@ export const App = () => {
       </div>
       {project.uiSettings.activeTab === "month" ? <MonthView project={project} onProjectUpdate={updateProject} initialSelectedDate={pendingMonthSelectedDate} onCreateEventForDate={(date) => { setPendingCreateEventDate(date); setActiveTab("events"); }} /> : project.uiSettings.activeTab === "events" ? <EventsView project={project} onProjectUpdate={updateProject} initialCreateDate={pendingCreateEventDate} initialEditEventId={pendingEditEventId} onInitialCreateDateConsumed={() => setPendingCreateEventDate(null)} onInitialEditEventIdConsumed={() => setPendingEditEventId(null)} onOpenSearchResult={handleOpenSearchResult} /> : project.uiSettings.activeTab === "settings" ? <SettingsView project={project} onProjectUpdate={updateProject} saveError={saveError} scope={scope} onReset={handleReset} /> : project.uiSettings.activeTab === "player" ? <PlayerView project={project} /> : <TodayView project={project} onProjectUpdate={updateProject} onReset={handleReset} onOpenNotification={handleOpenNotification} />}
     </> : publicSnapshot ? <PlayerView project={project} snapshot={publicSnapshot} /> : <SectionCard><EmptyState text={t(project.locale, "player.waitingForGmData")} /></SectionCard>}
+    </div>
   </main>;
 };
