@@ -41,7 +41,7 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
                 {getWeatherStateIcon(currentWeather.state)} {t(project.locale, `weather.state.${currentWeather.state}`)}
               </span>
             ) : null}
-            <<span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
               {getWindSpeedIcon(currentWeather.windSpeed)} {currentWeather.windSpeed} {weatherUnits.windSpeed}
               {currentWeather.windDirection ? <span title={currentWeather.windDirection}>{getWindDirectionIcon(currentWeather.windDirection)}</span> : null}
             </span>
