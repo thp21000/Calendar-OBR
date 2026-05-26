@@ -49,6 +49,10 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
               {currentWeather.windDirection ? (
                 <span title={currentWeather.windDirection}>{getWindDirectionIcon(currentWeather.windDirection)}</span>
               ) : null}
+            </span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getRainIcon(currentWeather)} {currentWeather.rain} {weatherUnits.rain}</span>
+            {currentWeather.dailyRainTotal !== undefined ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>24 h: {currentWeather.dailyRainTotal} {weatherUnits.rain}</span> : null}
+          </>
         ) : <span style={{ fontSize: 12, color: "#94a3b8" }}>{t(project.locale, "calendar.noWeather")}</span>}
       </div>
 
