@@ -47,3 +47,23 @@ export const useObrPopoverHeight = ({ containerRef, minHeight = 420, maxHeight =
       if (!element) return;
 
       resizeObserver = new ResizeObserver(() => {
+        scheduleMeasure(element);
+      });
+
+      mutationObserver = new MutationObserver(() => {
+        scheduleMeasure(element);
+      });
+
+      resizeObserver.observe(element);
+      mutationObserver.observe(element, { childList: true, subtree: true, attributes: true, characterData: true });
+      scheduleMeasure(element);
+    });
+
+    return () => {
+      disposed = true;
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
+    };
+  }, [containerRef, minHeight, maxHeight, padding]);
+};
