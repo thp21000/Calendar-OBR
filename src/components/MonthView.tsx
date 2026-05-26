@@ -29,10 +29,20 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
   const notes = selectedDate ? getDayNotesForDay(project, selectedDate) : [];
   const labels = getAdjacentMonthLabels(project, viewedTime);
   const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
-
+  const goToToday = () => {
+    const todayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+    setViewedTime(getMonthViewTimeForDate(project, todayDate));
+    setSelectedDate(todayDate);
+  };
+  
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 6, marginBottom: 8 }}>
+      <div style={{ textAlign: "center", display: "grid", justifyItems: "center", gap: 4 }}>
+          <div style={{ fontWeight: 800, fontSize: 14, whiteSpace: "nowrap" }}>{labels.current}</div>
+          <SecondaryButton type="button" onClick={goToToday} style={{ padding: "2px 8px", fontSize: 11, lineHeight: 1.2 }}>
+            {t(project.locale, "common.today")}
+          </SecondaryButton>
+        </div>
         <SecondaryButton type="button" title={t(project.locale, "month.previousMonth")} onClick={() => setViewedTime(getPreviousMonthViewTime(project, viewedTime))} style={{ justifySelf: "start", padding: "6px 8px", fontSize: 12 }}>
           ‹ {labels.previous}
         </SecondaryButton>

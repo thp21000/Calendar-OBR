@@ -3,7 +3,7 @@ import { getDayNotesForDay } from "../../calendar/dayNotesLogic";
 import { getEventsForDay } from "../../calendar/eventsLogic";
 import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex, getCurrentMonthWeekdayNames } from "../../calendar/monthView";
 import { getSeasonsStartingOnDate } from "../../calendar/seasonsLogic";
-import type { CalendarCurrentTime, CalendarDate, CalendarEvent, CalendarProject, InternalTime } from "../../domain/types";
+import type { CalendarDate, CalendarEvent, CalendarProject, InternalTime } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
 
@@ -39,6 +39,8 @@ export const MonthGrid = ({ project, viewedTime, selectedDate, onSelectDate }: {
           const seasonStart = seasonsStarting[0];
           const firstEvent = events[0];
           const icon = firstEvent?.icon || FALLBACK_EVENT_ICON;
+          const markerCount = events.length + (seasonStart ? 1 : 0) + (hasDayNotes ? 1 : 0);
+          const extraMarkers = markerCount > 2 ? markerCount - 2 : 0;
           const isCurrentAndSelected = isActualCurrentDay && isSelectedDay;
           const border = isCurrentAndSelected ? "2px solid #8b7cf6" : isActualCurrentDay ? "1px solid #94a3b8" : isSelectedDay ? "1px solid #8b7cf6" : "1px solid rgba(255,255,255,0.14)";
           const background = isCurrentAndSelected ? "rgba(139,124,246,0.22)" : isActualCurrentDay ? "rgba(148,163,184,0.18)" : isSelectedDay ? "rgba(139,124,246,0.12)" : "rgba(255,255,255,0.04)";
@@ -55,6 +57,7 @@ export const MonthGrid = ({ project, viewedTime, selectedDate, onSelectDate }: {
                 {events.length > 0 ? <EventIcon icon={icon} locale={project.locale} size={14} /> : null}
                 {seasonStart ? <EventIcon icon={seasonStart.icon} locale={project.locale} size={14} /> : null}
                 {hasDayNotes ? <span style={{ fontSize: 11, lineHeight: 1 }}>📝</span> : null}
+                {extraMarkers > 0 ? <span style={{ fontSize: 10, lineHeight: 1, color: "#cbd5e1", opacity: 0.9 }}>+{extraMarkers}</span> : null}
               </div>
             </button>
           );

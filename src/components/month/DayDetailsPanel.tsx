@@ -15,17 +15,16 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
   const displayDate = absoluteDayToCalendarDate(dayInternal, project.calendarSystem);
   return (
   <div style={{ marginTop: 10, border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-      <span />
-      <button type="button" onClick={onClose} title={t(project.locale, "month.closeDayDetails")} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #374151", background: "#1f2937", color: "#e5e7eb", fontSize: 18, lineHeight: 1, cursor: "pointer" }}>×</button>
-    </div>
-    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-      <span>{displayDate.weekdayName}</span>
-      <span>{dayDetails.date.dayOfMonth}</span>
-      <span>{displayDate.monthName}</span>
-      <span>{dayDetails.date.year}</span>
-      {dayDetails.seasonName ? <span>{dayDetails.seasonIcon ?? "🍃"} {dayDetails.seasonName}</span> : null}
-      {dayDetails.moonPhases.map((moon) => <span key={moon.moonId} title={t(project.locale, `moon.phase.${moon.phaseId}`)}>{moon.moonIcon ?? moon.phaseIcon}</span>)}
+    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", minWidth: 0 }}>
+        <span>{displayDate.weekdayName}</span>
+        <span>{dayDetails.date.dayOfMonth}</span>
+        <span>{displayDate.monthName}</span>
+        <span>{dayDetails.date.year}</span>
+        {dayDetails.seasonName ? <span>{dayDetails.seasonIcon ?? "🍃"} {dayDetails.seasonName}</span> : null}
+        {dayDetails.moonPhases.map((moon) => <span key={moon.moonId} title={t(project.locale, `moon.phase.${moon.phaseId}`)}>{moon.moonIcon ?? moon.phaseIcon}</span>)}
+      </div>
+      <button type="button" onClick={onClose} title={t(project.locale, "month.closeDayDetails")} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #374151", background: "#1f2937", color: "#e5e7eb", fontSize: 18, lineHeight: 1, cursor: "pointer", flexShrink: 0 }}>×</button>
     </div>
     <div style={{ fontSize: 12, marginBottom: 4, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
       {dayDetails.dailyWeather ? (
