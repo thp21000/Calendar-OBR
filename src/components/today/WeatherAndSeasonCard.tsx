@@ -85,7 +85,7 @@ export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits }: P
           <div>{getTemperatureIcon(entry.weather.temperature)} {entry.weather.temperature} {weatherUnits.temperature}</div>
           <div>
             {getWindSpeedIcon(entry.weather.windSpeed)} {entry.weather.windSpeed} {weatherUnits.windSpeed}
-            {entry.weather.windDirection ? ` ${getWindDirectionIcon(entry.weather.windDirection)}` : ""}
+            {entry.weather.windDirection ? <span title={entry.weather.windDirection}> {getWindDirectionIcon(entry.weather.windDirection)}</span> : null}
           </div>
           <div>{getRainIcon(entry.weather)} {entry.weather.rain} {weatherUnits.rain}</div>
           {entry.weather.trendKind ? <div>{getTrendIcon(entry.weather.trendKind)} {t(project.locale, `weather.trend.${entry.weather.trendKind}`)}</div> : null}
