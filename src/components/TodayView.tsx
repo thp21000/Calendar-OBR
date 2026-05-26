@@ -30,6 +30,42 @@ const quickActions: QuickAction[] = [
   { key: "time.plus5m", deltaMinutes: 5 }, { key: "time.plus15m", deltaMinutes: 15 }, { key: "time.plus1h", deltaMinutes: 60 }, { key: "time.plus2h", deltaMinutes: 120 }
 ];
 
+const quickActionsGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(48px, 1fr))",
+  gap: 6,
+  width: "100%",
+  marginBottom: 8
+};
+
+const quickActionButtonStyle: React.CSSProperties = {
+  height: 34,
+  padding: "0 6px",
+  fontSize: 11,
+  fontWeight: 800,
+  lineHeight: 1,
+  textTransform: "uppercase",
+  whiteSpace: "nowrap",
+  minWidth: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  textAlign: "center"
+};
+
+const longRestButtonStyle: React.CSSProperties = {
+  width: "100%",
+  height: 36,
+  padding: "0 10px",
+  fontSize: 11,
+  fontWeight: 800,
+  lineHeight: 1,
+  letterSpacing: 0.3,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center"
+};
+
 export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotification }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; onReset: () => void; onOpenNotification?: (notification: CalendarNotification) => void; }) => {
   const dismissedStorageKey = `calendar-obr.notifications.dismissed.${project.id}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
@@ -125,20 +161,13 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
 
       <SectionCard>
         <SectionHeader title={t(project.locale, "time.quickActions")} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(58px, 1fr))", gap: 8, width: "100%", marginBottom: 8 }}>
+        <div style={quickActionsGridStyle}>
           {quickActions.map((action) => (
             <SecondaryButton
               key={action.key}
               type="button"
               onClick={() => applyTimeDelta(action.deltaMinutes)}
-              style={{
-                padding: "8px 6px",
-                fontSize: 12,
-                fontWeight: 800,
-                textTransform: "uppercase",
-                whiteSpace: "nowrap",
-                minWidth: 0
-              }}
+              style={quickActionButtonStyle}
             >
               {t(project.locale, action.key)}
             </SecondaryButton>
@@ -148,7 +177,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
           <PrimaryButton
             type="button"
             onClick={() => applyTimeDelta(480)}
-            style={{ width: "100%", padding: "9px 10px", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.3 }}
+            style={longRestButtonStyle}
           >
             🛌 {t(project.locale, "time.longRest")}
           </PrimaryButton>
