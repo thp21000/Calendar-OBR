@@ -1,5 +1,5 @@
 import { getWeatherStateIcon } from "../../calendar/weatherState";
-import type { WeatherSnapshot } from "../../domain/types";
+import type { WeatherSnapshot, WeatherTrendKind } from "../../domain/types";
 
 export const getTemperatureIcon = (temperature: number): string => {
   if (temperature < -15) return "🧊";
@@ -47,4 +47,19 @@ export const getRainIcon = (weather: WeatherSnapshot): string => {
   if (weather.rain <= 5) return "🌧️";
   if (weather.rain <= 15) return "☔";
   return "⛈️";
+};
+
+export const getTrendIcon = (trendKind?: WeatherTrendKind): string => {
+  switch (trendKind) {
+    case "cold": return "🧊";
+    case "warm": return "☀️";
+    case "wet": return "🌧️";
+    case "dry": return "🏜️";
+    case "windy": return "💨";
+    case "calm": return "🍃";
+    case "stormy": return "⛈️";
+    case "stable": return "⚖️";
+    case "unstable": return "🔀";
+    default: return "•";
+  }
 };

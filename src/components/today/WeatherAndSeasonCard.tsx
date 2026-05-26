@@ -1,16 +1,16 @@
+import { getWeatherStateIcon } from "../../calendar/weatherState";
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import type { CalendarProject, MoonPhase, Season, WeatherSnapshot } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
 import { Badge, Panel, SectionCard, SectionHeader } from "../ui";
-import { getRainIcon, getTemperatureIcon, getWindDirectionIcon, getWindSpeedIcon } from "./weatherIcons";
+import { getRainIcon, getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIcon } from "./weatherIcons";
 
 type Props = {
   project: CalendarProject;
   currentSeason: Season | undefined;
   currentWeather: WeatherSnapshot | undefined;
   hourlyForecast: Array<{ offsetHours: number; weather: WeatherSnapshot }>;
-  dailyForecast: Array<{ offsetDays: number; weather: WeatherSnapshot }>;
   triggeredWeatherEvents: CalendarProject["weatherEvents"];
   weatherUnits: { temperature: string; windSpeed: string; rain: string };
   currentMoonPhases: Array<{ moon: CalendarProject["moons"][number]; phase: MoonPhase }>;
@@ -35,8 +35,13 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
       <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 13 }}>
         {currentWeather ? (
           <>
+            {currentWeather.state ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
+                {getWeatherStateIcon(currentWeather.state)} {t(project.locale, `weather.state.${currentWeather.state}`)}
+              </span>
+            ) : null}
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getTemperatureIcon(currentWeather.temperature)} {currentWeather.temperature} {weatherUnits.temperature}</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getWindSpeedIcon(currentWeather.windSpeed)} {currentWeather.windSpeed} {weatherUnits.windSpeed} {currentWeather.windDirection ? getWindDirectionIcon(currentWeather.windDirection) : ""}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getWindSpeedIcon(currentWeather.windSpeed)} {currentWeather.windSpeed} {weatherUnits.windSpeed} {currentWeather.windDirection ? `${getWindDirectionIcon(currentWeather.windDirection)} ${currentWeather.windDirection}` : ""}</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getRainIcon(currentWeather)} {currentWeather.rain} {weatherUnits.rain}</span>
             {currentWeather.dailyRainTotal !== undefined ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>24 h: {currentWeather.dailyRainTotal} {weatherUnits.rain}</span> : null}
           </>
@@ -45,7 +50,7 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
 
       {currentWeather?.trendKind || currentWeather?.dominantState ? (
         <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>
-          {currentWeather?.trendKind ? `${t(project.locale, "weather.trend")}: ${t(project.locale, `weather.trend.${currentWeather.trendKind}`)}` : ""}
+          {currentWeather?.trendKind ? `${getTrendIcon(currentWeather.trendKind)} ${t(project.locale, "weather.trend")}: ${t(project.locale, `weather.trend.${currentWeather.trendKind}`)}` : ""}
           {currentWeather?.trendKind && currentWeather?.dominantState ? " · " : ""}
           {currentWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${t(project.locale, `weather.state.${currentWeather.dominantState}`)}` : ""}
         </div>
@@ -66,24 +71,29 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
   );
 };
 
-export const WeatherForecastCard = ({ project, hourlyForecast, dailyForecast, weatherUnits }: Pick<Props, "project"|"hourlyForecast"|"dailyForecast"|"weatherUnits">) => (
+export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits }: Pick<Props, "project"|"hourlyForecast"|"weatherUnits">) => (
   <SectionCard>
-    <SectionHeader title={t(project.locale, "calendar.forecast")} />
-    <div style={{ display: "grid", gap: 4, fontSize: 12 }}>
-      {hourlyForecast.map((entry) => <Panel key={entry.offsetHours}>+{entry.offsetHours} h · {entry.weather.temperature} {weatherUnits.temperature} · {entry.weather.windDirection} {entry.weather.windSpeed} {weatherUnits.windSpeed} · {entry.weather.rain} {weatherUnits.rain}</Panel>)}
-    </div>
-    <div style={{ display: "grid", gap: 6, fontSize: 12, marginTop: 8 }}>
-      {dailyForecast.map((entry) => <Panel key={entry.offsetDays}>
-        <div>+{entry.offsetDays} {project.locale === "fr" ? "j" : "d"} · {entry.weather.temperature} {weatherUnits.temperature}</div>
-        <div style={{ color: "#94a3b8", marginTop: 2 }}>{entry.weather.dailyMinTemperature !== undefined && entry.weather.dailyMaxTemperature !== undefined ? `${t(project.locale, "weather.dailyMinMax")} ${entry.weather.dailyMinTemperature} / ${entry.weather.dailyMaxTemperature} ${weatherUnits.temperature} · ` : ""}{entry.weather.dailyRainTotal !== undefined ? `${t(project.locale, "weather.dailyRainTotal")} ${entry.weather.dailyRainTotal} ${weatherUnits.rain}` : ""}{entry.weather.trendKind ? ` · ${t(project.locale, "weather.trend")} ${t(project.locale, `weather.trend.${entry.weather.trendKind}`)}` : ""}{entry.weather.dominantState ? ` · ${t(project.locale, "weather.dominantState")} ${t(project.locale, `weather.state.${entry.weather.dominantState}`)}` : ""}</div>
-      </Panel>)}
+    <SectionHeader title={t(project.locale, "weather.forecast5h")} />
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(74px, 1fr))", gap: 6, width: "100%" }}>
+      {hourlyForecast.map((entry) => (
+        <Panel key={entry.offsetHours} style={{ padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", gap: 3 }}>
+          <div style={{ fontSize: 12, fontWeight: 800 }}>+{entry.offsetHours} h</div>
+          <div>{getTemperatureIcon(entry.weather.temperature)} {entry.weather.temperature} {weatherUnits.temperature}</div>
+          <div>
+            {getWindSpeedIcon(entry.weather.windSpeed)} {entry.weather.windSpeed} {weatherUnits.windSpeed}
+            {entry.weather.windDirection ? ` ${getWindDirectionIcon(entry.weather.windDirection)}` : ""}
+          </div>
+          <div>{getRainIcon(entry.weather)} {entry.weather.rain} {weatherUnits.rain}</div>
+          {entry.weather.trendKind ? <div>{getTrendIcon(entry.weather.trendKind)} {t(project.locale, `weather.trend.${entry.weather.trendKind}`)}</div> : null}
+        </Panel>
+      ))}
     </div>
   </SectionCard>
 );
 
-export const WeatherAndSeasonCard = ({ project, currentSeason, currentWeather, hourlyForecast, dailyForecast, triggeredWeatherEvents, weatherUnits, currentMoonPhases }: Props) => (
+export const WeatherAndSeasonCard = ({ project, currentSeason, currentWeather, hourlyForecast, triggeredWeatherEvents, weatherUnits, currentMoonPhases }: Props) => (
   <>
     <TodayStatusSummary project={project} currentSeason={currentSeason} currentWeather={currentWeather} triggeredWeatherEvents={triggeredWeatherEvents} weatherUnits={weatherUnits} currentMoonPhases={currentMoonPhases} />
-    <WeatherForecastCard project={project} hourlyForecast={hourlyForecast} dailyForecast={dailyForecast} weatherUnits={weatherUnits} />
+    <WeatherForecastCard project={project} hourlyForecast={hourlyForecast} weatherUnits={weatherUnits} />
   </>
 );

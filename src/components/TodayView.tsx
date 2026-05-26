@@ -12,15 +12,14 @@ import {
   applyWeatherEventTriggerActions,
   toAbsoluteMinutes
 } from "../calendar/weatherEventsLogic";
-import { getCurrentWeather, getDailyWeatherForecast, getHourlyWeatherForecast } from "../calendar/weatherLogic";
+import { getCurrentWeather, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import { TodayEventsCard } from "./today/TodayEventsCard";
-import { TriggeredEventsCard } from "./today/TriggeredEventsCard";
 import { TodayStatusSummary, WeatherForecastCard } from "./today/WeatherAndSeasonCard";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
-import { DangerButton, PrimaryButton, SecondaryButton, SectionCard, SectionHeader, Toolbar } from "./ui";
+import { PrimaryButton, SecondaryButton, SectionCard, SectionHeader, Toolbar } from "./ui";
 
 type QuickAction = { key: string; deltaMinutes: number };
 const quickActions: QuickAction[] = [
@@ -76,7 +75,6 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const currentMoonPhases = moonLogic.getCurrentMoonPhases(project);
   const triggeredMoonEvents = getTriggeredMoonEvents(project, project.currentTime.absoluteDay);
   const hourlyForecast = getHourlyWeatherForecast(project, 5);
-  const dailyForecast = getDailyWeatherForecast(project, 5);
   const weatherUnits = getWeatherUnitLabels(project.locale);
   const eventsToday = getEventsForCurrentDay(project);
   const [lastTriggeredEvents, setLastTriggeredEvents] = useState<CalendarEvent[]>([]);
@@ -162,6 +160,17 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       />
 
       <TodayEventsCard project={project} eventsToday={eventsToday} onSelectEvent={setSelectedEventId} />
+      {triggeredMoonEvents.length > 0 ? <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 8 }}>
+        <strong style={{ fontSize: 13 }}>{t(project.locale, "moonEvents.triggeredToday")}</strong>
+        <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
+          {triggeredMoonEvents.map((event) => {
+            const moon = project.moons.find((m) => m.id === event.moonId);
+            return <li key={event.id} style={{ fontSize: 12 }}>{event.icon ?? "🌕"} {event.name} · {moon?.name ?? "?"} · {t(project.locale, `moon.phase.${event.phaseId}`)}{event.summary ? ` — ${event.summary}` : ""}</li>;
+          })}
+        </ul>
+      </div> : null}
+
+      <WeatherForecastCard project={project} hourlyForecast={hourlyForecast} weatherUnits={weatherUnits} />
 
       <SectionCard>
         <SectionHeader title={t(project.locale, "time.quickActions")} />
@@ -189,19 +198,6 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       </SectionCard>
 
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={(updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent))} /> : null}
-      <TriggeredEventsCard project={project} lastTriggeredEvents={lastTriggeredEvents} />
-      {triggeredMoonEvents.length > 0 ? <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 8 }}>
-        <strong style={{ fontSize: 13 }}>{t(project.locale, "moonEvents.triggeredToday")}</strong>
-        <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
-          {triggeredMoonEvents.map((event) => {
-            const moon = project.moons.find((m) => m.id === event.moonId);
-            return <li key={event.id} style={{ fontSize: 12 }}>{event.icon ?? "🌕"} {event.name} · {moon?.name ?? "?"} · {t(project.locale, `moon.phase.${event.phaseId}`)}{event.summary ? ` — ${event.summary}` : ""}</li>;
-          })}
-        </ul>
-      </div> : null}
-      <WeatherForecastCard project={project} hourlyForecast={hourlyForecast} dailyForecast={dailyForecast} weatherUnits={weatherUnits} />
-
-      <DangerButton type="button" onClick={onReset} style={{ marginTop: 4 }}>{t(project.locale, "settings.resetCalendar")}</DangerButton>
     </>
   );
 };
