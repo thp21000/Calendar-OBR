@@ -8,20 +8,7 @@ import { DayNotesEditor } from "./DayNotesEditor";
 import { getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIcon } from "../today/weatherIcons";
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
 import { formatEventTimeShort, formatEventVisibility } from "../../calendar/formatEvent";
-
-const sendPlayerPopupNotification = (payload: {
-  type: "event";
-  audience: "players";
-  title: string;
-  body: string;
-  date: string;
-  icon?: string;
-  summary?: string;
-  playerDescription?: string;
-  timeLabel?: string;
-}) => {
-  console.info("[PopupPlaceholder]", payload);
-};
+import { sendPopupNotification } from "../../obr/popupNotifications";
 
 export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void }) => {
   const dayInternal = calendarDateToAbsoluteDay(dayDetails.date, project.calendarSystem);
@@ -71,7 +58,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                 type="button"
                 style={{ padding: "4px 8px", fontSize: 11 }}
                 onClick={() =>
-                  sendPlayerPopupNotification({
+                  sendPopupNotification({
                     type: "event",
                     audience: "players",
                     title: event.name,
@@ -84,7 +71,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                   })
                 }
               >
-                {project.locale === "fr" ? "Envoyer" : "Send"}
+                {t(project.locale, "common.send")}
               </SecondaryButton>
               {onOpenEvent ? <SecondaryButton type="button" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => onOpenEvent(event.id)}>{t(project.locale, "globalSearch.open")}</SecondaryButton> : null}
             </div>

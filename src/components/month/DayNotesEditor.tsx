@@ -1,20 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { addDayNote, createDefaultDayNote, deleteDayNote, updateDayNote } from "../../calendar/dayNotesLogic";
+import { absoluteDayToCalendarDate, calendarDateToAbsoluteDay } from "../../calendar/dateEngine";
 import type { DayNote, CalendarDate, CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { DangerButton, EmptyState, Panel, PrimaryButton, SecondaryButton, Toolbar } from "../ui";
+import { sendPopupNotification } from "../../obr/popupNotifications";
 
 const normalizeVisibility = (playerNote: string): "gm" | "players" => (playerNote.trim() ? "players" : "gm");
-
-const sendPopupNotification = (payload: {
-  type: "dayNote";
-  audience: "gm" | "players";
-  title: string;
-  body: string;
-  date: string;
-}) => {
-  console.info("[PopupPlaceholder]", payload);
-};
 
 const AutoResizeTextarea = ({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) => {
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -34,6 +26,8 @@ export const DayNotesEditor = ({ project, date, notes, onProjectUpdate }: { proj
   const [creating, setCreating] = useState(false);
   const [newDraft, setNewDraft] = useState({ gmNote: "", playerNote: "" });
   if (!onProjectUpdate) return null;
+  const displayDate = absoluteDayToCalendarDate(calendarDateToAbsoluteDay(date, project.calendarSystem), project.calendarSystem);
+  const dateLabel = `${displayDate.weekdayName} ${displayDate.dayOfMonth} ${displayDate.monthName} ${displayDate.year}`;
 
   const beginEdit = (note: DayNote) => {
     setEditingId(note.id);
@@ -105,11 +99,10 @@ export const DayNotesEditor = ({ project, date, notes, onProjectUpdate }: { proj
                   <SecondaryButton type="button" onClick={() => beginEdit(note)}>{t(project.locale, "dayNotes.edit")}</SecondaryButton>
                   {(note.gmNote?.trim() || note.playerNote?.trim()) ? (
                     <SecondaryButton type="button" onClick={() => {
-                      const dateLabel = `${date.dayOfMonth}/${date.monthId}/${date.year}`;
                       if (note.gmNote?.trim()) sendPopupNotification({ type: "dayNote", audience: "gm", title: t(project.locale, "dayNotes.gmNote"), body: note.gmNote, date: dateLabel });
                       if (note.playerNote?.trim()) sendPopupNotification({ type: "dayNote", audience: "players", title: t(project.locale, "dayNotes.playerNote"), body: note.playerNote, date: dateLabel });
                     }}>
-                      {project.locale === "fr" ? "Envoyer" : "Send"}
+                       {t(project.locale, "common.send")}
                     </SecondaryButton>
                   ) : null}
                 </Toolbar>
