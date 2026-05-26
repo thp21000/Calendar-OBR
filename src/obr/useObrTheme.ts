@@ -13,6 +13,7 @@ const applyObrThemeVariables = (theme: Theme) => {
   root.style.setProperty("--obr-text-muted", theme.text.disabled);
   root.style.setProperty("--obr-primary-main", theme.primary.main);
   root.style.setProperty("--obr-primary-contrast", theme.primary.contrastText);
+  root.style.setProperty("--obr-border", theme.secondary?.main ?? "#8f7ad8");
 };
 
 export const useObrTheme = () => {

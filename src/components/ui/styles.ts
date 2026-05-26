@@ -2,11 +2,11 @@ import type { CSSProperties } from "react";
 
 export const ui = {
   colors: {
-    background: "var(--obr-bg-default, #25283a)",
-    surface: "var(--obr-bg-paper, #2b2e42)",
-    surfaceElevated: "var(--obr-surface-elevated, #30344a)",
-    surfaceSoft: "var(--obr-surface-soft, #353950)",
-    border: "var(--obr-border, #4b516b)",
+    background: "var(--obr-bg-default, #2b2d3f)",
+    surface: "var(--obr-bg-paper, #303347)",
+    surfaceElevated: "var(--obr-surface-elevated, #343850)",
+    surfaceSoft: "var(--obr-surface-soft, #3a3e58)",
+    border: "var(--obr-border, #8f7ad8)",
     textPrimary: "var(--obr-text-primary, #ffffff)",
     textSecondary: "var(--obr-text-secondary, #d6d8e8)",
     textMuted: "var(--obr-text-muted, #aeb2c8)",
