@@ -70,12 +70,17 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
   const sortedMonths = useMemo(() => [...project.calendarSystem.months].sort((a, b) => a.order - b.order), [project.calendarSystem.months]);
   const [form, setForm] = useState<EventFormValue>(toFormValue(project, initialEvent, initialDate));
   const [nameError, setNameError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
   const [endError, setEndError] = useState<string | null>(null);
   const updateForm = <K extends keyof EventFormValue>(key: K, value: EventFormValue[K]) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const submit = () => {
     const name = form.name.trim();
-    if (!name) return setNameError(t(project.locale, "events.nameRequired"));
+    if (!name) {
+      setNameError(t(project.locale, "events.nameRequired"));
+      if (compactCreatePopup) setGlobalError(t(project.locale, "events.createMissingRequiredFields"));
+      return;
+    }
     const month = getMonthById(project.calendarSystem, form.monthId);
     const startDate: CalendarDate = {
       year: form.year,
@@ -122,6 +127,7 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
         reminderMinutesBefore: normalizeReminderMinutes(form.reminderMinutesBefore)
       });
       setNameError(null);
+      setGlobalError(null);
       return;
     }
     
@@ -135,12 +141,14 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
     });
     setForm(toFormValue(project, undefined, initialDate));
     setNameError(null);
+    setGlobalError(null);
   };
 
   const showCompactEndInDateSection = compactCreatePopup && mode === "create";
   return <div style={frameless ? undefined : { border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
+    {globalError ? <div style={{ color: "#fca5a5", fontSize: 12, marginBottom: 8 }}>{globalError}</div> : null}
     {!hideTitle ? <div style={{ fontWeight: 700, marginBottom: 6 }}>{mode === "create" ? t(project.locale, "events.createTitle") : t(project.locale, "events.editTitle")}</div> : null}
-    <CollapsibleSection title={t(project.locale, "events.sectionGeneral")} defaultOpen>
+    <CollapsibleSection title={t(project.locale, "events.sectionGeneral")} defaultOpen={!compactCreatePopup}>
       <label>{t(project.locale, "events.name")} <span title={t(project.locale, "events.help.name")}>ⓘ</span></label><input value={form.name} onChange={(e)=>updateForm("name", e.target.value)} style={inputStyle}/>{nameError ? <div style={{ color: "#fca5a5", fontSize: 12 }}>{nameError}</div>:null}
       <label>{t(project.locale, "events.icon")} <span title={t(project.locale, "events.help.icon")}>ⓘ</span></label><input value={form.icon} onChange={(e)=>updateForm("icon", e.target.value)} style={inputStyle}/>
       <label>{t(project.locale, "events.summary")} <span title={t(project.locale, "events.help.summary")}>ⓘ</span></label><input value={form.summary} onChange={(e)=>updateForm("summary", e.target.value)} style={inputStyle}/>
@@ -150,11 +158,12 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
     </CollapsibleSection>
     <CollapsibleSection title={t(project.locale, "events.sectionDateTime")} defaultOpen={!compactCreatePopup}>
       <label style={{ display: "flex", gap: 6 }}><input type="checkbox" checked={form.allDay} onChange={(e)=>updateForm("allDay", e.target.checked)}/>{t(project.locale, "events.allDay")} <span title={t(project.locale, "events.help.allDay")}>ⓘ</span></label>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+      <div style={{ fontSize: 12, marginTop: 6, marginBottom: 2 }}>{showCompactEndInDateSection ? t(project.locale, "events.startDateTime") : t(project.locale, "events.sectionDateTime")}</div>
+      <div style={{ display: "grid", gridTemplateColumns: showCompactEndInDateSection ? "80px 1fr 70px" : "1fr 1fr", gap: 6 }}>
         <div><label>{t(project.locale, "events.year")}</label><input type="number" value={form.year} onChange={(e)=>updateForm("year", Number(e.target.value))} style={inputStyle}/></div>
         <div><label>{t(project.locale, "events.month")}</label><select value={form.monthId} onChange={(e)=>updateForm("monthId", e.target.value)} style={inputStyle}>{sortedMonths.map((m)=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
         <div><label>{t(project.locale, "events.day")}</label><input type="number" value={form.dayOfMonth} onChange={(e)=>updateForm("dayOfMonth", Number(e.target.value))} style={inputStyle}/></div>
-        {!form.allDay ? <><div><label>{t(project.locale, "events.hour")}</label><input type="number" min={0} max={23} value={form.hour} onChange={(e)=>updateForm("hour", Number(e.target.value))} style={inputStyle}/></div><div><label>{t(project.locale, "events.minute")}</label><input type="number" min={0} max={59} value={form.minute} onChange={(e)=>updateForm("minute", Number(e.target.value))} style={inputStyle}/></div></> : null}
+        {!form.allDay ? <div style={{ display: "grid", gridTemplateColumns: showCompactEndInDateSection ? "70px 70px" : "1fr 1fr", gap: 6, gridColumn: "1 / -1" }}><div><label>{t(project.locale, "events.hour")}</label><input type="number" min={0} max={23} value={form.hour} onChange={(e)=>updateForm("hour", Number(e.target.value))} style={inputStyle}/></div><div><label>{t(project.locale, "events.minute")}</label><input type="number" min={0} max={59} value={form.minute} onChange={(e)=>updateForm("minute", Number(e.target.value))} style={inputStyle}/></div></div> : null}
       </div>
       </CollapsibleSection>
     {!showCompactEndInDateSection ? <CollapsibleSection title={t(project.locale, "events.sectionEnd")} defaultOpen={Boolean(initialEvent?.endDate)}>
@@ -167,12 +176,14 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
       </div> : null}
     {endError ? <div style={{ color: "#fca5a5", fontSize: 12 }}>{endError}</div> : null}
     </CollapsibleSection> : null}
-    {showCompactEndInDateSection ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+    {showCompactEndInDateSection ? <div>
+      <div style={{ fontSize: 12, marginTop: 6, marginBottom: 2 }}>{t(project.locale, "events.endDateTime")}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 70px", gap: 6 }}>
       <div><label>{t(project.locale, "events.endYear")} <span title={t(project.locale, "events.help.endDate")}>ⓘ</span></label><input type="number" value={form.endYear} onChange={(e)=>updateForm("endYear", Number(e.target.value))} style={inputStyle}/></div>
       <div><label>{t(project.locale, "events.endMonth")}</label><select value={form.endMonthId} onChange={(e)=>updateForm("endMonthId", e.target.value)} style={inputStyle}>{sortedMonths.map((m)=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
       <div><label>{t(project.locale, "events.endDay")}</label><input type="number" value={form.endDayOfMonth} onChange={(e)=>updateForm("endDayOfMonth", Number(e.target.value))} style={inputStyle}/></div>
-      {!form.allDay ? <><div><label>{t(project.locale, "events.endHour")}</label><input type="number" min={0} max={23} value={form.endHour} onChange={(e)=>updateForm("endHour", Number(e.target.value))} style={inputStyle}/></div><div><label>{t(project.locale, "events.endMinute")}</label><input type="number" min={0} max={59} value={form.endMinute} onChange={(e)=>updateForm("endMinute", Number(e.target.value))} style={inputStyle}/></div></> : null}
-    </div> : null}
+      {!form.allDay ? <div style={{ display: "grid", gridTemplateColumns: "70px 70px", gap: 6, gridColumn: "1 / -1" }}><div><label>{t(project.locale, "events.endHour")}</label><input type="number" min={0} max={23} value={form.endHour} onChange={(e)=>updateForm("endHour", Number(e.target.value))} style={inputStyle}/></div><div><label>{t(project.locale, "events.endMinute")}</label><input type="number" min={0} max={59} value={form.endMinute} onChange={(e)=>updateForm("endMinute", Number(e.target.value))} style={inputStyle}/></div></div> : null}
+    </div></div> : null}
     <CollapsibleSection title={t(project.locale, "events.sectionRecurrence")} defaultOpen={mode === "edit" && initialEvent?.recurrence.type !== "none"}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
         <div><label>{t(project.locale, "events.recurrence")}</label>
