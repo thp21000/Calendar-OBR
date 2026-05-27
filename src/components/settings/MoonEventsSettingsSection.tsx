@@ -1,91 +1,127 @@
 import { useState } from "react";
-import { addMoonEvent, createDefaultMoonEvent, deleteMoonEvent, updateMoonEvent } from "../../calendar/moonEventsLogic";
-import type { CalendarProject, MoonPhaseId } from "../../domain/types";
+import { addMoonEvent, createDefaultMoonEvent, deleteMoonEvent, isMoonEventTriggered, updateMoonEvent } from "../../calendar/moonEventsLogic";
+import type { CalendarProject, MoonEvent, MoonPhaseId } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
+import { MoonEventPopup } from "../events/MoonEventPopup";
 
-export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; inputStyle: React.CSSProperties; }) => {
+const phases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
+
+export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; inputStyle: React.CSSProperties }) => {
+  const [isCreatePopupOpen, setIsCreatePopupOpen] = useState(false);
   const [editingMoonEventId, setEditingMoonEventId] = useState<string | null>(null);
-  const phases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
-  const handleAddMoonEvent = () => {
-    const event = createDefaultMoonEvent(project);
-    onProjectUpdate(addMoonEvent(project, event));
-    setEditingMoonEventId(event.id);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [moonPeriodFilter, setMoonPeriodFilter] = useState<"all" | "current" | "other">("all");
+  const [moonPhaseFilter, setMoonPhaseFilter] = useState("all");
+
+  const moonEvents = project.moonEvents ?? [];
+  const editingMoonEvent = editingMoonEventId ? moonEvents.find((event) => event.id === editingMoonEventId) : undefined;
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredMoonEvents = moonEvents.filter((event) => {
+    if (moonPeriodFilter === "current" && !isMoonEventTriggered(project, event, project.currentTime.absoluteDay)) return false;
+    if (moonPeriodFilter === "other" && isMoonEventTriggered(project, event, project.currentTime.absoluteDay)) return false;
+    if (moonPhaseFilter !== "all") {
+      const [moonId, phaseId] = moonPhaseFilter.split(":");
+      if (event.moonId !== moonId || event.phaseId !== phaseId) return false;
+    }
+    if (!normalizedQuery) return true;
+    const moon = project.moons.find((item) => item.id === event.moonId);
+    const iconText = event.icon && !/^https?:\/\//i.test(event.icon) ? event.icon : "";
+    const visibility = formatMoonEventVisibility(project, event.visibility);
+    const haystack = `${event.name} ${event.summary ?? ""} ${iconText} ${moon?.name ?? ""} ${t(project.locale, `moon.phase.${event.phaseId}`)} ${visibility}`.toLowerCase();
+    return haystack.includes(normalizedQuery);
+  });
+
+  const statusLabel = (event: MoonEvent): string => {
+    if (!event.enabled) return t(project.locale, "moonEvents.statusDisabled");
+    if (isMoonEventTriggered(project, event, project.currentTime.absoluteDay)) return t(project.locale, "moonEvents.statusTriggered");
+    return t(project.locale, "moonEvents.statusActive");
   };
 
   return <>
-    <button type="button" onClick={handleAddMoonEvent} style={buttonStyle}>{t(project.locale, "moonEvents.add")}</button>
-    {project.moons.length === 0 ? <div style={{ fontSize: 12, color: "#fca5a5", marginTop: 6 }}>{t(project.locale, "moonEvents.noMoonAvailable")}</div> : null}
-    {(project.moonEvents ?? []).length === 0 ? <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 6 }}>{t(project.locale, "moonEvents.empty")}</div> : null}
-    <div style={sectionStyle}>
-      <div style={sectionHeaderStyle}>
-        {t(project.locale, "moonEvents.listTitle")} ({(project.moonEvents ?? []).length})
+    <SectionCard>
+      <PrimaryButton type="button" onClick={() => setIsCreatePopupOpen(true)} style={{ marginBottom: 8 }}>
+        {t(project.locale, "moonEvents.openCreateForm")}
+      </PrimaryButton>
+      <div style={{ marginBottom: 8 }}>
+        <label style={label}>{t(project.locale, "moonEvents.search")}</label>
+        <div style={{ display: "flex", gap: 6 }}>
+          <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t(project.locale, "moonEvents.searchPlaceholder")} style={inputStyle} />
+          {searchQuery.trim() ? <SecondaryButton type="button" onClick={() => setSearchQuery("")}>{t(project.locale, "moonEvents.clearSearch")}</SecondaryButton> : null}
+        </div>
       </div>
-      <div style={{ display: "grid", gap: 8 }}>
-        {(project.moonEvents ?? []).map((event) => {
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 8 }}>
+        <div>
+          <label style={label}>{t(project.locale, "moonEvents.period")}</label>
+          <select value={moonPeriodFilter} onChange={(e) => setMoonPeriodFilter(e.target.value as "all" | "current" | "other")} style={inputStyle}>
+            <option value="all">{t(project.locale, "moonEvents.periodAll")}</option>
+            <option value="current">{t(project.locale, "moonEvents.periodCurrent")}</option>
+            <option value="other">{t(project.locale, "moonEvents.periodOther")}</option>
+          </select>
+        </div>
+        <div>
+          <label style={label}>{t(project.locale, "moonEvents.phaseFilter")}</label>
+          <select value={moonPhaseFilter} onChange={(e) => setMoonPhaseFilter(e.target.value)} style={inputStyle}>
+            <option value="all">{t(project.locale, "moonEvents.phaseFilterAll")}</option>
+            {project.moons.flatMap((moon) => phases.map((phaseId) => (
+              <option key={`${moon.id}:${phaseId}`} value={`${moon.id}:${phaseId}`}>
+                {moon.name} — {t(project.locale, `moon.phase.${phaseId}`)}
+              </option>
+            )))}
+          </select>
+        </div>
+      </div>
+    </SectionCard>
+
+    <SectionCard>
+      <SectionHeader title={`${t(project.locale, "moonEvents.listTitle")} (${filteredMoonEvents.length})`} />
+      {filteredMoonEvents.length === 0 ? <EmptyState text={normalizedQuery ? t(project.locale, "moonEvents.noEventsForSearch") : t(project.locale, "moonEvents.noEventsForFilter")} /> : <div style={{ display: "grid", gap: 8 }}>
+        {filteredMoonEvents.map((event) => {
           const moon = project.moons.find((moonItem) => moonItem.id === event.moonId);
-          if (editingMoonEventId !== event.id) {
-            return <div key={event.id} style={cardStyle}>
-              <div style={cardHeaderStyle}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                  <span>{event.icon || "🌕"}</span>
-                  <strong style={{ overflowWrap: "anywhere" }}>{event.name}</strong>
-                </div>
-                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  <span style={badgeStyle}>{event.enabled ? t(project.locale, "moonEvents.enabled") : t(project.locale, "moonEvents.disabled")}</span>
-                  <span style={badgeStyle}>{formatMoonEventVisibility(project, event.visibility)}</span>
-                </div>
-              </div>
-              <div style={metaStyle}>
-                {moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)}
-              </div>
-              <div style={summaryStyle}>
-                {event.summary?.trim() ? event.summary : t(project.locale, "moonEvents.noSummary")}
-              </div>
-              <div style={actionsStyle}>
-                <button type="button" onClick={() => setEditingMoonEventId(event.id)} style={buttonStyle}>
-                  {t(project.locale, "events.edit")}
-                </button>
-                <button type="button" onClick={() => { if (confirm(t(project.locale, "moonEvents.confirmDelete"))) onProjectUpdate(deleteMoonEvent(project, event.id)); }} style={buttonStyle}>
-                  {t(project.locale, "moonEvents.delete")}
-                </button>
-              </div>
-            </div>;
-          }
           return <div key={event.id} style={cardStyle}>
-            <input value={event.name} onChange={(e) => onProjectUpdate(updateMoonEvent(project, event.id, { name: e.target.value }))} style={inputStyle} />
-            <input value={event.icon ?? ""} onChange={(e) => onProjectUpdate(updateMoonEvent(project, event.id, { icon: e.target.value }))} style={inputStyle} />
-            <input value={event.summary} onChange={(e) => onProjectUpdate(updateMoonEvent(project, event.id, { summary: e.target.value }))} style={inputStyle} />
-            <select value={event.moonId} onChange={(e) => onProjectUpdate(updateMoonEvent(project, event.id, { moonId: e.target.value }))} style={inputStyle}>{project.moons.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
-            <select value={event.phaseId} onChange={(e) => onProjectUpdate(updateMoonEvent(project, event.id, { phaseId: e.target.value as MoonPhaseId }))} style={inputStyle}>{phases.map((p) => <option key={p} value={p}>{t(project.locale, `moon.phase.${p}`)}</option>)}</select>
-            <select value={event.visibility} onChange={(e) => onProjectUpdate(updateMoonEvent(project, event.id, { visibility: e.target.value as "gm" | "players" | "revealOnTrigger" }))} style={inputStyle}><option value="gm">{t(project.locale, "events.visibilityGm")}</option><option value="players">{t(project.locale, "events.visibilityPlayers")}</option><option value="revealOnTrigger">{t(project.locale, "events.visibilityRevealOnTrigger")}</option></select>
-            <label><input type="checkbox" checked={event.enabled} onChange={(e) => onProjectUpdate(updateMoonEvent(project, event.id, { enabled: e.target.checked }))} /> {t(project.locale, "moonEvents.enabled")}</label>
-            <label><input type="checkbox" checked={event.notifyOnTrigger} onChange={(e) => onProjectUpdate(updateMoonEvent(project, event.id, { notifyOnTrigger: e.target.checked }))} /> {t(project.locale, "moonEvents.notifyOnTrigger")}</label>
+            <div style={cardHeaderStyle}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                <span>{event.icon || "🌕"}</span>
+                <strong style={{ overflowWrap: "anywhere" }}>{event.name}</strong>
+              </div>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <Badge>{event.enabled ? t(project.locale, "moonEvents.enabled") : t(project.locale, "moonEvents.disabled")}</Badge>
+                <Badge>{statusLabel(event)}</Badge>
+                <Badge>{formatMoonEventVisibility(project, event.visibility)}</Badge>
+                {event.notifyOnTrigger ? <Badge>{t(project.locale, "moonEvents.notifyOnTrigger")}</Badge> : null}
+              </div>
+            </div>
+            <div style={metaStyle}>{moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)}</div>
+            <div style={summaryStyle}>{event.summary?.trim() ? event.summary : t(project.locale, "moonEvents.noSummary")}</div>
             <div style={actionsStyle}>
-              <button type="button" onClick={() => setEditingMoonEventId(null)} style={buttonStyle}>{t(project.locale, "common.close")}</button>
-              <button type="button" onClick={() => { if (confirm(t(project.locale, "moonEvents.confirmDelete"))) onProjectUpdate(deleteMoonEvent(project, event.id)); }} style={buttonStyle}>{t(project.locale, "moonEvents.delete")}</button>
+              <SecondaryButton type="button" onClick={() => setEditingMoonEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
+              <SecondaryButton type="button" onClick={() => {
+                if (!confirm(t(project.locale, "moonEvents.confirmDelete"))) return;
+                onProjectUpdate(deleteMoonEvent(project, event.id));
+                if (editingMoonEventId === event.id) setEditingMoonEventId(null);
+              }}>{t(project.locale, "moonEvents.delete")}</SecondaryButton>
             </div>
           </div>;
         })}
-      </div>
-    </div>
+      </div>}
+    </SectionCard>
+
+    {project.moons.length === 0 ? <div style={{ fontSize: 12, color: "#fca5a5", marginTop: 6 }}>{t(project.locale, "moonEvents.noMoonAvailable")}</div> : null}
+    {isCreatePopupOpen ? <MoonEventPopup project={project} event={createDefaultMoonEvent(project)} mode="create" onClose={() => setIsCreatePopupOpen(false)} onSubmit={(event) => { onProjectUpdate(addMoonEvent(project, event)); setIsCreatePopupOpen(false); }} /> : null}
+    {editingMoonEvent ? <MoonEventPopup project={project} event={editingMoonEvent} mode="edit" onClose={() => setEditingMoonEventId(null)} onSubmit={(event) => { onProjectUpdate(updateMoonEvent(project, event.id, event)); setEditingMoonEventId(null); }} /> : null}
   </>;
 };
 
-const formatMoonEventVisibility = (
-  project: CalendarProject,
-  visibility: "gm" | "players" | "revealOnTrigger"
-): string => {
+const formatMoonEventVisibility = (project: CalendarProject, visibility: "gm" | "players" | "revealOnTrigger"): string => {
   if (visibility === "gm") return t(project.locale, "events.visibilityGm");
   if (visibility === "players") return t(project.locale, "events.visibilityPlayers");
   return t(project.locale, "events.visibilityRevealOnTrigger");
 };
 
-const buttonStyle = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "6px 10px", cursor: "pointer" };
-const sectionStyle = { border: "1px solid #374151", borderRadius: 8, padding: 8, marginTop: 8, background: "#0f172a" };
-const sectionHeaderStyle = { fontWeight: 700, marginBottom: 8, fontSize: 13 };
+const label = { display: "block", fontSize: 12, marginBottom: 4 };
 const cardStyle = { border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" };
 const cardHeaderStyle = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 };
-const badgeStyle = { border: "1px solid #374151", borderRadius: 999, padding: "2px 6px", fontSize: 11, color: "#cbd5e1", background: "#1f2937" };
 const metaStyle = { fontSize: 12, color: "#cbd5e1", marginBottom: 4 };
 const summaryStyle = { fontSize: 12, color: "#d1d5db", marginBottom: 6, whiteSpace: "pre-wrap" as const };
 const actionsStyle = { display: "flex", gap: 6, flexWrap: "wrap" as const };
