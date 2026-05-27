@@ -38,10 +38,11 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
       if (event.moonId !== moonId || event.phaseId !== phaseId) return false;
     }
     if (!normalizedQuery) return true;
+    const conditionBadges = getMoonEventConditionBadges(project, event);
     const moon = project.moons.find((item) => item.id === event.moonId);
     const iconText = event.icon && !/^https?:\/\//i.test(event.icon) ? event.icon : "";
     const visibility = formatMoonEventVisibility(project, event.visibility);
-    const haystack = `${event.name} ${event.summary ?? ""} ${iconText} ${moon?.name ?? ""} ${t(project.locale, `moon.phase.${event.phaseId}`)} ${visibility}`.toLowerCase();
+    const haystack = `${event.name} ${event.summary ?? ""} ${iconText} ${moon?.name ?? ""} ${t(project.locale, `moon.phase.${event.phaseId}`)} ${visibility} ${conditionBadges.join(" ")}`.toLowerCase();
     return haystack.includes(normalizedQuery);
   });
 
@@ -105,6 +106,7 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
       {filteredMoonEvents.length === 0 ? <EmptyState text={normalizedQuery ? t(project.locale, "moonEvents.noEventsForSearch") : t(project.locale, "moonEvents.noEventsForFilter")} /> : <div style={{ display: "grid", gap: 8 }}>
         {filteredMoonEvents.map((event) => {
           const moon = project.moons.find((moonItem) => moonItem.id === event.moonId);
+          const conditionBadges = getMoonEventConditionBadges(project, event);
           return <div key={event.id} style={cardStyle}>
             <div style={cardHeaderStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
@@ -120,6 +122,7 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
             <div style={metaStyle}>{moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)} · {formatMoonEventNextActivation(event)}</div>
             <div style={metaStyle}>{moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)}</div>
             <div style={summaryStyle}>{event.summary?.trim() ? event.summary : t(project.locale, "moonEvents.noSummary")}</div>
+            {conditionBadges.length > 0 ? <div style={{ marginBottom: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>{conditionBadges.map((badge) => <Badge key={`${event.id}-${badge}`}>{badge}</Badge>)}</div> : null}
             <div style={actionsStyle}>
               <SecondaryButton type="button" onClick={() => setEditingMoonEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
               <SecondaryButton type="button" onClick={() => {
@@ -142,6 +145,29 @@ const formatMoonEventVisibility = (project: CalendarProject, visibility: "gm" | 
   if (visibility === "gm") return t(project.locale, "events.visibilityGm");
   if (visibility === "players") return t(project.locale, "events.visibilityPlayers");
   return t(project.locale, "events.visibilityRevealOnTrigger");
+};
+
+const getMoonEventConditionBadges = (project: CalendarProject, event: MoonEvent): string[] => {
+  const badges: string[] = [];
+  const conditions = event.conditions ?? { seasonIds: [], monthIds: [] };
+  const seasonIds = conditions.seasonIds ?? [];
+  const monthIds = conditions.monthIds ?? [];
+  if (seasonIds.length === 1) {
+    const seasonName = project.seasons.find((item) => item.id === seasonIds[0])?.name;
+    if (seasonName) badges.push(t(project.locale, "moonEvents.conditionOnlySeason").replace("{season}", seasonName));
+  } else if (seasonIds.length > 1) {
+    badges.push(t(project.locale, "moonEvents.conditionSeveralSeasons").replace("{count}", String(seasonIds.length)));
+  }
+  if (monthIds.length === 1) {
+    const monthName = project.calendarSystem.months.find((item) => item.id === monthIds[0])?.name;
+    if (monthName) badges.push(t(project.locale, "moonEvents.conditionMonth").replace("{month}", monthName));
+  } else if (monthIds.length > 1) {
+    badges.push(t(project.locale, "moonEvents.conditionSeveralMonths").replace("{count}", String(monthIds.length)));
+  }
+  const repeatMode = event.repeatMode ?? "everyOccurrence";
+  if (repeatMode === "once") badges.push(t(project.locale, "moonEvents.conditionNoRepeat"));
+  if (repeatMode === "everyOtherOccurrence") badges.push(t(project.locale, "moonEvents.conditionEveryOtherMoon"));
+  return badges;
 };
 
 const label = { display: "block", fontSize: 12, marginBottom: 4 };

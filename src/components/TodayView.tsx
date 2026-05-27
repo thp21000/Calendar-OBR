@@ -136,7 +136,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       const nextWeather = getCurrentWeather(withTime);
       const withEventsCompletion = applyEventCompletionActions(withTime, completed);
       const withWeatherTriggers = applyWeatherEventTriggerActions(withEventsCompletion, triggeredWeather, nextTime, nextWeather);
-      const withMoonEventStatus = applyMoonEventTriggerActions(withWeatherTriggers, triggeredMoon);
+      const withMoonEventStatus = applyMoonEventTriggerActions(withWeatherTriggers, triggeredMoon, nextTime.absoluteDay);
       onProjectUpdate(withMoonEventStatus);
       return;
     } else {

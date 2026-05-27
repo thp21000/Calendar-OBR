@@ -269,6 +269,16 @@ export type MoonEvent = {
   enabled: boolean;
   notifyOnTrigger: boolean;
   status: "active" | "triggered" | "archived" | "disabled";
+  conditions?: MoonEventExtraConditions;
+  repeatMode?: MoonEventRepeatMode;
+  lastTriggeredAbsoluteDay?: number;
+};
+
+export type MoonEventRepeatMode = "once" | "everyOccurrence" | "everyOtherOccurrence";
+
+export type MoonEventExtraConditions = {
+  seasonIds?: string[];
+  monthIds?: string[];
 };
 
 export type DayNote = {
