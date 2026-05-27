@@ -231,7 +231,7 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
       </div>
     </CollapsibleSection>
     <CollapsibleSection title={t(project.locale, "events.sectionTrigger")} defaultOpen={false}>
-      <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.deleteAfterTrigger} onChange={(e)=>updateForm("deleteAfterTrigger", e.target.checked)}/>{t(project.locale, "events.deleteAfterTrigger")} <span title={t(project.locale, "events.help.deleteAfterTrigger")}>ⓘ</span></label>
+      <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.notifyOnTrigger} onChange={(e)=>updateForm("notifyOnTrigger", e.target.checked)}/>{t(project.locale, "events.notifyOnTrigger")} <span title={t(project.locale, "events.help.notifyOnTrigger")}>ⓘ</span></label>
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.archiveAfterTrigger} onChange={(e)=>updateForm("archiveAfterTrigger", e.target.checked)}/>{t(project.locale, "events.archiveAfterTrigger")} <span title={t(project.locale, "events.help.archiveAfterTrigger")}>ⓘ</span></label>
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.archiveAfterTrigger} onChange={(e)=>updateForm("archiveAfterTrigger", e.target.checked)}/>{t(project.locale, "events.archiveAfterTrigger")}</label>
     </CollapsibleSection>
