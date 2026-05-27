@@ -110,7 +110,7 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
           const moonPhaseMeta = `${moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · ${t(project.locale, `moon.phase.${event.phaseId}`)}`;
           const summaryValue = event.summary?.trim();
           const shouldHideDuplicateSummary = summaryValue === moonPhaseMeta;
-          
+
           return <div key={event.id} style={cardStyle}>
             <div style={cardHeaderStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
@@ -124,7 +124,6 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
               </div>
             </div>
             <div style={metaStyle}>{moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)} · {formatMoonEventNextActivation(event)}</div>
-            <div style={metaStyle}>{moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)}</div>
             <div style={summaryStyle}>{event.summary?.trim() ? event.summary : t(project.locale, "moonEvents.noSummary")}</div>
             {conditionBadges.length > 0 ? <div style={{ marginBottom: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>{conditionBadges.map((badge) => <Badge key={`${event.id}-${badge}`}>{badge}</Badge>)}</div> : null}
             <div style={actionsStyle}>
