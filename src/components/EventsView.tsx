@@ -3,13 +3,12 @@ import { addCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, getEvent
 import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEventTriggerOptions, formatEventVisibility } from "../calendar/formatEvent";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
-import type { GlobalSearchResult } from "../calendar/globalSearch";
 import { EventIcon } from "./EventIcon";
 import { EventForm } from "./events/EventForm";
-import { GlobalSearchPanel } from "./search/GlobalSearchPanel";
 
-export const EventsView = ({ project, onProjectUpdate, initialCreateDate, initialEditEventId, onInitialCreateDateConsumed, onInitialEditEventIdConsumed, onOpenSearchResult }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; initialEditEventId?: string | null; onInitialCreateDateConsumed?: () => void; onInitialEditEventIdConsumed?: () => void; onOpenSearchResult?: (result: GlobalSearchResult) => void; }) => {
+export const EventsView = ({ project, onProjectUpdate, initialCreateDate, initialEditEventId, onInitialCreateDateConsumed, onInitialEditEventIdConsumed }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; initialEditEventId?: string | null; onInitialCreateDateConsumed?: () => void; onInitialEditEventIdConsumed?: () => void; }) => {
   const events = sortEventsByDate(project.events, project);
+  const [activeEventTab, setActiveEventTab] = useState<"calendar" | "weather" | "moon">("calendar");
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "triggered" | "archived" | "disabled" | "all">("active");
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(Boolean(initialCreateDate));
@@ -65,22 +64,17 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, initia
     const handleDuplicate = (event: CalendarEvent) => onProjectUpdate(duplicateCalendarEvent(project, event.id));
   const handleReveal = (event: CalendarEvent) => onProjectUpdate(revealCalendarEvent(project, event.id));
   
-  const handleOpenSearchResult = (result: GlobalSearchResult) => {
-    if (result.type === "event") {
-      setStatusFilter("all");
-      setTimeFilter("all");
-      setSearchQuery("");
-      setIsCreateFormOpen(false);
-      setEditingEventId(result.sourceId);
-      return;
-    }
-    onOpenSearchResult?.(result);
-  };
   return (
     <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{t(project.locale, "events.title")}</div>
-      <GlobalSearchPanel project={project} onOpenResult={handleOpenSearchResult} />
-      <button
+      <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+        <button type="button" onClick={() => setActiveEventTab("calendar")} style={{ ...btn, background: activeEventTab === "calendar" ? "#374151" : "#1f2937" }}>{t(project.locale, "events.tabCalendar")}</button>
+        <button type="button" onClick={() => setActiveEventTab("weather")} style={{ ...btn, background: activeEventTab === "weather" ? "#374151" : "#1f2937" }}>{t(project.locale, "events.tabWeather")}</button>
+        <button type="button" onClick={() => setActiveEventTab("moon")} style={{ ...btn, background: activeEventTab === "moon" ? "#374151" : "#1f2937" }}>{t(project.locale, "events.tabMoon")}</button>
+      </div>
+      {activeEventTab === "calendar" ? (
+      <>
+        <button
         type="button"
         onClick={() => setIsCreateFormOpen((prev) => !prev)}
         style={{ border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#f3f4f6", padding: "7px 10px", fontSize: 12, marginBottom: 8 }}
@@ -170,6 +164,10 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, initia
           </div>
         ))}
       </div>}
+    </>
+      ) : null}
+      {activeEventTab === "weather" ? <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "events.weatherTabPlaceholder")}</div> : null}
+      {activeEventTab === "moon" ? <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "events.moonTabPlaceholder")}</div> : null}
     </>
   );
 };
