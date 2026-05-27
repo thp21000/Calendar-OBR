@@ -5,6 +5,7 @@ import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/typ
 import { t } from "../i18n/messages";
 import { EventIcon } from "./EventIcon";
 import { EventForm } from "./events/EventForm";
+import { WeatherEventsSettingsSection } from "./settings/WeatherEventsSettingsSection";
 
 export const EventsView = ({ project, onProjectUpdate, initialCreateDate, initialEditEventId, onInitialCreateDateConsumed, onInitialEditEventIdConsumed }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; initialEditEventId?: string | null; onInitialCreateDateConsumed?: () => void; onInitialEditEventIdConsumed?: () => void; }) => {
   const events = sortEventsByDate(project.events, project);
@@ -166,10 +167,11 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, initia
       </div>}
     </>
       ) : null}
-      {activeEventTab === "weather" ? <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "events.weatherTabPlaceholder")}</div> : null}
+      {activeEventTab === "weather" ? <WeatherEventsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} /> : null}
       {activeEventTab === "moon" ? <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "events.moonTabPlaceholder")}</div> : null}
     </>
   );
 };
 
 const btn = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#f3f4f6", padding: "6px 9px", fontSize: 12 };
+const inputStyle = { width: "100%", margin: "4px 0 8px", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", boxSizing: "border-box" as const };
