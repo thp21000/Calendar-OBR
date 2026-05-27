@@ -81,16 +81,23 @@ export const getNextMoonEventActivationDays = (
 ): number[] => {
   const moon = project.moons.find((item) => item.id === moonEvent.moonId);
   if (!moon) return [];
-  if ((moonEvent.repeatMode ?? "everyOccurrence") === "once" && moonEvent.lastTriggeredAbsoluteDay !== undefined) return [];
+  const repeatMode = moonEvent.repeatMode ?? "everyOccurrence";
+  if (repeatMode === "once" && moonEvent.lastTriggeredAbsoluteDay !== undefined) {
+    return moonEvent.lastTriggeredAbsoluteDay >= fromAbsoluteDay ? [moonEvent.lastTriggeredAbsoluteDay] : [];
+  }
   const targetCount = Math.max(0, Math.trunc(count));
   if (targetCount <= 0) return [];
   const results: number[] = [];
-  const maxSearchDays = Math.ceil(moon.cycleLengthDays * 8 * Math.max(targetCount, 1)) + 32;
+  const maxSearchDays = Math.ceil(moon.cycleLengthDays * 16 * Math.max(targetCount, 1)) + 370;
   for (let dayOffset = 0; dayOffset <= maxSearchDays && results.length < targetCount; dayOffset += 1) {
     const absoluteDay = fromAbsoluteDay + dayOffset;
-    if (getMoonPhaseForDate(moon, absoluteDay).id !== moonEvent.phaseId) continue;
-    if (!matchesMoonEventExtraConditions(project, moonEvent, absoluteDay)) continue;
-    if (!matchesMoonEventRepeatMode(project, moonEvent, absoluteDay)) continue;
+    const matchesToday = moonEventMatchesActivationRules(project, moonEvent, absoluteDay);
+    if (!matchesToday) continue;
+    const isFirstDayTested = dayOffset === 0;
+    if (!isFirstDayTested) {
+      const matchesPreviousDay = moonEventMatchesActivationRules(project, moonEvent, absoluteDay - 1);
+      if (matchesPreviousDay) continue;
+    }
     results.push(absoluteDay);
   }
   return results;
@@ -103,6 +110,16 @@ export const getNextMoonEventActivationDate = (
   const [nextDay] = getNextMoonEventActivationDays(project, moonEvent, project.currentTime.absoluteDay, 1);
   if (nextDay === undefined) return null;
   return absoluteDayToCalendarDate({ absoluteDay: nextDay, hour: 0, minute: 0 }, project.calendarSystem);
+};
+
+
+const moonEventMatchesActivationRules = (project: CalendarProject, moonEvent: MoonEvent, absoluteDay: number): boolean => {
+  const moon = project.moons.find((item) => item.id === moonEvent.moonId);
+  if (!moon) return false;
+  if (getMoonPhaseForDate(moon, absoluteDay).id !== moonEvent.phaseId) return false;
+  if (!matchesMoonEventExtraConditions(project, moonEvent, absoluteDay)) return false;
+  if (!matchesMoonEventRepeatMode(project, moonEvent, absoluteDay)) return false;
+  return true;
 };
 
 const matchesMoonEventExtraConditions = (project: CalendarProject, moonEvent: MoonEvent, absoluteDay: number): boolean => {
@@ -129,7 +146,10 @@ const getMoonEventOccurrenceIndex = (project: CalendarProject, moonEvent: MoonEv
 const matchesMoonEventRepeatMode = (project: CalendarProject, moonEvent: MoonEvent, absoluteDay: number): boolean => {
   const repeatMode = moonEvent.repeatMode ?? "everyOccurrence";
   if (repeatMode === "everyOccurrence") return true;
-  if (repeatMode === "once") return moonEvent.lastTriggeredAbsoluteDay === undefined;
+  if (repeatMode === "once") {
+    if (moonEvent.lastTriggeredAbsoluteDay === undefined) return true;
+    return moonEvent.lastTriggeredAbsoluteDay === absoluteDay;
+  }
   const occurrenceIndex = getMoonEventOccurrenceIndex(project, moonEvent, absoluteDay);
   if (occurrenceIndex === null) return false;
   return occurrenceIndex % 2 === 0;

@@ -11,7 +11,7 @@ const formatMoonEventVisibility = (project: CalendarProject, visibility: "gm" | 
   return t(project.locale, "events.visibilityRevealOnTrigger");
 };
 
-export const MoonEventDetailsPopup = ({ project, event, onClose }: { project: CalendarProject; event: MoonEvent; onClose: () => void }) => {
+export const MoonEventDetailsPopup = ({ project, event, onClose, contextDateLabel }: { project: CalendarProject; event: MoonEvent; onClose: () => void; contextDateLabel?: string }) => {
   const moon = project.moons.find((item) => item.id === event.moonId);
   const nextActivationDays = getNextMoonEventActivationDays(project, event, project.currentTime.absoluteDay, 3);
   const nextActivationLabels = nextActivationDays.map((absoluteDay) => {
@@ -76,7 +76,7 @@ export const MoonEventDetailsPopup = ({ project, event, onClose }: { project: Ca
                   audience: "players",
                   title: event.name,
                   body: event.playerDescription?.trim() || event.summary || event.name,
-                  date: "",
+                  date: contextDateLabel ?? "",
                   icon: event.icon,
                   summary: event.summary,
                   playerDescription: event.playerDescription

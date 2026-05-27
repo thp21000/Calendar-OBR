@@ -34,6 +34,7 @@ export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { p
   const labels = getAdjacentMonthLabels(project, viewedTime);
   const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
   const selectedMoonEvent = selectedMoonEventId ? (project.moonEvents ?? []).find((event) => event.id === selectedMoonEventId) ?? null : null;
+  const selectedMoonEventDateLabel = dayDetails?.formattedDate;
   const goToToday = () => {
     const todayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
     setViewedTime(getMonthViewTimeForDate(project, todayDate));
@@ -59,7 +60,7 @@ export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { p
       <MonthGrid project={project} viewedTime={viewedTime} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
       {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={setCreateEventDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} onOpenMoonEvent={setSelectedMoonEventId} /> : null}
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={onProjectUpdate ? (updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent)) : undefined} /> : null}
-      {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} /> : null}
+      {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={selectedMoonEventDateLabel} /> : null}
       {createEventDate ? <EventCreatePopup project={project} date={createEventDate} onClose={() => setCreateEventDate(null)} onCreate={(event) => {
         if (onProjectUpdate) onProjectUpdate(addCalendarEvent(project, event));
         setCreateEventDate(null);

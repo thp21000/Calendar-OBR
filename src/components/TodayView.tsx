@@ -67,6 +67,7 @@ const longRestButtonStyle: React.CSSProperties = {
 export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotification }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; onReset: () => void; onOpenNotification?: (notification: CalendarNotification) => void; }) => {
   const dismissedStorageKey = `calendar-obr.notifications.dismissed.${project.id}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+  const todayDateLabel = `${displayDate.weekdayName ?? ""} ${displayDate.dayOfMonth} ${displayDate.monthName} ${displayDate.year}`.trim();
   const lastTriggeredAtMinutesRef = useRef<Record<string, number>>({});
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
@@ -192,7 +193,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       </SectionCard>
 
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={(updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent))} /> : null}
-      {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} /> : null}
+      {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={todayDateLabel} /> : null}
     </>
   );
 };

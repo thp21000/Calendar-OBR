@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { CalendarProject, MoonEvent } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { getNextMoonEventActivationDays } from "../../calendar/moonEventsLogic";
@@ -5,7 +6,8 @@ import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { MoonEventForm } from "./MoonEventForm";
 
 export const MoonEventPopup = ({ project, event, mode, onClose, onSubmit }: { project: CalendarProject; event: MoonEvent; mode: "create" | "edit"; onClose: () => void; onSubmit: (event: MoonEvent) => void }) => {
-  const nextActivationDays = getNextMoonEventActivationDays(project, event, project.currentTime.absoluteDay, 3);
+  const [previewEvent, setPreviewEvent] = useState(event);
+  const nextActivationDays = getNextMoonEventActivationDays(project, previewEvent, project.currentTime.absoluteDay, 3);
   const nextActivationLabels = nextActivationDays.map((absoluteDay) => {
     const date = absoluteDayToCalendarDate({ absoluteDay, hour: 0, minute: 0 }, project.calendarSystem);
     const month = project.calendarSystem.months.find((item) => item.id === date.monthId);
@@ -23,7 +25,7 @@ export const MoonEventPopup = ({ project, event, mode, onClose, onSubmit }: { pr
           <div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "moonEvents.nextActivationsTitle")}</div>
           {nextActivationLabels.length === 0 ? <div>{t(project.locale, "moonEvents.nextActivationUnknown")}</div> : <ul style={{ margin: 0, paddingLeft: 16 }}>{nextActivationLabels.map((label) => <li key={label}>{label}</li>)}</ul>}
         </div>
-        <MoonEventForm project={project} event={event} mode={mode} onSubmit={onSubmit} onCancel={onClose} />
+        <MoonEventForm project={project} event={event} mode={mode} onSubmit={onSubmit} onCancel={onClose} onDraftChange={setPreviewEvent} />
       </div>
     </div>
   );

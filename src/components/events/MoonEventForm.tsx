@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CalendarProject, MoonEvent, MoonPhaseId, MoonEventRepeatMode } from "../../domain/types";
 import { t } from "../../i18n/messages";
 
 const phases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
 
-export const MoonEventForm = ({ project, event, mode, onSubmit, onCancel }: { project: CalendarProject; event: MoonEvent; mode: "create" | "edit"; onSubmit: (event: MoonEvent) => void; onCancel: () => void }) => {
+export const MoonEventForm = ({ project, event, mode, onSubmit, onCancel, onDraftChange }: { project: CalendarProject; event: MoonEvent; mode: "create" | "edit"; onSubmit: (event: MoonEvent) => void; onCancel: () => void; onDraftChange?: (event: MoonEvent) => void }) => {
   const [draft, setDraft] = useState<MoonEvent>({
     ...event,
     conditions: {
@@ -18,6 +18,10 @@ export const MoonEventForm = ({ project, event, mode, onSubmit, onCancel }: { pr
   const conditions = draft.conditions ?? { seasonIds: [], monthIds: [] };
   const seasonIds = conditions.seasonIds ?? [];
   const monthIds = conditions.monthIds ?? [];
+  useEffect(() => {
+    onDraftChange?.(draft);
+  }, [draft, onDraftChange]);
+
 
   return <div>
     <label style={label}>{t(project.locale, "moonEvents.name")}</label>
@@ -28,6 +32,12 @@ export const MoonEventForm = ({ project, event, mode, onSubmit, onCancel }: { pr
 
     <label style={label}>{t(project.locale, "moonEvents.summary")}</label>
     <input value={draft.summary} onChange={(e) => setDraft((prev) => ({ ...prev, summary: e.target.value }))} style={inputStyle} />
+
+    <label style={label}>{t(project.locale, "moonEvents.playerDescription")}</label>
+    <textarea value={draft.playerDescription ?? ""} onChange={(e) => setDraft((prev) => ({ ...prev, playerDescription: e.target.value }))} style={textareaStyle} />
+
+    <label style={label}>{t(project.locale, "moonEvents.gmDescription")}</label>
+    <textarea value={draft.gmDescription ?? ""} onChange={(e) => setDraft((prev) => ({ ...prev, gmDescription: e.target.value }))} style={textareaStyle} />
 
     <label style={label}>{t(project.locale, "moonEvents.moon")}</label>
     <select value={draft.moonId} onChange={(e) => setDraft((prev) => ({ ...prev, moonId: e.target.value }))} style={inputStyle}>
@@ -94,3 +104,5 @@ const checkboxGrid = { display: "grid", gap: 2, marginBottom: 6 };
 const sectionTitle = { fontSize: 12, fontWeight: 700, margin: "6px 0 4px" };
 const hint = { fontSize: 12, color: "#9ca3af", marginBottom: 6 };
 const buttonStyle = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "6px 10px", cursor: "pointer" };
+
+const textareaStyle = { width: "100%", minHeight: 70, background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", fontSize: 12, boxSizing: "border-box" as const, marginBottom: 8 };
