@@ -159,16 +159,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         currentMoonPhases={currentMoonPhases}
       />
 
-      <TodayEventsCard project={project} eventsToday={eventsToday} onSelectEvent={setSelectedEventId} />
-      {triggeredMoonEvents.length > 0 ? <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 8 }}>
-        <strong style={{ fontSize: 13 }}>{t(project.locale, "moonEvents.triggeredToday")}</strong>
-        <ul style={{ margin: "6px 0 0 16px", padding: 0 }}>
-          {triggeredMoonEvents.map((event) => {
-            const moon = project.moons.find((m) => m.id === event.moonId);
-            return <li key={event.id} style={{ fontSize: 12 }}>{event.icon ?? "🌕"} {event.name} · {moon?.name ?? "?"} · {t(project.locale, `moon.phase.${event.phaseId}`)}{event.summary ? ` — ${event.summary}` : ""}</li>;
-          })}
-        </ul>
-      </div> : null}
+      <TodayEventsCard project={project} eventsToday={eventsToday} moonEventsToday={triggeredMoonEvents} onSelectEvent={setSelectedEventId} />
 
       <WeatherForecastCard project={project} hourlyForecast={hourlyForecast} weatherUnits={weatherUnits} />
 

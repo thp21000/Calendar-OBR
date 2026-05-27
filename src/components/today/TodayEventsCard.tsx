@@ -5,10 +5,10 @@ import { EventIcon } from "../EventIcon";
 import { Badge, EmptyState, SectionCard, SectionHeader } from "../ui";
 import { ui } from "../ui/styles";
 
-export const TodayEventsCard = ({ project, eventsToday, onSelectEvent }: { project: CalendarProject; eventsToday: CalendarProject["events"]; onSelectEvent?: (eventId: string) => void }) => (
+export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], onSelectEvent }: { project: CalendarProject; eventsToday: CalendarProject["events"]; moonEventsToday?: NonNullable<CalendarProject["moonEvents"]>; onSelectEvent?: (eventId: string) => void }) => (
   <SectionCard>
     <SectionHeader title={t(project.locale, "events.eventsToday")} />
-    {eventsToday.length === 0 ? <EmptyState text={t(project.locale, "events.noEventsToday")} /> : <div style={{ display: "grid", gap: 6 }}>
+    {eventsToday.length === 0 && moonEventsToday.length === 0 ? <EmptyState text={t(project.locale, "events.noEventsToday")} /> : <div style={{ display: "grid", gap: 6 }}>
       {eventsToday.map((event) => <button key={event.id} type="button" onClick={onSelectEvent ? () => onSelectEvent(event.id) : undefined} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827", width: "100%", textAlign: "left", cursor: onSelectEvent ? "pointer" : "default" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
           <EventIcon icon={event.icon} locale={project.locale} />
@@ -18,6 +18,24 @@ export const TodayEventsCard = ({ project, eventsToday, onSelectEvent }: { proje
         {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
         <div style={{ marginTop: 4, opacity: 0.86 }}><Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge></div>
       </button>)}
+      {moonEventsToday.map((event) => <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a", width: "100%", textAlign: "left" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
+          <span>{event.icon ?? "🌕"}</span>
+          <strong style={{ color: ui.colors.textPrimary, fontWeight: 800 }}>{event.name}</strong>
+        </div>
+        <div style={{ marginTop: 4, fontSize: 12, color: "#cbd5e1" }}>{formatMoonEventMeta(project, event)}</div>
+        {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
+        <div style={{ marginTop: 4, opacity: 0.86, display: "flex", gap: 6, flexWrap: "wrap" as const }}>
+          <Badge>{t(project.locale, "moonEvents.eventKind")}</Badge>
+          <Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge>
+        </div>
+      </div>)}
     </div>}
   </SectionCard>
 );
+
+
+const formatMoonEventMeta = (project: CalendarProject, event: NonNullable<CalendarProject["moonEvents"]>[number]): string => {
+  const moon = project.moons.find((moonItem) => moonItem.id === event.moonId);
+  return `${moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · ${t(project.locale, `moon.phase.${event.phaseId}`)}`;
+};
