@@ -9,7 +9,6 @@ import { DisplaySettingsSection } from "./settings/DisplaySettingsSection";
 import { FutureSettingsSection } from "./settings/FutureSettingsSection";
 import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
 import { MoonsSettingsSection } from "./settings/MoonsSettingsSection";
-import { MoonEventsSettingsSection } from "./settings/MoonEventsSettingsSection";
 import { PacksSettingsSection } from "./settings/PacksSettingsSection";
 import { SeasonsSettingsSection } from "./settings/SeasonsSettingsSection";
 import { WeatherSettingsSection } from "./settings/WeatherSettingsSection";
@@ -53,10 +52,6 @@ export const SettingsView = ({
       
       <CollapsibleSection title={t(project.locale, "settings.section.moons")} storageKey="calendar-obr.settings.section.moons">
         <MoonsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
-      </CollapsibleSection>
-
-      <CollapsibleSection title={t(project.locale, "settings.section.moonEvents")} storageKey="calendar-obr.settings.section.moonEvents">
-        <MoonEventsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
 
       <CollapsibleSection title={t(project.locale, "settings.section.weather")} storageKey="calendar-obr.settings.section.weather">

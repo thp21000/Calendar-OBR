@@ -5,6 +5,7 @@ import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/typ
 import { t } from "../i18n/messages";
 import { EventIcon } from "./EventIcon";
 import { EventForm } from "./events/EventForm";
+import { MoonEventsSettingsSection } from "./settings/MoonEventsSettingsSection";
 import { WeatherEventsSettingsSection } from "./settings/WeatherEventsSettingsSection";
 
 export const EventsView = ({ project, onProjectUpdate, initialCreateDate, initialEditEventId, onInitialCreateDateConsumed, onInitialEditEventIdConsumed }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; initialEditEventId?: string | null; onInitialCreateDateConsumed?: () => void; onInitialEditEventIdConsumed?: () => void; }) => {
@@ -168,7 +169,7 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, initia
     </>
       ) : null}
       {activeEventTab === "weather" ? <WeatherEventsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} /> : null}
-      {activeEventTab === "moon" ? <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(project.locale, "events.moonTabPlaceholder")}</div> : null}
+      {activeEventTab === "moon" ? <MoonEventsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} /> : null}
     </>
   );
 };
