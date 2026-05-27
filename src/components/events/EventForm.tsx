@@ -218,7 +218,6 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
     <CollapsibleSection title={t(project.locale, "events.sectionRecurrence")} defaultOpen={mode === "edit" && initialEvent?.recurrence.type !== "none"}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
         <div><label>{t(project.locale, "events.recurrence")} <span title={t(project.locale, "events.help.recurrence")}>ⓘ</span></label>
-        <div><label>{t(project.locale, "events.recurrence")}</label>
           <select value={form.recurrenceType} onChange={(e)=>updateForm("recurrenceType", e.target.value as EventFormValue["recurrenceType"])} style={inputStyle}>
             <option value="none">{t(project.locale, "events.recurrenceNone")}</option>
             <option value="everyXDays">{t(project.locale, "events.recurrenceEveryXDays")}</option>
