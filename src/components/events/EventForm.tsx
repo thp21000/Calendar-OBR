@@ -66,7 +66,8 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent, initialDat
   };
 };
 
-export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, onCancel, hideTitle = false, frameless = false, compactCreatePopup = false }: { project: CalendarProject; mode: "create"|"edit"; initialEvent?: CalendarEvent; initialDate?: CalendarDate; onSubmit: (event: CalendarEvent)=>void; onCancel?: ()=>void; hideTitle?: boolean; frameless?: boolean; compactCreatePopup?: boolean; }) => {
+export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, onCancel, hideTitle = false, frameless = false, compactCreatePopup = false, compactEventPopup = false }: { project: CalendarProject; mode: "create"|"edit"; initialEvent?: CalendarEvent; initialDate?: CalendarDate; onSubmit: (event: CalendarEvent)=>void; onCancel?: ()=>void; hideTitle?: boolean; frameless?: boolean; compactCreatePopup?: boolean; compactEventPopup?: boolean; }) => {
+  const isCompactEventPopup = compactEventPopup || compactCreatePopup;
   const sortedMonths = useMemo(() => [...project.calendarSystem.months].sort((a, b) => a.order - b.order), [project.calendarSystem.months]);
   const [form, setForm] = useState<EventFormValue>(toFormValue(project, initialEvent, initialDate));
   const [nameError, setNameError] = useState<string | null>(null);
@@ -78,7 +79,7 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
     const name = form.name.trim();
     if (!name) {
       setNameError(t(project.locale, "events.nameRequired"));
-      if (compactCreatePopup) setGlobalError(t(project.locale, "events.createMissingRequiredFields"));
+      if (isCompactEventPopup) setGlobalError(t(project.locale, "events.createMissingRequiredFields"));
       return;
     }
     const month = getMonthById(project.calendarSystem, form.monthId);
@@ -90,7 +91,7 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
       minute: form.allDay ? 0 : clamp(form.minute, 0, 59)
     };
     let endDate: CalendarDate | undefined;
-    if (form.hasEndDate || (compactCreatePopup && mode === "create")) {
+    if (form.hasEndDate || isCompactEventPopup) {
       const endMonth = getMonthById(project.calendarSystem, form.endMonthId);
       const safeEnd: CalendarDate = {
         year: form.endYear,
@@ -144,11 +145,11 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
     setGlobalError(null);
   };
 
-  const showCompactEndInDateSection = compactCreatePopup && mode === "create";
+  const showCompactEndInDateSection = isCompactEventPopup;
   return <div style={frameless ? undefined : { border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
     {globalError ? <div style={{ color: "#fca5a5", fontSize: 12, marginBottom: 8 }}>{globalError}</div> : null}
     {!hideTitle ? <div style={{ fontWeight: 700, marginBottom: 6 }}>{mode === "create" ? t(project.locale, "events.createTitle") : t(project.locale, "events.editTitle")}</div> : null}
-    <CollapsibleSection title={t(project.locale, "events.sectionGeneral")} defaultOpen={!compactCreatePopup}>
+    <CollapsibleSection title={t(project.locale, "events.sectionGeneral")} defaultOpen={!isCompactEventPopup}>
       <label>{t(project.locale, "events.name")} <span title={t(project.locale, "events.help.name")}>ⓘ</span></label><input value={form.name} onChange={(e)=>updateForm("name", e.target.value)} style={inputStyle}/>{nameError ? <div style={{ color: "#fca5a5", fontSize: 12 }}>{nameError}</div>:null}
       <label>{t(project.locale, "events.icon")} <span title={t(project.locale, "events.help.icon")}>ⓘ</span></label><input value={form.icon} onChange={(e)=>updateForm("icon", e.target.value)} style={inputStyle}/>
       <label>{t(project.locale, "events.summary")} <span title={t(project.locale, "events.help.summary")}>ⓘ</span></label><input value={form.summary} onChange={(e)=>updateForm("summary", e.target.value)} style={inputStyle}/>
@@ -156,7 +157,7 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
       <label>{t(project.locale, "events.gmDescription")} <span title={t(project.locale, "events.help.gmDescription")}>ⓘ</span></label><textarea value={form.gmDescription} onChange={(e)=>updateForm("gmDescription", e.target.value)} rows={2} style={inputStyle}/>
       <div><label>{t(project.locale, "events.visibility")} <span title={t(project.locale, "events.help.visibility")}>ⓘ</span></label><select value={form.visibility} onChange={(e)=>updateForm("visibility", e.target.value as CalendarEvent["visibility"])} style={inputStyle}><option value="gm">{t(project.locale, "events.visibilityGm")}</option><option value="players">{t(project.locale, "events.visibilityPlayers")}</option><option value="revealOnTrigger">{t(project.locale, "events.visibilityRevealOnTrigger")}</option></select></div>
     </CollapsibleSection>
-    <CollapsibleSection title={t(project.locale, "events.sectionDateTime")} defaultOpen={!compactCreatePopup}>
+    <CollapsibleSection title={t(project.locale, "events.sectionDateTime")} defaultOpen={!isCompactEventPopup}>
       <label style={{ display: "flex", gap: 6 }}><input type="checkbox" checked={form.allDay} onChange={(e)=>updateForm("allDay", e.target.checked)}/>{t(project.locale, "events.allDay")} <span title={t(project.locale, "events.help.allDay")}>ⓘ</span></label>
       {showCompactEndInDateSection ? <>
         <div style={dateTimeGroupStyle}>

@@ -17,7 +17,7 @@ export const EventCreatePopup = ({ project, date, onClose, onCreate }: { project
         onCancel={onClose}
         hideTitle
         frameless
-        compactCreatePopup
+        compactEventPopup
       />
     </div>
   </div>

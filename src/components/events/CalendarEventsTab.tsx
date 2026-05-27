@@ -7,7 +7,7 @@ import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
 import { EventCreatePopup } from "./EventCreatePopup";
-import { EventForm } from "./EventForm";
+import { EventDetailsPopup } from "./EventDetailsPopup";
 
 export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate, initialEditEventId, onInitialCreateDateConsumed, onInitialEditEventIdConsumed }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; initialEditEventId?: string | null; onInitialCreateDateConsumed?: () => void; onInitialEditEventIdConsumed?: () => void; }) => {
   const events = sortEventsByDate(project.events, project);
@@ -40,6 +40,9 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
     const haystack = `${event.name ?? ""} ${event.summary ?? ""} ${iconText}`.toLowerCase();
     return haystack.includes(normalizedQuery);
   });
+  const editingEvent = editingEventId
+    ? events.find((event) => event.id === editingEventId)
+    : undefined;
 
   const handleCreate = (event: CalendarEvent) => {
     onProjectUpdate(addCalendarEvent(project, event));
@@ -90,7 +93,7 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
       <SectionHeader title={`${t(project.locale, "events.calendarListTitle")} (${filteredEvents.length})`} />
     {filteredEvents.length === 0 ? <EmptyState text={normalizedQuery ? t(project.locale, "events.noEventsForSearch") : t(project.locale, "events.noEventsForFilter")} /> : <div style={{ display: "grid", gap: 8 }}>
       {filteredEvents.map((event) => <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
-        {editingEventId === event.id ? <EventForm project={project} mode="edit" initialEvent={event} onSubmit={handleUpdate} onCancel={() => setEditingEventId(null)} /> : <>
+         <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
             <div style={{ fontSize: 11, color: "#cbd5e1", textAlign: "right" }}>{formatEventDateTime(project, event)}</div>
@@ -112,11 +115,20 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
             {event.status === "disabled" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
             <SecondaryButton type="button" onClick={() => handleDelete(event)}>{t(project.locale, "events.delete")}</SecondaryButton>
           </div>
-        </>}
+        </>
       </div>)}
     </div>}
     </SectionCard>
     {isCreateFormOpen ? <EventCreatePopup project={project} date={initialCreateDate ?? absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)} onClose={() => { setIsCreateFormOpen(false); onInitialCreateDateConsumed?.(); }} onCreate={handleCreate} /> : null}
+  {editingEvent ? (
+      <EventDetailsPopup
+        project={project}
+        event={editingEvent}
+        onClose={() => setEditingEventId(null)}
+        onUpdate={handleUpdate}
+        initialEditing
+      />
+    ) : null}
   </>;
 };
 
