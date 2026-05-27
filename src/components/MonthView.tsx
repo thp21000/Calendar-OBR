@@ -2,19 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { getDayDetails } from "../calendar/dayDetails";
 import { getDayNotesForDay } from "../calendar/dayNotesLogic";
-import { updateCalendarEvent } from "../calendar/eventsLogic";
+import { addCalendarEvent, updateCalendarEvent } from "../calendar/eventsLogic";
 import { getAdjacentMonthLabels, getMonthViewTimeForDate, getNextMonthViewTime, getPreviousMonthViewTime } from "../calendar/monthNavigation";
 import type { CalendarDate, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import { DayDetailsPanel } from "./month/DayDetailsPanel";
+import { EventCreatePopup } from "./events/EventCreatePopup";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
 import { MonthGrid } from "./month/MonthGrid";
 import { SecondaryButton } from "./ui";
 
-export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, initialSelectedDate }: { project: CalendarProject; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null }) => {
+export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { project: CalendarProject; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null }) => {
   const [viewedTime, setViewedTime] = useState(getMonthViewTimeForDate(project, absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)));
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [createEventDate, setCreateEventDate] = useState<CalendarDate | null>(null);
   const lastInitialSelectedDateRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -52,8 +54,12 @@ export const MonthView = ({ project, onCreateEventForDate, onProjectUpdate, init
         </SecondaryButton>
       </div>
       <MonthGrid project={project} viewedTime={viewedTime} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-      {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={onCreateEventForDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} /> : null}
+      {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={setCreateEventDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} /> : null}
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={onProjectUpdate ? (updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent)) : undefined} /> : null}
+      {createEventDate ? <EventCreatePopup project={project} date={createEventDate} onClose={() => setCreateEventDate(null)} onCreate={(event) => {
+        if (onProjectUpdate) onProjectUpdate(addCalendarEvent(project, event));
+        setCreateEventDate(null);
+      }} /> : null}
     </>
   );
 };
