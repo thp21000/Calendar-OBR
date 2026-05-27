@@ -124,7 +124,9 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
               </div>
             </div>
             <div style={metaStyle}>{moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)} · {formatMoonEventNextActivation(event)}</div>
-            <div style={summaryStyle}>{event.summary?.trim() ? event.summary : t(project.locale, "moonEvents.noSummary")}</div>
+            <div style={summaryStyle}>
+            {summaryValue && !shouldHideDuplicateSummary ? summaryValue : t(project.locale, "moonEvents.noSummary")}
+            </div>
             {conditionBadges.length > 0 ? <div style={{ marginBottom: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>{conditionBadges.map((badge) => <Badge key={`${event.id}-${badge}`}>{badge}</Badge>)}</div> : null}
             <div style={actionsStyle}>
               <SecondaryButton type="button" onClick={() => setEditingMoonEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
