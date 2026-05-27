@@ -107,6 +107,10 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
         {filteredMoonEvents.map((event) => {
           const moon = project.moons.find((moonItem) => moonItem.id === event.moonId);
           const conditionBadges = getMoonEventConditionBadges(project, event);
+          const moonPhaseMeta = `${moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · ${t(project.locale, `moon.phase.${event.phaseId}`)}`;
+          const summaryValue = event.summary?.trim();
+          const shouldHideDuplicateSummary = summaryValue === moonPhaseMeta;
+          
           return <div key={event.id} style={cardStyle}>
             <div style={cardHeaderStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
