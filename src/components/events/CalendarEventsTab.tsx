@@ -4,6 +4,7 @@ import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEv
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
+import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
 import { EventForm } from "./EventForm";
 
 export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate, initialEditEventId, onInitialCreateDateConsumed, onInitialEditEventIdConsumed }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; initialEditEventId?: string | null; onInitialCreateDateConsumed?: () => void; onInitialEditEventIdConsumed?: () => void; }) => {
@@ -57,56 +58,71 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
   const handleReveal = (event: CalendarEvent) => onProjectUpdate(revealCalendarEvent(project, event.id));
 
   return <>
-    <button type="button" onClick={() => setIsCreateFormOpen((prev) => !prev)} style={{ border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#f3f4f6", padding: "7px 10px", fontSize: 12, marginBottom: 8 }}>
-      {isCreateFormOpen ? t(project.locale, "events.closeCreateForm") : t(project.locale, "events.openCreateForm")}
-    </button>
-    {isCreateFormOpen ? <EventForm project={project} mode="create" initialDate={initialCreateDate ?? undefined} onSubmit={handleCreate} onCancel={() => { setIsCreateFormOpen(false); onInitialCreateDateConsumed?.(); }} /> : null}
-    <div style={{ marginBottom: 8 }}>
-      <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "events.search")}</label>
-      <div style={{ display: "flex", gap: 6 }}>
-        <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t(project.locale, "events.searchPlaceholder")} style={inputStyle} />
-        {searchQuery.trim() ? <button type="button" onClick={() => setSearchQuery("")} style={btn}>{t(project.locale, "events.clearSearch")}</button> : null}
+    <SectionCard>
+      <SectionHeader title={t(project.locale, "events.title")} />
+      <PrimaryButton type="button" onClick={() => setIsCreateFormOpen((prev) => !prev)} style={{ marginBottom: 8 }}>
+        {isCreateFormOpen ? t(project.locale, "events.closeCreateForm") : t(project.locale, "events.openCreateForm")}
+      </PrimaryButton>
+      {isCreateFormOpen ? <SectionCard style={{ marginBottom: 8 }}>
+        <SectionHeader title={t(project.locale, "events.createTitle")} />
+        <EventForm project={project} mode="create" initialDate={initialCreateDate ?? undefined} onSubmit={handleCreate} onCancel={() => { setIsCreateFormOpen(false); onInitialCreateDateConsumed?.(); }} />
+      </SectionCard> : null}
+      <div style={{ marginBottom: 8 }}>
+        <label style={label}>{t(project.locale, "events.search")}</label>
+        <div style={{ display: "flex", gap: 6 }}>
+          <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t(project.locale, "events.searchPlaceholder")} style={inputStyle} />
+          {searchQuery.trim() ? <SecondaryButton type="button" onClick={() => setSearchQuery("")}>{t(project.locale, "events.clearSearch")}</SecondaryButton> : null}
+        </div>
       </div>
-    </div>
-    <div style={{ marginBottom: 8 }}>
-      <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "events.timeFilter")}</label>
-      <select value={timeFilter} onChange={(e) => setTimeFilter(e.target.value as "all" | "past" | "today" | "future")} style={inputStyle}>
-        <option value="all">{t(project.locale, "events.timeFilterAll")}</option><option value="past">{t(project.locale, "events.timeFilterPast")}</option><option value="today">{t(project.locale, "events.timeFilterToday")}</option><option value="future">{t(project.locale, "events.timeFilterFuture")}</option>
-      </select>
-    </div>
-    <div style={{ marginBottom: 8 }}>
-      <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "events.filter")}</label>
-      <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "active" | "triggered" | "archived" | "disabled" | "all")} style={inputStyle}>
-        <option value="active">{t(project.locale, "events.filterActive")}</option><option value="triggered">{t(project.locale, "events.filterTriggered")}</option><option value="archived">{t(project.locale, "events.filterArchived")}</option><option value="disabled">{t(project.locale, "events.filterDisabled")}</option><option value="all">{t(project.locale, "events.filterAll")}</option>
-      </select>
-    </div>
-    {filteredEvents.length === 0 ? <div style={{ color: "#9ca3af" }}>{normalizedQuery ? t(project.locale, "events.noEventsForSearch") : t(project.locale, "events.noEventsForFilter")}</div> : <div style={{ display: "grid", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 8 }}>
+        <div>
+          <label style={label}>{t(project.locale, "events.timeFilter")}</label>
+          <select value={timeFilter} onChange={(e) => setTimeFilter(e.target.value as "all" | "past" | "today" | "future")} style={inputStyle}>
+            <option value="all">{t(project.locale, "events.timeFilterAll")}</option><option value="past">{t(project.locale, "events.timeFilterPast")}</option><option value="today">{t(project.locale, "events.timeFilterToday")}</option><option value="future">{t(project.locale, "events.timeFilterFuture")}</option>
+          </select>
+        </div>
+        <div>
+          <label style={label}>{t(project.locale, "events.filter")}</label>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "active" | "triggered" | "archived" | "disabled" | "all")} style={inputStyle}>
+            <option value="active">{t(project.locale, "events.filterActive")}</option><option value="triggered">{t(project.locale, "events.filterTriggered")}</option><option value="archived">{t(project.locale, "events.filterArchived")}</option><option value="disabled">{t(project.locale, "events.filterDisabled")}</option><option value="all">{t(project.locale, "events.filterAll")}</option>
+          </select>
+        </div>
+      </div>
+    </SectionCard>
+    <SectionCard>
+      <SectionHeader title={t(project.locale, "events.title")} subtitle={`${filteredEvents.length}`} />
+    {filteredEvents.length === 0 ? <EmptyState text={normalizedQuery ? t(project.locale, "events.noEventsForSearch") : t(project.locale, "events.noEventsForFilter")} /> : <div style={{ display: "grid", gap: 8 }}>
       {filteredEvents.map((event) => <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
         {editingEventId === event.id ? <EventForm project={project} mode="edit" initialEvent={event} onSubmit={handleUpdate} onCancel={() => setEditingEventId(null)} /> : <>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, overflow: "hidden" }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
-          <div style={{ fontSize: 12, marginBottom: 4 }}>{formatEventDateTime(project, event)}</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
+            <div style={{ fontSize: 11, color: "#cbd5e1", textAlign: "right" }}>{formatEventDateTime(project, event)}</div>
+          </div>
           {event.summary ? <div style={{ fontSize: 12, marginBottom: 4, color: "#d1d5db" }}>{event.summary}</div> : null}
-          <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "events.recurrence")}: {formatEventRecurrence(project, event)}</div>
-          <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "events.triggerOptions")}: {formatEventTriggerOptions(project, event)}</div>
-          <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "events.status")}: {formatEventStatus(project, event)}</div>
-          <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6 }}>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+            <Badge>{t(project.locale, "events.status")}: {formatEventStatus(project, event)}</Badge>
+            <Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge>
+            <Badge>{t(project.locale, "events.recurrence")}: {formatEventRecurrence(project, event)}</Badge>
+            <Badge>{t(project.locale, "events.triggerOptions")}: {formatEventTriggerOptions(project, event)}</Badge>
+          </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <button type="button" onClick={() => setEditingEventId(event.id)} style={btn}>{t(project.locale, "events.edit")}</button>
-            <button type="button" onClick={() => handleDelete(event)} style={btn}>{t(project.locale, "events.delete")}</button>
-            <button type="button" onClick={() => handleDuplicate(event)} style={btn}>{t(project.locale, "events.duplicate")}</button>
-            {event.visibility === "revealOnTrigger" && event.status !== "triggered" && event.status !== "archived" && event.status !== "disabled" ? <button type="button" onClick={() => handleReveal(event)} style={btn}>{t(project.locale, "events.reveal")}</button> : null}
+            <SecondaryButton type="button" onClick={() => setEditingEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
+            <SecondaryButton type="button" onClick={() => handleDelete(event)}>{t(project.locale, "events.delete")}</SecondaryButton>
+            <SecondaryButton type="button" onClick={() => handleDuplicate(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
+            {event.visibility === "revealOnTrigger" && event.status !== "triggered" && event.status !== "archived" && event.status !== "disabled" ? <SecondaryButton type="button" onClick={() => handleReveal(event)}>{t(project.locale, "events.reveal")}</SecondaryButton> : null}
           </div>
           <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
-            {event.status === "active" ? <><button type="button" onClick={() => handleStatusUpdate(event, "disabled")} style={btn}>{t(project.locale, "events.disable")}</button><button type="button" onClick={() => handleStatusUpdate(event, "archived")} style={btn}>{t(project.locale, "events.archive")}</button></> : null}
-            {event.status === "triggered" ? <><button type="button" onClick={() => handleStatusUpdate(event, "active")} style={btn}>{t(project.locale, "events.reactivate")}</button><button type="button" onClick={() => handleStatusUpdate(event, "archived")} style={btn}>{t(project.locale, "events.archive")}</button></> : null}
-            {event.status === "archived" ? <button type="button" onClick={() => handleStatusUpdate(event, "active")} style={btn}>{t(project.locale, "events.reactivate")}</button> : null}
-            {event.status === "disabled" ? <><button type="button" onClick={() => handleStatusUpdate(event, "active")} style={btn}>{t(project.locale, "events.reactivate")}</button><button type="button" onClick={() => handleStatusUpdate(event, "archived")} style={btn}>{t(project.locale, "events.archive")}</button></> : null}
+            {event.status === "active" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "disabled")}>{t(project.locale, "events.disable")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
+            {event.status === "triggered" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
+            {event.status === "archived" ? <SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton> : null}
+            {event.status === "disabled" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
           </div>
         </>}
       </div>)}
     </div>}
+    </SectionCard>
   </>;
 };
 
-const btn = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#f3f4f6", padding: "6px 9px", fontSize: 12 };
 const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", fontSize: 12, boxSizing: "border-box" as const };
+const label = { display: "block", fontSize: 12, marginBottom: 4 };
