@@ -9,6 +9,7 @@ import { t } from "../i18n/messages";
 import { DayDetailsPanel } from "./month/DayDetailsPanel";
 import { EventCreatePopup } from "./events/EventCreatePopup";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
+import { MoonEventDetailsPopup } from "./events/MoonEventDetailsPopup";
 import { MonthGrid } from "./month/MonthGrid";
 import { SecondaryButton } from "./ui";
 
@@ -16,6 +17,7 @@ export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { p
   const [viewedTime, setViewedTime] = useState(getMonthViewTimeForDate(project, absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)));
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedMoonEventId, setSelectedMoonEventId] = useState<string | null>(null);
   const [createEventDate, setCreateEventDate] = useState<CalendarDate | null>(null);
   const lastInitialSelectedDateRef = useRef<string | null>(null);
 
@@ -31,6 +33,7 @@ export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { p
   const notes = selectedDate ? getDayNotesForDay(project, selectedDate) : [];
   const labels = getAdjacentMonthLabels(project, viewedTime);
   const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
+  const selectedMoonEvent = selectedMoonEventId ? (project.moonEvents ?? []).find((event) => event.id === selectedMoonEventId) ?? null : null;
   const goToToday = () => {
     const todayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
     setViewedTime(getMonthViewTimeForDate(project, todayDate));
@@ -54,8 +57,9 @@ export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { p
         </SecondaryButton>
       </div>
       <MonthGrid project={project} viewedTime={viewedTime} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-      {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={setCreateEventDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} /> : null}
+      {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={setCreateEventDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} onOpenMoonEvent={setSelectedMoonEventId} /> : null}
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={onProjectUpdate ? (updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent)) : undefined} /> : null}
+      {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} /> : null}
       {createEventDate ? <EventCreatePopup project={project} date={createEventDate} onClose={() => setCreateEventDate(null)} onCreate={(event) => {
         if (onProjectUpdate) onProjectUpdate(addCalendarEvent(project, event));
         setCreateEventDate(null);

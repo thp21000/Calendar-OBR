@@ -19,6 +19,7 @@ import { t } from "../i18n/messages";
 import { TodayEventsCard } from "./today/TodayEventsCard";
 import { TodayStatusSummary, WeatherForecastCard } from "./today/WeatherAndSeasonCard";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
+import { MoonEventDetailsPopup } from "./events/MoonEventDetailsPopup";
 import { PrimaryButton, SecondaryButton, SectionCard, SectionHeader, Toolbar } from "./ui";
 
 type QuickAction = { key: string; deltaMinutes: number };
@@ -82,8 +83,10 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const [lastTriggeredMoonEvents, setLastTriggeredMoonEvents] = useState<NonNullable<CalendarProject["moonEvents"]>>([]);
   const [notifications, setNotifications] = useState<CalendarNotification[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedMoonEventId, setSelectedMoonEventId] = useState<string | null>(null);
   const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
-  
+  const selectedMoonEvent = selectedMoonEventId ? (project.moonEvents ?? []).find((event) => event.id === selectedMoonEventId) ?? null : null;
+
   const readDismissed = (): Set<string> => {
     try {
       const raw = sessionStorage.getItem(dismissedStorageKey);
@@ -159,7 +162,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         currentMoonPhases={currentMoonPhases}
       />
 
-      <TodayEventsCard project={project} eventsToday={eventsToday} moonEventsToday={triggeredMoonEvents} onSelectEvent={setSelectedEventId} />
+      <TodayEventsCard project={project} eventsToday={eventsToday} moonEventsToday={triggeredMoonEvents} onSelectEvent={setSelectedEventId} onSelectMoonEvent={setSelectedMoonEventId} />
 
       <WeatherForecastCard project={project} hourlyForecast={hourlyForecast} weatherUnits={weatherUnits} />
 
@@ -189,6 +192,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       </SectionCard>
 
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={(updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent))} /> : null}
+      {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} /> : null}
     </>
   );
 };

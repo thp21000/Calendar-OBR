@@ -10,7 +10,7 @@ import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, Section
 import { formatEventTimeShort, formatEventVisibility } from "../../calendar/formatEvent";
 import { sendPopupNotification } from "../../obr/popupNotifications";
 
-export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void }) => {
+export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent, onOpenMoonEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void; onOpenMoonEvent?: (eventId: string) => void }) => {
   const dayInternal = calendarDateToAbsoluteDay(dayDetails.date, project.calendarSystem);
   const displayDate = absoluteDayToCalendarDate(dayInternal, project.calendarSystem);
   return (
@@ -87,6 +87,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span>{event.icon || "🌕"}</span>
                 <strong style={{ color: "#f3f4f6" }}>{event.name}</strong>
+                {onOpenMoonEvent ? <SecondaryButton type="button" style={{ marginLeft: "auto", padding: "4px 8px", fontSize: 11 }} onClick={() => onOpenMoonEvent(event.id)}>{t(project.locale, "globalSearch.open")}</SecondaryButton> : null}
               </div>
               <div style={{ color: "#cbd5e1", marginTop: 4 }}>
                 {moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)}
