@@ -186,7 +186,7 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.deleteAfterTrigger} onChange={(e)=>updateForm("deleteAfterTrigger", e.target.checked)}/>{t(project.locale, "events.deleteAfterTrigger")}</label>
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.archiveAfterTrigger} onChange={(e)=>updateForm("archiveAfterTrigger", e.target.checked)}/>{t(project.locale, "events.archiveAfterTrigger")}</label>
     </CollapsibleSection>
-    <CollapsibleSection title={t(project.locale, "events.reminder")} defaultOpen={false}>
+    <CollapsibleSection title={t(project.locale, "events.reminderSection")} defaultOpen={false}>
       <label style={{ display: "flex", gap: 6, fontSize: 12 }}><input type="checkbox" checked={form.reminderEnabled} onChange={(e)=>updateForm("reminderEnabled", e.target.checked)}/>{t(project.locale, "events.reminderEnabled")}</label>
       <label>{t(project.locale, "events.reminderMinutesBefore")}</label>
       <input type="number" min={1} value={form.reminderMinutesBefore} onChange={(e)=>updateForm("reminderMinutesBefore", normalizeReminderMinutes(e.target.value))} style={inputStyle}/>
