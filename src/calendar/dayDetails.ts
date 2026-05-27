@@ -2,6 +2,7 @@ import { absoluteDayToCalendarDate, calendarDateToAbsoluteDay } from "./dateEngi
 import { getEventsForDay, getPlayerVisibleEventsForDay } from "./eventsLogic";
 import { formatDisplayDate } from "./formatDisplayDate";
 import { getMoonPhaseForDate } from "./moonLogic";
+import { getTriggeredMoonEvents } from "./moonEventsLogic";
 import { getSeasonForDate } from "./seasonsLogic";
 import { generateWeatherForTime } from "./weatherLogic";
 import { getDailyWeatherSummary } from "./weatherDaily";
@@ -25,6 +26,7 @@ export type DayDetails = {
   moonPhases: Array<{ moonId: string; moonName: string; moonIcon?: string; phaseId: string; phaseIcon: string; illumination: number }>;
   events: ReturnType<typeof getEventsForDay>;
   playerVisibleEvents: ReturnType<typeof getPlayerVisibleEventsForDay>;
+  moonEvents: NonNullable<CalendarProject["moonEvents"]>;
 };
 
 export const getDayDetails = (project: CalendarProject, date: CalendarDate): DayDetails => {
@@ -66,6 +68,7 @@ export const getDayDetails = (project: CalendarProject, date: CalendarDate): Day
       };
     }),
     events: getEventsForDay(project, normalizedDate),
-    playerVisibleEvents: getPlayerVisibleEventsForDay(project, normalizedDate)
+    playerVisibleEvents: getPlayerVisibleEventsForDay(project, normalizedDate),
+    moonEvents: getTriggeredMoonEvents(project, absolute.absoluteDay)
   };
 };

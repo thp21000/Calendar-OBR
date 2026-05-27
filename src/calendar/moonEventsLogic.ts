@@ -1,5 +1,6 @@
+import { absoluteDayToCalendarDate } from "./dateEngine";
 import { getMoonPhaseForDate } from "./moonLogic";
-import type { CalendarProject, InternalTime, MoonEvent } from "../domain/types";
+import type { CalendarDate, CalendarProject, InternalTime, MoonEvent } from "../domain/types";
 
 export const createDefaultMoonEvent = (project: CalendarProject): MoonEvent => ({
   id: `moon-event-${Date.now()}`,
@@ -56,4 +57,32 @@ export const getNewlyTriggeredMoonEventsBetween = (project: CalendarProject, fro
     }
   }
   return (project.moonEvents ?? []).filter((event) => newly.has(event.id));
+};
+
+export const getNextMoonEventActivationDays = (
+  project: CalendarProject,
+  moonEvent: MoonEvent,
+  fromAbsoluteDay: number,
+  count: number
+): number[] => {
+  const moon = project.moons.find((item) => item.id === moonEvent.moonId);
+  if (!moon) return [];
+  const targetCount = Math.max(0, Math.trunc(count));
+  if (targetCount <= 0) return [];
+  const results: number[] = [];
+  const maxSearchDays = Math.ceil(moon.cycleLengthDays * 8 * Math.max(targetCount, 1)) + 32;
+  for (let dayOffset = 0; dayOffset <= maxSearchDays && results.length < targetCount; dayOffset += 1) {
+    const absoluteDay = fromAbsoluteDay + dayOffset;
+    if (getMoonPhaseForDate(moon, absoluteDay).id === moonEvent.phaseId) results.push(absoluteDay);
+  }
+  return results;
+};
+
+export const getNextMoonEventActivationDate = (
+  project: CalendarProject,
+  moonEvent: MoonEvent
+): CalendarDate | null => {
+  const [nextDay] = getNextMoonEventActivationDays(project, moonEvent, project.currentTime.absoluteDay, 1);
+  if (nextDay === undefined) return null;
+  return absoluteDayToCalendarDate({ absoluteDay: nextDay, hour: 0, minute: 0 }, project.calendarSystem);
 };

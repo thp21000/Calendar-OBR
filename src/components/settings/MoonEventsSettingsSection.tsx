@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getNextMoonEventActivationDate } from "../../calendar/moonEventsLogic";
 import { getMoonPhaseForDate } from "../../calendar/moonLogic";
 import { addMoonEvent, createDefaultMoonEvent, deleteMoonEvent, updateMoonEvent } from "../../calendar/moonEventsLogic";
 import type { CalendarProject, MoonEvent, MoonPhaseId } from "../../domain/types";
@@ -44,11 +45,12 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
     return haystack.includes(normalizedQuery);
   });
 
-  const formatMoonEventStatus = (event: MoonEvent): string => {
-    if (event.status === "triggered") return t(project.locale, "moonEvents.statusTriggered");
-    if (event.status === "archived") return t(project.locale, "moonEvents.statusArchived");
-    if (event.status === "disabled") return t(project.locale, "moonEvents.statusDisabled");
-    return t(project.locale, "moonEvents.statusActive");
+  const formatMoonEventNextActivation = (event: MoonEvent): string => {
+    const nextActivationDate = getNextMoonEventActivationDate(project, event);
+    if (!nextActivationDate) return t(project.locale, "moonEvents.nextActivationUnknown");
+    const month = project.calendarSystem.months.find((item) => item.id === nextActivationDate.monthId);
+    const formatted = `${nextActivationDate.dayOfMonth} ${month?.name ?? nextActivationDate.monthId} ${nextActivationDate.year}`;
+    return t(project.locale, "moonEvents.nextActivation").replace("{date}", formatted);
   };
 
   return <>
@@ -111,11 +113,11 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
               </div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <Badge>{event.enabled ? t(project.locale, "moonEvents.enabled") : t(project.locale, "moonEvents.disabled")}</Badge>
-                <Badge>{formatMoonEventStatus(event)}</Badge>
                 <Badge>{formatMoonEventVisibility(project, event.visibility)}</Badge>
                 {event.notifyOnTrigger ? <Badge>{t(project.locale, "moonEvents.notifyOnTrigger")}</Badge> : null}
               </div>
             </div>
+            <div style={metaStyle}>{moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)} · {formatMoonEventNextActivation(event)}</div>
             <div style={metaStyle}>{moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)}</div>
             <div style={summaryStyle}>{event.summary?.trim() ? event.summary : t(project.locale, "moonEvents.noSummary")}</div>
             <div style={actionsStyle}>

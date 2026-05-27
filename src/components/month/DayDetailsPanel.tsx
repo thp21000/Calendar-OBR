@@ -45,7 +45,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
     ) : null}
     <SectionCard style={{ marginTop: 8 }}>
       <SectionHeader title={t(project.locale, "month.dayEvents")} />
-    {dayDetails.events.length === 0 ? <EmptyState text={t(project.locale, "month.noEventsForDay")} /> : (
+    {dayDetails.events.length === 0 && dayDetails.moonEvents.length === 0 ? <EmptyState text={t(project.locale, "month.noEventsForDay")} /> : (
       <div style={{ display: "grid", gap: 4 }}>
         {dayDetails.events.map((event) => (
           <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a" }}>
@@ -80,6 +80,25 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
             </div>
           </div>
         ))}
+        {dayDetails.moonEvents.map((event) => {
+          const moon = project.moons.find((item) => item.id === event.moonId);
+          return (
+            <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span>{event.icon || "🌕"}</span>
+                <strong style={{ color: "#f3f4f6" }}>{event.name}</strong>
+              </div>
+              <div style={{ color: "#cbd5e1", marginTop: 4 }}>
+                {moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)}
+              </div>
+              {event.summary ? <div style={{ color: "#cbd5e1", marginTop: 4 }}>{event.summary}</div> : null}
+              <div style={{ marginTop: 4, opacity: 0.86, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <Badge>{t(project.locale, "moonEvents.eventKind")}</Badge>
+                <Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge>
+              </div>
+            </div>
+          );
+        })}
       </div>
     )}
     {onCreateEventForDate ? <PrimaryButton type="button" onClick={() => onCreateEventForDate(dayDetails.date)} style={{ marginTop: 8, width: "100%" }}>{t(project.locale, "month.createEventForDay")}</PrimaryButton> : null}
