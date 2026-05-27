@@ -11,7 +11,6 @@ export const EventsView = ({ project, onProjectUpdate, initialCreateDate, initia
 
   return (
     <>
-      <div style={{ marginBottom: 8, fontWeight: 700 }}>{t(project.locale, "events.title")}</div>
       <EventTypeTabs project={project} activeTab={activeEventTab} onChange={setActiveEventTab} />
       {activeEventTab === "calendar" ? <CalendarEventsTab project={project} onProjectUpdate={onProjectUpdate} initialCreateDate={initialCreateDate} initialEditEventId={initialEditEventId} onInitialCreateDateConsumed={onInitialCreateDateConsumed} onInitialEditEventIdConsumed={onInitialEditEventIdConsumed} /> : null}
       {activeEventTab === "weather" ? <WeatherEventsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} /> : null}

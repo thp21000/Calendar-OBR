@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { addCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, getEventTimeBucket, revealCalendarEvent, sortEventsByDate, updateCalendarEvent } from "../../calendar/eventsLogic";
 import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEventTriggerOptions, formatEventVisibility } from "../../calendar/formatEvent";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
+import { EventCreatePopup } from "./EventCreatePopup";
 import { EventForm } from "./EventForm";
 
 export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate, initialEditEventId, onInitialCreateDateConsumed, onInitialEditEventIdConsumed }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; initialEditEventId?: string | null; onInitialCreateDateConsumed?: () => void; onInitialEditEventIdConsumed?: () => void; }) => {
@@ -59,14 +61,9 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
 
   return <>
     <SectionCard>
-      <SectionHeader title={t(project.locale, "events.title")} />
       <PrimaryButton type="button" onClick={() => setIsCreateFormOpen((prev) => !prev)} style={{ marginBottom: 8 }}>
         {isCreateFormOpen ? t(project.locale, "events.closeCreateForm") : t(project.locale, "events.openCreateForm")}
       </PrimaryButton>
-      {isCreateFormOpen ? <SectionCard style={{ marginBottom: 8 }}>
-        <SectionHeader title={t(project.locale, "events.createTitle")} />
-        <EventForm project={project} mode="create" initialDate={initialCreateDate ?? undefined} onSubmit={handleCreate} onCancel={() => { setIsCreateFormOpen(false); onInitialCreateDateConsumed?.(); }} />
-      </SectionCard> : null}
       <div style={{ marginBottom: 8 }}>
         <label style={label}>{t(project.locale, "events.search")}</label>
         <div style={{ display: "flex", gap: 6 }}>
@@ -90,7 +87,7 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
       </div>
     </SectionCard>
     <SectionCard>
-      <SectionHeader title={t(project.locale, "events.title")} subtitle={`${filteredEvents.length}`} />
+      <SectionHeader title={`${t(project.locale, "events.calendarListTitle")} (${filteredEvents.length})`} />
     {filteredEvents.length === 0 ? <EmptyState text={normalizedQuery ? t(project.locale, "events.noEventsForSearch") : t(project.locale, "events.noEventsForFilter")} /> : <div style={{ display: "grid", gap: 8 }}>
       {filteredEvents.map((event) => <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
         {editingEventId === event.id ? <EventForm project={project} mode="edit" initialEvent={event} onSubmit={handleUpdate} onCancel={() => setEditingEventId(null)} /> : <>
@@ -100,27 +97,26 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
           </div>
           {event.summary ? <div style={{ fontSize: 12, marginBottom: 4, color: "#d1d5db" }}>{event.summary}</div> : null}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
-            <Badge>{t(project.locale, "events.status")}: {formatEventStatus(project, event)}</Badge>
-            <Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge>
-            <Badge>{t(project.locale, "events.recurrence")}: {formatEventRecurrence(project, event)}</Badge>
-            <Badge>{t(project.locale, "events.triggerOptions")}: {formatEventTriggerOptions(project, event)}</Badge>
+            <Badge>{formatEventStatus(project, event)}</Badge>
+            <Badge>{formatEventVisibility(project, event.visibility)}</Badge>
+            {formatEventRecurrence(project, event) !== t(project.locale, "events.recurrenceNone") ? <Badge>{formatEventRecurrence(project, event)}</Badge> : null}
+            {formatEventTriggerOptions(project, event) !== t(project.locale, "events.triggerNone") ? <Badge>{formatEventTriggerOptions(project, event)}</Badge> : null}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <SecondaryButton type="button" onClick={() => setEditingEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
-            <SecondaryButton type="button" onClick={() => handleDelete(event)}>{t(project.locale, "events.delete")}</SecondaryButton>
             <SecondaryButton type="button" onClick={() => handleDuplicate(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
             {event.visibility === "revealOnTrigger" && event.status !== "triggered" && event.status !== "archived" && event.status !== "disabled" ? <SecondaryButton type="button" onClick={() => handleReveal(event)}>{t(project.locale, "events.reveal")}</SecondaryButton> : null}
-          </div>
-          <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
             {event.status === "active" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "disabled")}>{t(project.locale, "events.disable")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
             {event.status === "triggered" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
             {event.status === "archived" ? <SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton> : null}
             {event.status === "disabled" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
+            <SecondaryButton type="button" onClick={() => handleDelete(event)}>{t(project.locale, "events.delete")}</SecondaryButton>
           </div>
         </>}
       </div>)}
     </div>}
     </SectionCard>
+    {isCreateFormOpen ? <EventCreatePopup project={project} date={initialCreateDate ?? absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)} onClose={() => { setIsCreateFormOpen(false); onInitialCreateDateConsumed?.(); }} onCreate={handleCreate} /> : null}
   </>;
 };
 
