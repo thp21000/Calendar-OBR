@@ -61,8 +61,8 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
 
   return <>
     <SectionCard>
-      <PrimaryButton type="button" onClick={() => setIsCreateFormOpen((prev) => !prev)} style={{ marginBottom: 8 }}>
-        {isCreateFormOpen ? t(project.locale, "events.closeCreateForm") : t(project.locale, "events.openCreateForm")}
+      <PrimaryButton type="button" onClick={() => setIsCreateFormOpen(true)} style={{ marginBottom: 8 }}>
+        {t(project.locale, "events.openCreateForm")}
       </PrimaryButton>
       <div style={{ marginBottom: 8 }}>
         <label style={label}>{t(project.locale, "events.search")}</label>

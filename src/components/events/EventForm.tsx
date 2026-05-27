@@ -66,7 +66,7 @@ const toFormValue = (project: CalendarProject, event?: CalendarEvent, initialDat
   };
 };
 
-export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, onCancel }: { project: CalendarProject; mode: "create"|"edit"; initialEvent?: CalendarEvent; initialDate?: CalendarDate; onSubmit: (event: CalendarEvent)=>void; onCancel?: ()=>void; }) => {
+export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, onCancel, hideTitle = false, frameless = false }: { project: CalendarProject; mode: "create"|"edit"; initialEvent?: CalendarEvent; initialDate?: CalendarDate; onSubmit: (event: CalendarEvent)=>void; onCancel?: ()=>void; hideTitle?: boolean; frameless?: boolean; }) => {
   const sortedMonths = useMemo(() => [...project.calendarSystem.months].sort((a, b) => a.order - b.order), [project.calendarSystem.months]);
   const [form, setForm] = useState<EventFormValue>(toFormValue(project, initialEvent, initialDate));
   const [nameError, setNameError] = useState<string | null>(null);
@@ -137,8 +137,8 @@ export const EventForm = ({ project, mode, initialEvent, initialDate, onSubmit, 
     setNameError(null);
   };
 
-  return <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
-    <div style={{ fontWeight: 700, marginBottom: 6 }}>{mode === "create" ? t(project.locale, "events.createTitle") : t(project.locale, "events.editTitle")}</div>
+  return <div style={frameless ? undefined : { border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
+    {!hideTitle ? <div style={{ fontWeight: 700, marginBottom: 6 }}>{mode === "create" ? t(project.locale, "events.createTitle") : t(project.locale, "events.editTitle")}</div> : null}
     <CollapsibleSection title={t(project.locale, "events.sectionGeneral")} defaultOpen>
       <label>{t(project.locale, "events.name")}</label><input value={form.name} onChange={(e)=>updateForm("name", e.target.value)} style={inputStyle}/>{nameError ? <div style={{ color: "#fca5a5", fontSize: 12 }}>{nameError}</div>:null}
       <label>{t(project.locale, "events.icon")}</label><input value={form.icon} onChange={(e)=>updateForm("icon", e.target.value)} style={inputStyle}/>

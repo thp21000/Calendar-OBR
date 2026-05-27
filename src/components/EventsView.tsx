@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { CalendarDate, CalendarProject } from "../domain/types";
-import { t } from "../i18n/messages";
 import { CalendarEventsTab } from "./events/CalendarEventsTab";
 import { EventTypeTabs, type EventTabKind } from "./events/EventTypeTabs";
 import { MoonEventsSettingsSection } from "./settings/MoonEventsSettingsSection";
