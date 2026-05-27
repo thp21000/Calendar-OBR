@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { addMoonEvent, createDefaultMoonEvent, deleteMoonEvent, isMoonEventTriggered, updateMoonEvent } from "../../calendar/moonEventsLogic";
+import { useEffect, useState } from "react";
+import { getMoonPhaseForDate } from "../../calendar/moonLogic";
+import { addMoonEvent, createDefaultMoonEvent, deleteMoonEvent, updateMoonEvent } from "../../calendar/moonEventsLogic";
 import type { CalendarProject, MoonEvent, MoonPhaseId } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
@@ -13,14 +14,24 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
   const [searchQuery, setSearchQuery] = useState("");
   const [moonPeriodFilter, setMoonPeriodFilter] = useState<"all" | "current" | "other">("all");
   const [moonPhaseFilter, setMoonPhaseFilter] = useState("all");
+  const [moonCreateError, setMoonCreateError] = useState(false);
+
+  useEffect(() => {
+    if (project.moons.length > 0) setMoonCreateError(false);
+  }, [project.moons.length]);
 
   const moonEvents = project.moonEvents ?? [];
   const editingMoonEvent = editingMoonEventId ? moonEvents.find((event) => event.id === editingMoonEventId) : undefined;
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const isMoonEventMatchingCurrentPhase = (event: MoonEvent): boolean => {
+    const moon = project.moons.find((item) => item.id === event.moonId);
+    if (!moon) return false;
+    return getMoonPhaseForDate(moon, project.currentTime.absoluteDay).id === event.phaseId;
+  };
 
   const filteredMoonEvents = moonEvents.filter((event) => {
-    if (moonPeriodFilter === "current" && !isMoonEventTriggered(project, event, project.currentTime.absoluteDay)) return false;
-    if (moonPeriodFilter === "other" && isMoonEventTriggered(project, event, project.currentTime.absoluteDay)) return false;
+    if (moonPeriodFilter === "current" && !isMoonEventMatchingCurrentPhase(event)) return false;
+    if (moonPeriodFilter === "other" && isMoonEventMatchingCurrentPhase(event)) return false;
     if (moonPhaseFilter !== "all") {
       const [moonId, phaseId] = moonPhaseFilter.split(":");
       if (event.moonId !== moonId || event.phaseId !== phaseId) return false;
@@ -33,17 +44,30 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
     return haystack.includes(normalizedQuery);
   });
 
-  const statusLabel = (event: MoonEvent): string => {
-    if (!event.enabled) return t(project.locale, "moonEvents.statusDisabled");
-    if (isMoonEventTriggered(project, event, project.currentTime.absoluteDay)) return t(project.locale, "moonEvents.statusTriggered");
+  const formatMoonEventStatus = (event: MoonEvent): string => {
+    if (event.status === "triggered") return t(project.locale, "moonEvents.statusTriggered");
+    if (event.status === "archived") return t(project.locale, "moonEvents.statusArchived");
+    if (event.status === "disabled") return t(project.locale, "moonEvents.statusDisabled");
     return t(project.locale, "moonEvents.statusActive");
   };
 
   return <>
     <SectionCard>
-      <PrimaryButton type="button" onClick={() => setIsCreatePopupOpen(true)} style={{ marginBottom: 8 }}>
+      <PrimaryButton type="button" onClick={() => {
+        if (project.moons.length === 0) {
+          setMoonCreateError(true);
+          return;
+        }
+        setMoonCreateError(false);
+        setIsCreatePopupOpen(true);
+      }} style={{ marginBottom: 8 }}>
         {t(project.locale, "moonEvents.openCreateForm")}
       </PrimaryButton>
+      {moonCreateError ? (
+        <div style={{ fontSize: 12, color: "#fca5a5", marginBottom: 8 }}>
+          {t(project.locale, "moonEvents.createRequiresMoon")}
+        </div>
+      ) : null}
       <div style={{ marginBottom: 8 }}>
         <label style={label}>{t(project.locale, "moonEvents.search")}</label>
         <div style={{ display: "flex", gap: 6 }}>
@@ -87,7 +111,7 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
               </div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <Badge>{event.enabled ? t(project.locale, "moonEvents.enabled") : t(project.locale, "moonEvents.disabled")}</Badge>
-                <Badge>{statusLabel(event)}</Badge>
+                <Badge>{formatMoonEventStatus(event)}</Badge>
                 <Badge>{formatMoonEventVisibility(project, event.visibility)}</Badge>
                 {event.notifyOnTrigger ? <Badge>{t(project.locale, "moonEvents.notifyOnTrigger")}</Badge> : null}
               </div>
@@ -107,7 +131,6 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
       </div>}
     </SectionCard>
 
-    {project.moons.length === 0 ? <div style={{ fontSize: 12, color: "#fca5a5", marginTop: 6 }}>{t(project.locale, "moonEvents.noMoonAvailable")}</div> : null}
     {isCreatePopupOpen ? <MoonEventPopup project={project} event={createDefaultMoonEvent(project)} mode="create" onClose={() => setIsCreatePopupOpen(false)} onSubmit={(event) => { onProjectUpdate(addMoonEvent(project, event)); setIsCreatePopupOpen(false); }} /> : null}
     {editingMoonEvent ? <MoonEventPopup project={project} event={editingMoonEvent} mode="edit" onClose={() => setEditingMoonEventId(null)} onSubmit={(event) => { onProjectUpdate(updateMoonEvent(project, event.id, event)); setEditingMoonEventId(null); }} /> : null}
   </>;
