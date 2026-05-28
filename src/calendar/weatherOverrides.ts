@@ -13,11 +13,19 @@ export const getWeatherOverrideForTime = (
   minute = 0
 ): WeatherOverride | undefined => {
   const minuteOfDay = Math.max(0, Math.min(1440, Math.trunc(hour) * 60 + Math.trunc(minute)));
-  return (project.weatherOverrides ?? []).find((o) => {
-    if (o.absoluteDay !== absoluteDay) return false;
-    const hasWindow = typeof o.startMinuteOfDay === "number" && typeof o.endMinuteOfDay === "number";
-    if (!hasWindow) return true;
-    return minuteOfDay >= o.startMinuteOfDay! && minuteOfDay < o.endMinuteOfDay!;
+  const overrides = [...(project.weatherOverrides ?? [])].reverse();
+
+  const windowedOverride = overrides.find((override) => {
+    if (override.absoluteDay !== absoluteDay) return false;
+    if (typeof override.startMinuteOfDay !== "number" || typeof override.endMinuteOfDay !== "number") return false;
+    return minuteOfDay >= override.startMinuteOfDay && minuteOfDay < override.endMinuteOfDay;
+  });
+
+  if (windowedOverride) return windowedOverride;
+
+  return overrides.find((override) => {
+    if (override.absoluteDay !== absoluteDay) return false;
+    return typeof override.startMinuteOfDay !== "number" || typeof override.endMinuteOfDay !== "number";
   });
 };
 
