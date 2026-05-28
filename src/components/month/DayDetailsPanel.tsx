@@ -87,7 +87,27 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span>{event.icon || "🌕"}</span>
                 <strong style={{ color: "#f3f4f6" }}>{event.name}</strong>
-                {onOpenMoonEvent ? <SecondaryButton type="button" style={{ marginLeft: "auto", padding: "4px 8px", fontSize: 11 }} onClick={() => onOpenMoonEvent(event.id)}>{t(project.locale, "globalSearch.open")}</SecondaryButton> : null}
+                <span style={{ marginLeft: "auto", color: "#cbd5e1", fontSize: 11 }}>{t(project.locale, "events.allDay")}</span>
+                <SecondaryButton
+                  type="button"
+                  style={{ padding: "4px 8px", fontSize: 11 }}
+                  onClick={() =>
+                    sendPopupNotification({
+                      type: "event",
+                      audience: "players",
+                      title: event.name,
+                      body: event.playerDescription?.trim() || event.summary || event.name,
+                      date: `${displayDate.weekdayName} ${dayDetails.date.dayOfMonth} ${displayDate.monthName} ${dayDetails.date.year}`,
+                      icon: event.icon,
+                      summary: event.summary,
+                      playerDescription: event.playerDescription,
+                      timeLabel: t(project.locale, "events.allDay")
+                    })
+                  }
+                >
+                  {t(project.locale, "common.send")}
+                </SecondaryButton>
+                {onOpenMoonEvent ? <SecondaryButton type="button" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => onOpenMoonEvent(event.id)}>{t(project.locale, "globalSearch.open")}</SecondaryButton> : null}
               </div>
               <div style={{ color: "#cbd5e1", marginTop: 4 }}>
                 {moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)}

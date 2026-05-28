@@ -73,6 +73,15 @@ export const getNewlyTriggeredMoonEventsBetween = (project: CalendarProject, fro
   return (project.moonEvents ?? []).filter((event) => newly.has(event.id));
 };
 
+export const getMoonEventsStartingOnDay = (
+  project: CalendarProject,
+  absoluteDay: number
+): MoonEvent[] =>
+  (project.moonEvents ?? []).filter((event) =>
+    isMoonEventTriggered(project, event, absoluteDay) &&
+    !isMoonEventTriggered(project, event, absoluteDay - 1)
+  );
+
 export const getNextMoonEventActivationDays = (
   project: CalendarProject,
   moonEvent: MoonEvent,
