@@ -10,6 +10,7 @@ import {
   getNewlyTriggeredWeatherEventsBetween,
   getActiveWeatherEventsWithDuration,
   getPlayerVisibleWeatherEvents,
+  getWeatherEventUpcomingTriggerWindows,
   applyWeatherEventTriggerActions,
   isWeatherConditionMet,
   isWeatherEventTriggered,
@@ -632,6 +633,59 @@ it("événement désactivé non déclenché", () => {
     const project = buildProject([event]);
     const next = applyWeatherEventTriggerActions(project, [event], { absoluteDay: 0, hour: 10, minute: 0 });
     expect(next.weatherEvents[0].status).toBe("disabled");
+  });
+
+  it("regroupe les prochaines fenêtres déclenchables consécutives", () => {
+    const event = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "window",
+      conditions: [{ type: "timeOfDay", startHour: 10, endHour: 12 }],
+      requireAllConditions: true
+    } as WeatherEvent;
+    const project = buildProject([event]);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } } as any];
+
+    const windows = getWeatherEventUpcomingTriggerWindows(project, event, { absoluteDay: 0, hour: 9, minute: 0 }, 8);
+
+    expect(windows).toHaveLength(1);
+    expect(windows[0]).toMatchObject({
+      startTime: { absoluteDay: 0, hour: 10, minute: 0 },
+      endTime: { absoluteDay: 0, hour: 13, minute: 0 },
+      durationHours: 3,
+      matchedConditionsCount: 1,
+      totalConditionsCount: 1
+    });
+  });
+
+  it("ignore les prochaines fenêtres pendant le cooldown", () => {
+    const event = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "window-cooldown",
+      cooldownHours: 3,
+      lastTriggeredAtMinutes: toAbsoluteMinutes({ absoluteDay: 0, hour: 9, minute: 0 }),
+      conditions: [{ type: "timeOfDay", startHour: 10, endHour: 14 }],
+      requireAllConditions: true
+    } as WeatherEvent;
+    const project = buildProject([event]);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } } as any];
+
+    const windows = getWeatherEventUpcomingTriggerWindows(project, event, { absoluteDay: 0, hour: 10, minute: 0 }, 8);
+
+    expect(windows[0]?.startTime).toMatchObject({ absoluteDay: 0, hour: 12, minute: 0 });
+    expect(windows[0]?.endTime).toMatchObject({ absoluteDay: 0, hour: 15, minute: 0 });
+  });
+
+  it("ne retourne aucune fenêtre pour un événement météo désactivé", () => {
+    const event = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "window-disabled",
+      enabled: false,
+      conditions: [{ type: "timeOfDay", startHour: 0, endHour: 23 }]
+    } as WeatherEvent;
+    const project = buildProject([event]);
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } } as any];
+
+    expect(getWeatherEventUpcomingTriggerWindows(project, event, { absoluteDay: 0, hour: 10, minute: 0 }, 8)).toEqual([]);
   });
 
   it("déclenche un event state via override", () => {

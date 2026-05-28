@@ -1,5 +1,5 @@
 import { generateWeatherForTime } from "./weatherLogic";
-import { absoluteDayToCalendarDate } from "./dateEngine";
+import { absoluteDayToCalendarDate, addHours } from "./dateEngine";
 import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
 import type { CalendarProject, InternalTime, WeatherCondition, WeatherConditionMetric, WeatherEvent, WeatherEventTriggerHistoryEntry, WeatherSnapshot, WeatherState, WeatherOverride } from "../domain/types";
@@ -213,6 +213,67 @@ export const getWeatherEventDiagnostics = (
     cooldownHours: event.cooldownHours,
     isCurrentlyTriggerable: enabled && !blockedByStatus && !blockedByCooldown && !alreadyActive && conditionsMet
   };
+};
+
+export type WeatherEventUpcomingTriggerWindow = {
+  startTime: InternalTime;
+  endTime: InternalTime;
+  durationHours: number;
+  matchedConditionsCount: number;
+  totalConditionsCount: number;
+};
+
+export const getWeatherEventUpcomingTriggerWindows = (
+  project: CalendarProject,
+  event: WeatherEvent,
+  fromTime: InternalTime,
+  scanHours = 48
+): WeatherEventUpcomingTriggerWindow[] => {
+  const status = event.status ?? "active";
+  const conditions = event.conditions ?? [];
+  if (event.enabled === false || status === "archived" || status === "disabled" || conditions.length === 0) return [];
+
+  const safeScanHours = Math.max(0, Math.floor(scanHours));
+  const scanStart = fromTime.minute === 0 ? fromTime : addHours({ ...fromTime, minute: 0 }, 1);
+  const windows: WeatherEventUpcomingTriggerWindow[] = [];
+  let activeWindow: WeatherEventUpcomingTriggerWindow | undefined;
+
+  for (let offset = 0; offset < safeScanHours; offset += 1) {
+    const scannedTime = addHours(scanStart, offset);
+    const weather = generateWeatherForTime(project, scannedTime.absoluteDay, scannedTime.hour);
+    if (!weather) {
+      activeWindow = undefined;
+      continue;
+    }
+
+    const diagnostics = getWeatherEventDiagnostics(project, event, scannedTime, weather);
+    if (!diagnostics.isCurrentlyTriggerable) {
+      activeWindow = undefined;
+      continue;
+    }
+
+    const matchedConditionsCount = diagnostics.conditions.filter((condition) => condition.met).length;
+    const totalConditionsCount = diagnostics.conditions.length;
+    const endTime = addHours(scannedTime, 1);
+
+    if (activeWindow) {
+      activeWindow.endTime = endTime;
+      activeWindow.durationHours += 1;
+      activeWindow.matchedConditionsCount = Math.max(activeWindow.matchedConditionsCount, matchedConditionsCount);
+      activeWindow.totalConditionsCount = Math.max(activeWindow.totalConditionsCount, totalConditionsCount);
+    } else {
+      activeWindow = {
+        startTime: scannedTime,
+        endTime,
+        durationHours: 1,
+        matchedConditionsCount,
+        totalConditionsCount
+      };
+      windows.push(activeWindow);
+    }
+  }
+
+  return windows.slice(0, 5);
 };
 
 export const getPlayerVisibleWeatherEvents = (
