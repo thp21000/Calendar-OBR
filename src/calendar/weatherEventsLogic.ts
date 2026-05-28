@@ -169,6 +169,41 @@ export const getWeatherEventDurationHours = (event: WeatherEvent): number | unde
   return undefined;
 };
 
+export const getWeatherEventDiagnostics = (
+  project: CalendarProject,
+  event: WeatherEvent,
+  time: InternalTime,
+  weather: WeatherSnapshot
+) => {
+  const status = event.status ?? "active";
+  const enabled = event.enabled !== false;
+  const blockedByStatus = status === "archived" || status === "disabled";
+  const conditions = event.conditions ?? [];
+  const conditionDiagnostics = conditions.map((condition) => ({
+    condition,
+    met: isWeatherConditionMet(weather, condition, { project, time })
+  }));
+  const requireAll = event.requireAllConditions ?? true;
+  const conditionsMet = conditionDiagnostics.length > 0
+    ? requireAll
+      ? conditionDiagnostics.every((diagnostic) => diagnostic.met)
+      : conditionDiagnostics.some((diagnostic) => diagnostic.met)
+    : false;
+
+  return {
+    conditions: conditionDiagnostics,
+    conditionsMet,
+    enabled,
+    blockedByStatus,
+    status,
+    triggerChancePercent: normalizeTriggerChancePercent(event.triggerChancePercent),
+    durationHours: getWeatherEventDurationHours(event),
+    lastTriggeredAtMinutes: event.lastTriggeredAtMinutes,
+    cooldownHours: event.cooldownHours,
+    isCurrentlyTriggerable: enabled && !blockedByStatus && conditionsMet
+  };
+};
+
 export const getPlayerVisibleWeatherEvents = (
   project: CalendarProject,
   weather: WeatherSnapshot,

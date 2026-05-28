@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { addWeatherEvent, createDefaultWeatherEvent, deleteWeatherEvent, duplicateWeatherEvent, updateWeatherEvent } from "../../calendar/weatherEventsLogic";
+import { addWeatherEvent, createDefaultWeatherEvent, deleteWeatherEvent, duplicateWeatherEvent, getWeatherEventDiagnostics, updateWeatherEvent } from "../../calendar/weatherEventsLogic";
+import { getCurrentWeather } from "../../calendar/weatherLogic";
 import type { CalendarProject, WeatherCondition, WeatherEvent } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { WeatherEventPopup } from "../events/WeatherEventPopup";
@@ -34,6 +35,7 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "triggered" | "archived" | "disabled">("all");
   const [conditionFilter, setConditionFilter] = useState<"all" | "metric" | "state" | "dominantState" | "windDirection" | "season" | "timeOfDay" | "moonPhase">("all");
+  const currentWeather = getCurrentWeather(project);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredWeatherEvents = project.weatherEvents.filter((event) => {
@@ -119,6 +121,16 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
       {filteredWeatherEvents.length === 0 ? <EmptyState text={normalizedQuery ? t(project.locale, "weatherEvents.noEventsForSearch") : t(project.locale, "weatherEvents.noEventsForFilter")} /> : <div style={{ display: "grid", gap: 8 }}>
         {filteredWeatherEvents.map((event) => {
           const conditions = event.conditions ?? [];
+          const diagnostics = currentWeather ? getWeatherEventDiagnostics(project, event, project.currentTime, currentWeather) : undefined;
+          const diagnosticLabel = diagnostics
+            ? diagnostics.blockedByStatus || !diagnostics.enabled
+              ? event.status === "archived"
+                ? t(project.locale, "weatherEvents.statusArchivedBadge")
+                : t(project.locale, "weatherEvents.disabled")
+              : diagnostics.conditionsMet
+                ? t(project.locale, "weatherEvents.conditionsMetNow")
+                : t(project.locale, "weatherEvents.conditionsNotMetNow")
+            : t(project.locale, "weatherEvents.noCurrentWeather");
           return <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span>{event.icon || "🌩️"}</span><strong>{event.name}</strong></div>
@@ -130,6 +142,7 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                 {Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100))) < 100 ? <Badge>{t(project.locale, "weatherEvents.triggerChanceBadge").replace("{count}", String(Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100)))))}</Badge> : null}
                 {typeof event.durationHours === "number" ? <Badge>{t(project.locale, "weatherEvents.durationBadge").replace("{count}", String(event.durationHours))}</Badge> : null}
                 {typeof event.cooldownHours === "number" ? <Badge>{t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(event.cooldownHours))}</Badge> : null}
+                <Badge>{diagnosticLabel}</Badge>
                 {event.status === "archived" ? <Badge>{t(project.locale, "weatherEvents.statusArchivedBadge")}</Badge> : null}
               </div>
             </div>

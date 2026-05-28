@@ -1,6 +1,7 @@
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { conditionSummary } from "./WeatherEventForm";
-import { getWeatherEventDurationHours } from "../../calendar/weatherEventsLogic";
+import { getWeatherEventDiagnostics, getWeatherEventDurationHours } from "../../calendar/weatherEventsLogic";
+import { getCurrentWeather } from "../../calendar/weatherLogic";
 import type { CalendarProject, WeatherEvent, WeatherEventEffect } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { sendPopupNotification } from "../../obr/popupNotifications";
@@ -70,6 +71,19 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
   const effectLines = getEffectLines(project, event.effect);
   const conditions = event.conditions ?? [];
   const history = (event.triggerHistory ?? []).slice(-5).reverse();
+  const currentWeather = getCurrentWeather(project);
+  const diagnostics = currentWeather ? getWeatherEventDiagnostics(project, event, project.currentTime, currentWeather) : undefined;
+  const currentWeatherSummary = currentWeather
+    ? [
+        currentWeather.state ? `${t(project.locale, "weatherEvents.state")}: ${t(project.locale, `weather.state.${currentWeather.state}`)}` : undefined,
+        `${t(project.locale, "weatherEvents.metricTemperature")}: ${currentWeather.temperature}`,
+        `${t(project.locale, "weatherEvents.metricRain")}: ${currentWeather.rain}`,
+        `${t(project.locale, "weatherEvents.metricWindSpeed")}: ${currentWeather.windSpeed}`,
+        currentWeather.windDirection ? `${t(project.locale, "weatherEvents.windDirection")}: ${currentWeather.windDirection}` : undefined,
+        currentWeather.dominantState ? `${t(project.locale, "weatherEvents.dominantState")}: ${t(project.locale, `weather.state.${currentWeather.dominantState}`)}` : undefined,
+        currentWeather.trendKind ? `${t(project.locale, "weather.trend")}: ${t(project.locale, `weather.trend.${currentWeather.trendKind}`)}` : undefined
+      ].filter(Boolean).join(" · ")
+    : undefined;
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }} onClick={onClose}>
@@ -97,6 +111,32 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
           <div style={fieldBoxStyle}><div style={boxTitleStyle}>{t(project.locale, "weatherEvents.playerDescription")}</div><div style={textStyle}>{event.playerDescription?.trim() || t(project.locale, "weatherEvents.noPlayerDescription")}</div></div>
           <div style={fieldBoxStyle}><div style={boxTitleStyle}>{t(project.locale, "weatherEvents.gmDescription")}</div><div style={textStyle}>{event.gmDescription?.trim() || t(project.locale, "weatherEvents.noGmDescription")}</div></div>
           {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#93c5fd" }}>{t(project.locale, "common.openLink")}</a> : null}
+
+          <div style={fieldBoxStyle}>
+            <div style={boxTitleStyle}>{t(project.locale, "weatherEvents.diagnostics")}</div>
+            {diagnostics ? (
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  <Badge tone={diagnostics.isCurrentlyTriggerable ? "success" : "warning"}>
+                    {diagnostics.isCurrentlyTriggerable ? t(project.locale, "weatherEvents.canTriggerNow") : t(project.locale, "weatherEvents.cannotTriggerNow")}
+                  </Badge>
+                  {diagnostics.blockedByStatus || !diagnostics.enabled ? <Badge>{t(project.locale, "weatherEvents.blockedByStatus")}</Badge> : null}
+                </div>
+                {currentWeatherSummary ? <div style={textStyle}>{currentWeatherSummary}</div> : null}
+                <div style={textStyle}>{t(project.locale, "weatherEvents.triggerChance")}: {diagnostics.triggerChancePercent} %</div>
+                <div style={textStyle}>{t(project.locale, "weatherEvents.effectiveDuration")}: {typeof diagnostics.durationHours === "number" ? t(project.locale, "weatherEvents.durationShort").replace("{count}", String(diagnostics.durationHours)) : t(project.locale, "weatherEvents.activeNow")}</div>
+                <div style={textStyle}>{t(project.locale, "weatherEvents.lastTriggeredAtMinutes")}: {typeof diagnostics.lastTriggeredAtMinutes === "number" ? diagnostics.lastTriggeredAtMinutes : t(project.locale, "weatherEvents.neverTriggered")}</div>
+                {typeof diagnostics.cooldownHours === "number" ? <div style={textStyle}>{t(project.locale, "weatherEvents.cooldownHours")}: {t(project.locale, "weatherEvents.durationShort").replace("{count}", String(diagnostics.cooldownHours))}</div> : null}
+                <div style={{ display: "grid", gap: 4 }}>
+                  {diagnostics.conditions.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noConditions")}</div> : diagnostics.conditions.map(({ condition, met }, index) => (
+                    <div key={`${condition.type ?? "metric"}-diagnostic-${index}`} style={textStyle}>
+                      {met ? "✅" : "❌"} {conditionSummary(project, condition)} — {met ? t(project.locale, "weatherEvents.conditionMet") : t(project.locale, "weatherEvents.conditionNotMet")}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : <div style={textStyle}>{t(project.locale, "weatherEvents.noCurrentWeather")}</div>}
+          </div>
 
           <div style={fieldBoxStyle}>
             <div style={boxTitleStyle}>{t(project.locale, "weatherEvents.conditions")}</div>
