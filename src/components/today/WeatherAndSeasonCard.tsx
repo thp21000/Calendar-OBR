@@ -1,5 +1,6 @@
 import { getWeatherStateIcon } from "../../calendar/weatherState";
-import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
+import { getWeatherOverrideForTime } from "../../calendar/weatherOverrides";
+import type { CalendarProject, MoonPhase, Season, WeatherOverride, WeatherSnapshot } from "../../domain/types";
 import type { CalendarProject, MoonPhase, Season, WeatherSnapshot } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
@@ -7,18 +8,48 @@ import { Badge, Panel, SectionCard, SectionHeader } from "../ui";
 import { ui } from "../ui/styles";
 import { getRainIcon, getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIcon } from "./weatherIcons";
 
+type WeatherUnits = { temperature: string; windSpeed: string; rain: string };
+
+const formatMinuteOfDay = (minutes: number): string => {
+  const safeMinutes = Math.max(0, Math.min(1440, Math.trunc(minutes)));
+  const hours = Math.floor(safeMinutes / 60);
+  const mins = safeMinutes % 60;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+};
+
+const isTimedOverride = (override: WeatherOverride | undefined): override is WeatherOverride & { startMinuteOfDay: number; endMinuteOfDay: number } =>
+  typeof override?.startMinuteOfDay === "number" && typeof override.endMinuteOfDay === "number";
+
+const getForcedOverrideValues = (project: CalendarProject, override: WeatherOverride, weatherUnits: WeatherUnits): string[] => {
+  const values: string[] = [];
+  if (override.state) values.push(`${t(project.locale, "weatherOverride.state")} = ${t(project.locale, `weather.state.${override.state}`)}`);
+  if (override.dominantState) values.push(`${t(project.locale, "weatherOverride.dominantState")} = ${t(project.locale, `weather.state.${override.dominantState}`)}`);
+  if (typeof override.temperature === "number") values.push(`${t(project.locale, "weatherOverride.temperature")} = ${override.temperature} ${weatherUnits.temperature}`);
+  if (typeof override.rain === "number") values.push(`${t(project.locale, "weatherOverride.rain")} = ${override.rain} ${weatherUnits.rain}`);
+  if (typeof override.dailyRainTotal === "number") values.push(`24 h = ${override.dailyRainTotal} ${weatherUnits.rain}`);
+  if (typeof override.windSpeed === "number") values.push(`${t(project.locale, "weatherOverride.wind")} = ${override.windSpeed} ${weatherUnits.windSpeed}`);
+  if (override.windDirection) values.push(`${t(project.locale, "weatherOverride.windDirection")} = ${override.windDirection}`);
+  if (override.trendKind) values.push(`${t(project.locale, "weather.trend")} = ${t(project.locale, `weather.trend.${override.trendKind}`)}`);
+  return values;
+};
+
 type Props = {
   project: CalendarProject;
   currentSeason: Season | undefined;
   currentWeather: WeatherSnapshot | undefined;
   hourlyForecast: Array<{ offsetHours: number; weather: WeatherSnapshot }>;
   triggeredWeatherEvents: CalendarProject["weatherEvents"];
-  weatherUnits: { temperature: string; windSpeed: string; rain: string };
+  weatherUnits: WeatherUnits;
   currentMoonPhases: Array<{ moon: CalendarProject["moons"][number]; phase: MoonPhase }>;
 };
 
 export const TodayStatusSummary = ({ project, currentSeason, currentWeather, triggeredWeatherEvents, weatherUnits, currentMoonPhases }: Pick<Props, "project"|"currentSeason"|"currentWeather"|"triggeredWeatherEvents"|"weatherUnits"|"currentMoonPhases">) => {
-  const override = (project.weatherOverrides ?? []).find((o) => o.absoluteDay === project.currentTime.absoluteDay);
+  const override = getWeatherOverrideForTime(project, project.currentTime.absoluteDay, project.currentTime.hour, project.currentTime.minute);
+  const forcedOverrideValues = override ? getForcedOverrideValues(project, override, weatherUnits) : [];
+  const overrideIsTimed = isTimedOverride(override);
+  const overrideTimeRange = overrideIsTimed ? `${formatMinuteOfDay(override.startMinuteOfDay)}–${formatMinuteOfDay(override.endMinuteOfDay)}` : undefined;
+  const overrideName = override?.label?.trim();
+  const overrideLabel = `${t(project.locale, "weatherOverride.active")}${overrideName ? `: ${overrideName}` : ""}${overrideTimeRange ? `${overrideName ? " · " : ": "}${overrideTimeRange}` : ""}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
 
   return (
@@ -64,7 +95,19 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
         </div>
       ) : null}
 
-      {override ? <div style={{ marginTop: 6 }}><Badge tone="warning">{override.label?.trim() ? `${t(project.locale, "weatherOverride.active")}: ${override.label}` : t(project.locale, "weatherOverride.active")}</Badge></div> : null}
+      {override ? (
+        <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <Badge tone="warning">{overrideLabel}</Badge>
+            {overrideIsTimed ? <Badge>{t(project.locale, "weatherOverride.activeTimedEffect")}</Badge> : null}
+          </div>
+          {forcedOverrideValues.length > 0 ? (
+            <div style={{ fontSize: 11, color: "#94a3b8" }}>
+              {t(project.locale, "weatherOverride.forcedValues")}: {forcedOverrideValues.join(" · ")}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {triggeredWeatherEvents.length > 0 ? <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
         {triggeredWeatherEvents.map((event) => (
