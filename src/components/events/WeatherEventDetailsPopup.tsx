@@ -1,6 +1,6 @@
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { conditionSummary } from "./WeatherEventForm";
-import { getWeatherEventDiagnostics, getWeatherEventDurationHours, getWeatherEventUpcomingTriggerWindows } from "../../calendar/weatherEventsLogic";
+import { getWeatherEventDiagnostics, getWeatherEventDurationHours, getWeatherEventUpcomingTriggerWindows, type WeatherEventUpcomingTriggerWindow } from "../../calendar/weatherEventsLogic";
 import { getCurrentWeather } from "../../calendar/weatherLogic";
 import type { CalendarProject, WeatherEvent, WeatherEventEffect } from "../../domain/types";
 import { t } from "../../i18n/messages";
@@ -60,13 +60,18 @@ const getEffectLines = (project: CalendarProject, effect: WeatherEventEffect | u
   return lines;
 };
 
-const formatClock = (time: { hour: number; minute: number }): string =>
+const formatTime = (time: { hour: number; minute: number }): string =>
   `${String(time.hour).padStart(2, "0")}:${String(time.minute).padStart(2, "0")}`;
 
-const formatDateLabel = (project: CalendarProject, time: { absoluteDay: number; hour: number; minute: number }): string => {
+const formatDate = (project: CalendarProject, time: { absoluteDay: number; hour: number; minute: number }): string => {
   const date = absoluteDayToCalendarDate(time, project.calendarSystem);
   return `${date.dayOfMonth} ${date.monthName} ${date.year}`;
 };
+
+const formatWindow = (project: CalendarProject, window: WeatherEventUpcomingTriggerWindow): string =>
+  window.startTime.absoluteDay === window.endTime.absoluteDay
+    ? `${formatDate(project, window.startTime)} — ${formatTime(window.startTime)}–${formatTime(window.endTime)}`
+    : `${formatDate(project, window.startTime)} ${formatTime(window.startTime)} → ${formatDate(project, window.endTime)} ${formatTime(window.endTime)}`;
 
 const fieldBoxStyle = { fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6 };
 const boxTitleStyle = { fontWeight: 700, marginBottom: 4 };
@@ -81,7 +86,7 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
   const history = (event.triggerHistory ?? []).slice(-5).reverse();
   const currentWeather = getCurrentWeather(project);
   const diagnostics = currentWeather ? getWeatherEventDiagnostics(project, event, project.currentTime, currentWeather) : undefined;
-  const upcomingWindows = getWeatherEventUpcomingTriggerWindows(project, event, project.currentTime);
+  const upcomingWindows = getWeatherEventUpcomingTriggerWindows(project, event, project.currentTime, 48);
   const currentWeatherSummary = currentWeather
     ? [
         currentWeather.state ? `${t(project.locale, "weatherEvents.state")}: ${t(project.locale, `weather.state.${currentWeather.state}`)}` : undefined,
@@ -157,14 +162,11 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
             ) : (
               <div style={{ display: "grid", gap: 4 }}>
                 {upcomingWindows.map((window) => {
-                  const sameDay = window.startTime.absoluteDay === window.endTime.absoluteDay;
                   const durationLabel = t(project.locale, "weatherEvents.windowDuration").replace("{count}", String(window.durationHours));
                   const conditionsLabel = t(project.locale, "weatherEvents.windowConditions")
                     .replace("{met}", String(window.matchedConditionsCount))
                     .replace("{total}", String(window.totalConditionsCount));
-                  const timeLabel = sameDay
-                    ? `${formatDateLabel(project, window.startTime)} — ${formatClock(window.startTime)}–${formatClock(window.endTime)}`
-                    : `${formatDateLabel(project, window.startTime)} ${formatClock(window.startTime)} → ${formatDateLabel(project, window.endTime)} ${formatClock(window.endTime)}`;
+                  const timeLabel = formatWindow(project, window);
                   return <div key={`${window.startTime.absoluteDay}-${window.startTime.hour}-${window.endTime.absoluteDay}-${window.endTime.hour}`} style={textStyle}>• {timeLabel} — {durationLabel} · {conditionsLabel}</div>;
                 })}
               </div>

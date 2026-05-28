@@ -234,12 +234,11 @@ export const getWeatherEventUpcomingTriggerWindows = (
   if (event.enabled === false || status === "archived" || status === "disabled" || conditions.length === 0) return [];
 
   const safeScanHours = Math.max(0, Math.floor(scanHours));
-  const scanStart = fromTime.minute === 0 ? fromTime : addHours({ ...fromTime, minute: 0 }, 1);
   const windows: WeatherEventUpcomingTriggerWindow[] = [];
   let activeWindow: WeatherEventUpcomingTriggerWindow | undefined;
 
   for (let offset = 0; offset < safeScanHours; offset += 1) {
-    const scannedTime = addHours(scanStart, offset);
+    const scannedTime = addHours(fromTime, offset);
     const weather = generateWeatherForTime(project, scannedTime.absoluteDay, scannedTime.hour);
     if (!weather) {
       activeWindow = undefined;
