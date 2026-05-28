@@ -189,18 +189,29 @@ export const getWeatherEventDiagnostics = (
       ? conditionDiagnostics.every((diagnostic) => diagnostic.met)
       : conditionDiagnostics.some((diagnostic) => diagnostic.met)
     : false;
+  const nowMinutes = toAbsoluteMinutes(time);
+  const lastTriggeredAtMinutes = event.lastTriggeredAtMinutes;
+  const durationHours = getWeatherEventDurationHours(event);
+  const blockedByCooldown = typeof lastTriggeredAtMinutes === "number"
+    ? isWithinCooldownWindow(lastTriggeredAtMinutes, nowMinutes, event.cooldownHours)
+    : false;
+  const alreadyActive = typeof lastTriggeredAtMinutes === "number"
+    ? isWithinDurationWindow(lastTriggeredAtMinutes, nowMinutes, durationHours)
+    : false;
 
   return {
     conditions: conditionDiagnostics,
     conditionsMet,
     enabled,
     blockedByStatus,
+    blockedByCooldown,
+    alreadyActive,
     status,
     triggerChancePercent: normalizeTriggerChancePercent(event.triggerChancePercent),
-    durationHours: getWeatherEventDurationHours(event),
-    lastTriggeredAtMinutes: event.lastTriggeredAtMinutes,
+    durationHours,
+    lastTriggeredAtMinutes,
     cooldownHours: event.cooldownHours,
-    isCurrentlyTriggerable: enabled && !blockedByStatus && conditionsMet
+    isCurrentlyTriggerable: enabled && !blockedByStatus && !blockedByCooldown && !alreadyActive && conditionsMet
   };
 };
 

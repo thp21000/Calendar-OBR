@@ -121,6 +121,8 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
                     {diagnostics.isCurrentlyTriggerable ? t(project.locale, "weatherEvents.canTriggerNow") : t(project.locale, "weatherEvents.cannotTriggerNow")}
                   </Badge>
                   {diagnostics.blockedByStatus || !diagnostics.enabled ? <Badge>{t(project.locale, "weatherEvents.blockedByStatus")}</Badge> : null}
+                  {diagnostics.blockedByCooldown ? <Badge>{t(project.locale, "weatherEvents.blockedByCooldown")}</Badge> : null}
+                  {diagnostics.alreadyActive ? <Badge>{t(project.locale, "weatherEvents.alreadyActive")}</Badge> : null}
                 </div>
                 {currentWeatherSummary ? <div style={textStyle}>{currentWeatherSummary}</div> : null}
                 <div style={textStyle}>{t(project.locale, "weatherEvents.triggerChance")}: {diagnostics.triggerChancePercent} %</div>

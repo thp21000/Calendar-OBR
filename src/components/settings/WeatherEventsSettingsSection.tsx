@@ -122,15 +122,19 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
         {filteredWeatherEvents.map((event) => {
           const conditions = event.conditions ?? [];
           const diagnostics = currentWeather ? getWeatherEventDiagnostics(project, event, project.currentTime, currentWeather) : undefined;
-          const diagnosticLabel = diagnostics
-            ? diagnostics.blockedByStatus || !diagnostics.enabled
-              ? event.status === "archived"
-                ? t(project.locale, "weatherEvents.statusArchivedBadge")
-                : t(project.locale, "weatherEvents.disabled")
-              : diagnostics.conditionsMet
-                ? t(project.locale, "weatherEvents.conditionsMetNow")
-                : t(project.locale, "weatherEvents.conditionsNotMetNow")
-            : t(project.locale, "weatherEvents.noCurrentWeather");
+          const diagnosticLabel = !diagnostics
+            ? t(project.locale, "weatherEvents.noCurrentWeather")
+            : event.status === "archived"
+              ? t(project.locale, "weatherEvents.statusArchivedBadge")
+              : event.enabled === false || event.status === "disabled"
+                ? t(project.locale, "weatherEvents.disabled")
+                : diagnostics.blockedByCooldown
+                  ? t(project.locale, "weatherEvents.blockedByCooldown")
+                  : diagnostics.alreadyActive
+                    ? t(project.locale, "weatherEvents.alreadyActive")
+                    : diagnostics.conditionsMet
+                      ? t(project.locale, "weatherEvents.conditionsMetNow")
+                      : t(project.locale, "weatherEvents.conditionsNotMetNow");
           return <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span>{event.icon || "🌩️"}</span><strong>{event.name}</strong></div>
@@ -143,7 +147,6 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                 {typeof event.durationHours === "number" ? <Badge>{t(project.locale, "weatherEvents.durationBadge").replace("{count}", String(event.durationHours))}</Badge> : null}
                 {typeof event.cooldownHours === "number" ? <Badge>{t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(event.cooldownHours))}</Badge> : null}
                 <Badge>{diagnosticLabel}</Badge>
-                {event.status === "archived" ? <Badge>{t(project.locale, "weatherEvents.statusArchivedBadge")}</Badge> : null}
               </div>
             </div>
             <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 6 }}>{event.summary?.trim() ? event.summary : t(project.locale, "weatherEvents.noSummary")}</div>
