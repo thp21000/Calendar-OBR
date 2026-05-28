@@ -21,11 +21,7 @@ export const MoonEventPopup = ({ project, event, mode, onClose, onSubmit }: { pr
           <strong>{mode === "create" ? t(project.locale, "moonEvents.createTitle") : t(project.locale, "moonEvents.editTitle")}</strong>
           <button type="button" onClick={onClose} title={t(project.locale, "common.close")} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #374151", background: "#1f2937", color: "#e5e7eb", fontSize: 18, lineHeight: 1, cursor: "pointer" }}>×</button>
         </div>
-        <div style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, marginBottom: 8, fontSize: 12, color: "#d1d5db" }}>
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "moonEvents.nextActivationsTitle")}</div>
-          {nextActivationLabels.length === 0 ? <div>{t(project.locale, "moonEvents.nextActivationUnknown")}</div> : <ul style={{ margin: 0, paddingLeft: 16 }}>{nextActivationLabels.map((label) => <li key={label}>{label}</li>)}</ul>}
-        </div>
-        <MoonEventForm project={project} event={event} mode={mode} onSubmit={onSubmit} onCancel={onClose} onDraftChange={setPreviewEvent} />
+        <MoonEventForm project={project} event={event} mode={mode} onSubmit={onSubmit} onCancel={onClose} onDraftChange={setPreviewEvent} nextActivationLabels={nextActivationLabels} />
       </div>
     </div>
   );
