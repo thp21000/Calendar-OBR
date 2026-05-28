@@ -3,6 +3,7 @@ import { addWeatherEvent, createDefaultWeatherEvent, deleteWeatherEvent, duplica
 import { getCurrentWeather } from "../../calendar/weatherLogic";
 import type { CalendarProject, WeatherCondition, WeatherEvent } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { WeatherEventDetailsPopup } from "../events/WeatherEventDetailsPopup";
 import { WeatherEventPopup } from "../events/WeatherEventPopup";
 import { conditionSummary } from "../events/WeatherEventForm";
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
@@ -32,6 +33,7 @@ const conditionTypeMatch = (condition: WeatherCondition, filter: string): boolea
 export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputStyle }: Props) => {
   const [isCreatePopupOpen, setIsCreatePopupOpen] = useState(false);
   const [editingWeatherEventId, setEditingWeatherEventId] = useState<string | null>(null);
+  const [selectedWeatherEventId, setSelectedWeatherEventId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "triggered" | "archived" | "disabled">("all");
   const [conditionFilter, setConditionFilter] = useState<"all" | "metric" | "state" | "dominantState" | "windDirection" | "season" | "timeOfDay" | "moonPhase">("all");
@@ -51,6 +53,7 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
   });
 
   const editingWeatherEvent = editingWeatherEventId ? project.weatherEvents.find((event) => event.id === editingWeatherEventId) : undefined;
+  const selectedWeatherEvent = selectedWeatherEventId ? project.weatherEvents.find((event) => event.id === selectedWeatherEventId) : undefined;
 
   const handleDuplicateWeatherEvent = (event: WeatherEvent) => {
     onProjectUpdate(duplicateWeatherEvent(project, event.id));
@@ -135,7 +138,18 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                     : diagnostics.conditionsMet
                       ? t(project.locale, "weatherEvents.conditionsMetNow")
                       : t(project.locale, "weatherEvents.conditionsNotMetNow");
-          return <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
+          return <div
+            key={event.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => setSelectedWeatherEventId(event.id)}
+            onKeyDown={(keyEvent) => {
+              if (keyEvent.key !== "Enter" && keyEvent.key !== " ") return;
+              keyEvent.preventDefault();
+              setSelectedWeatherEventId(event.id);
+            }}
+            style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", cursor: "pointer" }}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span>{event.icon || "🌩️"}</span><strong>{event.name}</strong></div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -151,14 +165,14 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
             </div>
             <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 6 }}>{event.summary?.trim() ? event.summary : t(project.locale, "weatherEvents.noSummary")}</div>
             {conditions.length > 0 ? <div style={{ marginBottom: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>{conditions.map((condition, index) => <Badge key={`${event.id}-c-${index}`}>{conditionSummary(project, condition)}</Badge>)}</div> : null}
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <SecondaryButton type="button" onClick={() => setEditingWeatherEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>
+              <SecondaryButton type="button" onClick={() => { setSelectedWeatherEventId(null); setEditingWeatherEventId(event.id); }}>{t(project.locale, "events.edit")}</SecondaryButton>
               <SecondaryButton type="button" onClick={() => handleDuplicateWeatherEvent(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
               <SecondaryButton type="button" onClick={() => handleToggleWeatherEventEnabled(event)}>
                 {isWeatherEventInactive(event) ? t(project.locale, "events.reactivate") : t(project.locale, "events.disable")}
               </SecondaryButton>
               {event.status !== "archived" ? <SecondaryButton type="button" onClick={() => handleArchiveWeatherEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton> : null}
-              <SecondaryButton type="button" onClick={() => { if (!confirm(t(project.locale, "weatherEvents.confirmDelete"))) return; onProjectUpdate(deleteWeatherEvent(project, event.id)); if (editingWeatherEventId === event.id) setEditingWeatherEventId(null); }}>{t(project.locale, "weatherEvents.delete")}</SecondaryButton>
+              <SecondaryButton type="button" onClick={() => { if (!confirm(t(project.locale, "weatherEvents.confirmDelete"))) return; onProjectUpdate(deleteWeatherEvent(project, event.id)); if (editingWeatherEventId === event.id) setEditingWeatherEventId(null); if (selectedWeatherEventId === event.id) setSelectedWeatherEventId(null); }}>{t(project.locale, "weatherEvents.delete")}</SecondaryButton>
             </div>
           </div>;
         })}
@@ -166,6 +180,7 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
     </SectionCard>
 
     {isCreatePopupOpen ? <WeatherEventPopup project={project} event={createDefaultWeatherEvent(project.locale)} mode="create" onClose={() => setIsCreatePopupOpen(false)} onSubmit={(event) => { onProjectUpdate(addWeatherEvent(project, event)); setIsCreatePopupOpen(false); }} /> : null}
+    {selectedWeatherEvent ? <WeatherEventDetailsPopup project={project} event={selectedWeatherEvent} onClose={() => setSelectedWeatherEventId(null)} /> : null}
     {editingWeatherEvent ? <WeatherEventPopup project={project} event={editingWeatherEvent} mode="edit" onClose={() => setEditingWeatherEventId(null)} onSubmit={(event) => { onProjectUpdate(updateWeatherEvent(project, event.id, event)); setEditingWeatherEventId(null); }} /> : null}
   </>;
 };

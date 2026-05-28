@@ -12,6 +12,7 @@ import { EventDetailsPopup } from "./EventDetailsPopup";
 export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate, initialEditEventId, onInitialCreateDateConsumed, onInitialEditEventIdConsumed }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; initialCreateDate?: CalendarDate | null; initialEditEventId?: string | null; onInitialCreateDateConsumed?: () => void; onInitialEditEventIdConsumed?: () => void; }) => {
   const events = sortEventsByDate(project.events, project);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"active" | "triggered" | "archived" | "disabled" | "all">("active");
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(Boolean(initialCreateDate));
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,6 +28,7 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
     setTimeFilter("all");
     setSearchQuery("");
     setIsCreateFormOpen(false);
+    setSelectedEventId(null);
     setEditingEventId(initialEditEventId);
     onInitialEditEventIdConsumed?.();
   }, [initialEditEventId, onInitialEditEventIdConsumed]);
@@ -43,6 +45,9 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
   const editingEvent = editingEventId
     ? events.find((event) => event.id === editingEventId)
     : undefined;
+  const selectedEvent = selectedEventId
+    ? events.find((event) => event.id === selectedEventId)
+    : undefined;
 
   const handleCreate = (event: CalendarEvent) => {
     onProjectUpdate(addCalendarEvent(project, event));
@@ -57,6 +62,7 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
     if (!window.confirm(t(project.locale, "events.confirmDelete"))) return;
     onProjectUpdate(deleteCalendarEvent(project, event.id));
     if (editingEventId === event.id) setEditingEventId(null);
+    if (selectedEventId === event.id) setSelectedEventId(null);
   };
   const handleStatusUpdate = (event: CalendarEvent, status: CalendarEvent["status"]) => onProjectUpdate(updateCalendarEvent(project, event.id, { status }));
   const handleDuplicate = (event: CalendarEvent) => onProjectUpdate(duplicateCalendarEvent(project, event.id));
@@ -92,7 +98,18 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
     <SectionCard>
       <SectionHeader title={`${t(project.locale, "events.calendarListTitle")} (${filteredEvents.length})`} />
     {filteredEvents.length === 0 ? <EmptyState text={normalizedQuery ? t(project.locale, "events.noEventsForSearch") : t(project.locale, "events.noEventsForFilter")} /> : <div style={{ display: "grid", gap: 8 }}>
-      {filteredEvents.map((event) => <div key={event.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
+      {filteredEvents.map((event) => <div
+        key={event.id}
+        role="button"
+        tabIndex={0}
+        onClick={() => setSelectedEventId(event.id)}
+        onKeyDown={(keyEvent) => {
+          if (keyEvent.key !== "Enter" && keyEvent.key !== " ") return;
+          keyEvent.preventDefault();
+          setSelectedEventId(event.id);
+        }}
+        style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", cursor: "pointer" }}
+      >
          <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
@@ -105,8 +122,8 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
             {formatEventRecurrence(project, event) !== t(project.locale, "events.recurrenceNone") ? <Badge>{formatEventRecurrence(project, event)}</Badge> : null}
             {formatEventTriggerOptions(project, event) !== t(project.locale, "events.triggerNone") ? <Badge>{formatEventTriggerOptions(project, event)}</Badge> : null}
           </div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <SecondaryButton type="button" onClick={() => setEditingEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>
+            <SecondaryButton type="button" onClick={() => { setSelectedEventId(null); setEditingEventId(event.id); }}>{t(project.locale, "events.edit")}</SecondaryButton>
             <SecondaryButton type="button" onClick={() => handleDuplicate(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
             {event.visibility === "revealOnTrigger" && event.status !== "triggered" && event.status !== "archived" && event.status !== "disabled" ? <SecondaryButton type="button" onClick={() => handleReveal(event)}>{t(project.locale, "events.reveal")}</SecondaryButton> : null}
             {event.status === "active" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "disabled")}>{t(project.locale, "events.disable")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
@@ -120,6 +137,14 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
     </div>}
     </SectionCard>
     {isCreateFormOpen ? <EventCreatePopup project={project} date={initialCreateDate ?? absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)} onClose={() => { setIsCreateFormOpen(false); onInitialCreateDateConsumed?.(); }} onCreate={handleCreate} /> : null}
+    {selectedEvent ? (
+      <EventDetailsPopup
+        project={project}
+        event={selectedEvent}
+        onClose={() => setSelectedEventId(null)}
+        onUpdate={handleUpdate}
+      />
+    ) : null}
   {editingEvent ? (
       <EventDetailsPopup
         project={project}

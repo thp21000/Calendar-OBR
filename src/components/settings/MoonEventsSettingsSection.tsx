@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { getNextMoonEventActivationDate } from "../../calendar/moonEventsLogic";
 import { getMoonPhaseForDate } from "../../calendar/moonLogic";
 import { addMoonEvent, createDefaultMoonEvent, deleteMoonEvent, duplicateMoonEvent, updateMoonEvent } from "../../calendar/moonEventsLogic";
 import type { CalendarProject, MoonEvent, MoonPhaseId } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
+import { MoonEventDetailsPopup } from "../events/MoonEventDetailsPopup";
 import { MoonEventPopup } from "../events/MoonEventPopup";
 
 const phases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
@@ -12,6 +14,7 @@ const phases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingG
 export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; inputStyle: React.CSSProperties }) => {
   const [isCreatePopupOpen, setIsCreatePopupOpen] = useState(false);
   const [editingMoonEventId, setEditingMoonEventId] = useState<string | null>(null);
+  const [selectedMoonEventId, setSelectedMoonEventId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [moonPeriodFilter, setMoonPeriodFilter] = useState<"all" | "current" | "other">("all");
   const [moonPhaseFilter, setMoonPhaseFilter] = useState("all");
@@ -23,6 +26,9 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
 
   const moonEvents = project.moonEvents ?? [];
   const editingMoonEvent = editingMoonEventId ? moonEvents.find((event) => event.id === editingMoonEventId) : undefined;
+  const selectedMoonEvent = selectedMoonEventId ? moonEvents.find((event) => event.id === selectedMoonEventId) : undefined;
+  const currentDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+  const contextDateLabel = `${currentDate.weekdayName ?? ""} ${currentDate.dayOfMonth} ${currentDate.monthName} ${currentDate.year}`.trim();
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const isMoonEventMatchingCurrentPhase = (event: MoonEvent): boolean => {
     const moon = project.moons.find((item) => item.id === event.moonId);
@@ -127,7 +133,18 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
           const summaryValue = event.summary?.trim();
           const shouldHideDuplicateSummary = summaryValue === moonPhaseMeta;
 
-          return <div key={event.id} style={cardStyle}>
+          return <div
+            key={event.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => setSelectedMoonEventId(event.id)}
+            onKeyDown={(keyEvent) => {
+              if (keyEvent.key !== "Enter" && keyEvent.key !== " ") return;
+              keyEvent.preventDefault();
+              setSelectedMoonEventId(event.id);
+            }}
+            style={{ ...cardStyle, cursor: "pointer" }}
+          >
             <div style={cardHeaderStyle}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                 <span>{event.icon || "🌕"}</span>
@@ -145,8 +162,8 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
             {summaryValue && !shouldHideDuplicateSummary ? summaryValue : t(project.locale, "moonEvents.noSummary")}
             </div>
             {conditionBadges.length > 0 ? <div style={{ marginBottom: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>{conditionBadges.map((badge) => <Badge key={`${event.id}-${badge}`}>{badge}</Badge>)}</div> : null}
-            <div style={actionsStyle}>
-              <SecondaryButton type="button" onClick={() => setEditingMoonEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
+            <div style={actionsStyle} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>
+              <SecondaryButton type="button" onClick={() => { setSelectedMoonEventId(null); setEditingMoonEventId(event.id); }}>{t(project.locale, "events.edit")}</SecondaryButton>
               <SecondaryButton type="button" onClick={() => handleDuplicateMoonEvent(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
               {(event.status === "active" || event.status === "triggered") ? (
                 <>
@@ -167,6 +184,7 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
                 if (!confirm(t(project.locale, "moonEvents.confirmDelete"))) return;
                 onProjectUpdate(deleteMoonEvent(project, event.id));
                 if (editingMoonEventId === event.id) setEditingMoonEventId(null);
+                if (selectedMoonEventId === event.id) setSelectedMoonEventId(null);
               }}>{t(project.locale, "moonEvents.delete")}</SecondaryButton>
             </div>
           </div>;
@@ -175,6 +193,7 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
     </SectionCard>
 
     {isCreatePopupOpen ? <MoonEventPopup project={project} event={createDefaultMoonEvent(project)} mode="create" onClose={() => setIsCreatePopupOpen(false)} onSubmit={(event) => { onProjectUpdate(addMoonEvent(project, event)); setIsCreatePopupOpen(false); }} /> : null}
+    {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={contextDateLabel} /> : null}
     {editingMoonEvent ? <MoonEventPopup project={project} event={editingMoonEvent} mode="edit" onClose={() => setEditingMoonEventId(null)} onSubmit={(event) => { onProjectUpdate(updateMoonEvent(project, event.id, event)); setEditingMoonEventId(null); }} /> : null}
   </>;
 };
