@@ -22,6 +22,23 @@ export const createDefaultMoonEvent = (project: CalendarProject): MoonEvent => (
 export const addMoonEvent = (project: CalendarProject, event: MoonEvent): CalendarProject => ({ ...project, moonEvents: [...(project.moonEvents ?? []), event] });
 export const updateMoonEvent = (project: CalendarProject, eventId: string, patch: Partial<MoonEvent>): CalendarProject => ({ ...project, moonEvents: (project.moonEvents ?? []).map((e) => (e.id === eventId ? { ...e, ...patch } : e)) });
 export const deleteMoonEvent = (project: CalendarProject, eventId: string): CalendarProject => ({ ...project, moonEvents: (project.moonEvents ?? []).filter((e) => e.id !== eventId) });
+export const duplicateMoonEvent = (project: CalendarProject, eventId: string): CalendarProject => {
+  const sourceEvent = (project.moonEvents ?? []).find((event) => event.id === eventId);
+  if (!sourceEvent) return project;
+  const suffix = project.locale === "fr" ? "(copie)" : "(copy)";
+  const duplicatedEvent: MoonEvent = {
+    ...sourceEvent,
+    id: `moon-event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: `${sourceEvent.name} ${suffix}`.trim(),
+    status: "active",
+    enabled: true,
+    lastTriggeredAbsoluteDay: undefined
+  };
+  return {
+    ...project,
+    moonEvents: [...(project.moonEvents ?? []), duplicatedEvent]
+  };
+};
 
 export const isMoonEventTriggered = (project: CalendarProject, moonEvent: MoonEvent, absoluteDay: number): boolean => {
   if (!moonEvent.enabled || moonEvent.status === "disabled" || moonEvent.status === "archived") return false;

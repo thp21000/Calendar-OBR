@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getNextMoonEventActivationDate } from "../../calendar/moonEventsLogic";
 import { getMoonPhaseForDate } from "../../calendar/moonLogic";
-import { addMoonEvent, createDefaultMoonEvent, deleteMoonEvent, updateMoonEvent } from "../../calendar/moonEventsLogic";
+import { addMoonEvent, createDefaultMoonEvent, deleteMoonEvent, duplicateMoonEvent, updateMoonEvent } from "../../calendar/moonEventsLogic";
 import type { CalendarProject, MoonEvent, MoonPhaseId } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
@@ -52,6 +52,22 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
     const month = project.calendarSystem.months.find((item) => item.id === nextActivationDate.monthId);
     const formatted = `${nextActivationDate.dayOfMonth} ${month?.name ?? nextActivationDate.monthId} ${nextActivationDate.year}`;
     return t(project.locale, "moonEvents.nextActivation").replace("{date}", formatted);
+  };
+
+  const handleDuplicateMoonEvent = (event: MoonEvent) => {
+    onProjectUpdate(duplicateMoonEvent(project, event.id));
+  };
+
+  const handleDisableMoonEvent = (event: MoonEvent) => {
+    onProjectUpdate(updateMoonEvent(project, event.id, { status: "disabled", enabled: false }));
+  };
+
+  const handleArchiveMoonEvent = (event: MoonEvent) => {
+    onProjectUpdate(updateMoonEvent(project, event.id, { status: "archived", enabled: false }));
+  };
+
+  const handleReactivateMoonEvent = (event: MoonEvent) => {
+    onProjectUpdate(updateMoonEvent(project, event.id, { status: "active", enabled: true, lastTriggeredAbsoluteDay: undefined }));
   };
 
   return <>
@@ -121,6 +137,7 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
                 <Badge>{event.enabled ? t(project.locale, "moonEvents.enabled") : t(project.locale, "moonEvents.disabled")}</Badge>
                 <Badge>{formatMoonEventVisibility(project, event.visibility)}</Badge>
                 {event.notifyOnTrigger ? <Badge>{t(project.locale, "moonEvents.notifyOnTrigger")}</Badge> : null}
+                {event.status === "archived" ? <Badge>{t(project.locale, "moonEvents.statusArchived")}</Badge> : null}
               </div>
             </div>
             <div style={metaStyle}>{moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)} · {formatMoonEventNextActivation(event)}</div>
@@ -130,6 +147,22 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
             {conditionBadges.length > 0 ? <div style={{ marginBottom: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>{conditionBadges.map((badge) => <Badge key={`${event.id}-${badge}`}>{badge}</Badge>)}</div> : null}
             <div style={actionsStyle}>
               <SecondaryButton type="button" onClick={() => setEditingMoonEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
+              <SecondaryButton type="button" onClick={() => handleDuplicateMoonEvent(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
+              {(event.status === "active" || event.status === "triggered") ? (
+                <>
+                  <SecondaryButton type="button" onClick={() => handleDisableMoonEvent(event)}>{t(project.locale, "events.disable")}</SecondaryButton>
+                  <SecondaryButton type="button" onClick={() => handleArchiveMoonEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton>
+                </>
+              ) : null}
+              {event.status === "disabled" ? (
+                <>
+                  <SecondaryButton type="button" onClick={() => handleReactivateMoonEvent(event)}>{t(project.locale, "events.reactivate")}</SecondaryButton>
+                  <SecondaryButton type="button" onClick={() => handleArchiveMoonEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton>
+                </>
+              ) : null}
+              {event.status === "archived" ? (
+                <SecondaryButton type="button" onClick={() => handleReactivateMoonEvent(event)}>{t(project.locale, "events.reactivate")}</SecondaryButton>
+              ) : null}
               <SecondaryButton type="button" onClick={() => {
                 if (!confirm(t(project.locale, "moonEvents.confirmDelete"))) return;
                 onProjectUpdate(deleteMoonEvent(project, event.id));
