@@ -64,7 +64,10 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
     const parts = [draft.name || t(project.locale, "weatherEvents.newEvent")];
     parts.push(draft.visibility === "players" ? t(project.locale, "weatherEvents.visibilityPlayers") : draft.visibility === "revealOnTrigger" ? t(project.locale, "weatherEvents.visibilityRevealOnTrigger") : t(project.locale, "weatherEvents.visibilityGm"));
     parts.push(draft.enabled !== false ? t(project.locale, "weatherEvents.enabled") : t(project.locale, "weatherEvents.disabled"));
+    parts.push((draft.kind ?? "informational") === "weatherEffect" ? t(project.locale, "weatherEvents.kindWeatherEffect") : t(project.locale, "weatherEvents.kindInformational"));
     parts.push(t(project.locale, "weatherEvents.conditionsCount").replace("{count}", String(conditions.length)));
+    const chance = Math.max(0, Math.min(100, Math.round(draft.triggerChancePercent ?? 100)));
+    if (chance < 100) parts.push(t(project.locale, "weatherEvents.triggerChanceBadge").replace("{count}", String(chance)));
     if (typeof draft.durationHours === "number") parts.push(t(project.locale, "weatherEvents.durationBadge").replace("{count}", String(draft.durationHours)));
     if (typeof draft.cooldownHours === "number") parts.push(t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(draft.cooldownHours)));
     return parts.join(" · ");
@@ -81,11 +84,12 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
       <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.gmDescription")}</div><textarea value={draft.gmDescription ?? ""} onChange={(e) => updateDraft({ gmDescription: e.target.value })} style={{ ...mergedInputStyle, minHeight: 56 }} /></label>
       <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.playerDescription")}</div><textarea value={draft.playerDescription ?? ""} onChange={(e) => updateDraft({ playerDescription: e.target.value })} style={{ ...mergedInputStyle, minHeight: 56 }} /></label>
       <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.visibility")}</div><select value={draft.visibility ?? "gm"} onChange={(e) => updateDraft({ visibility: e.target.value as WeatherEvent["visibility"] })} style={mergedInputStyle}><option value="gm">{t(project.locale, "weatherEvents.visibilityGm")}</option><option value="players">{t(project.locale, "weatherEvents.visibilityPlayers")}</option><option value="revealOnTrigger">{t(project.locale, "weatherEvents.visibilityRevealOnTrigger")}</option></select></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.kind")}</div><select value={draft.kind ?? "informational"} onChange={(e) => updateDraft({ kind: e.target.value as WeatherEvent["kind"] })} style={mergedInputStyle}><option value="informational">{t(project.locale, "weatherEvents.kindInformational")}</option><option value="weatherEffect">{t(project.locale, "weatherEvents.kindWeatherEffect")}</option></select></label>
     </WeatherEventFormSection>
 
     <WeatherEventFormSection title={t(project.locale, "weatherEvents.sectionTriggerOptions")}>
       <label style={checkLabel}><input type="checkbox" checked={draft.notifyOnTrigger !== false} onChange={(e) => updateDraft({ notifyOnTrigger: e.target.checked })} />{t(project.locale, "weatherEvents.notifyOnTrigger")}</label>
-      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.status")}</div><select value={draft.status ?? "active"} onChange={(e) => updateDraft({ status: e.target.value as WeatherEvent["status"] })} style={mergedInputStyle}><option value="active">{t(project.locale, "weatherEvents.statusActive")}</option><option value="triggered">{t(project.locale, "weatherEvents.statusTriggered")}</option><option value="archived">{t(project.locale, "weatherEvents.statusArchived")}</option><option value="disabled">{t(project.locale, "weatherEvents.statusDisabled")}</option></select></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.triggerChancePercent")}</div><input type="number" min={0} max={100} step={1} value={draft.triggerChancePercent ?? 100} onChange={(e) => updateDraft({ triggerChancePercent: Math.max(0, Math.min(100, Math.trunc(Number(e.target.value) || 0))) })} style={mergedInputStyle} /><div style={hint}>{t(project.locale, "weatherEvents.triggerChanceHelp")}</div></label>
       <label style={checkLabel}><input type="checkbox" checked={draft.enabled !== false} onChange={(e) => updateDraft({ enabled: e.target.checked })} />{t(project.locale, "weatherEvents.enabled")}</label>
       <label style={checkLabel}><input type="checkbox" checked={draft.archiveAfterTrigger === true} onChange={(e) => updateDraft({ archiveAfterTrigger: e.target.checked })} />{t(project.locale, "weatherEvents.archiveAfterTrigger")}</label>
       <label style={checkLabel}><input type="checkbox" checked={draft.disableAfterTrigger === true} onChange={(e) => updateDraft({ disableAfterTrigger: e.target.checked })} />{t(project.locale, "weatherEvents.disableAfterTrigger")}</label>
@@ -124,12 +128,18 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
       </div></div>
     </WeatherEventFormSection>
 
+    {(draft.kind ?? "informational") === "weatherEffect" ? <WeatherEventFormSection title={t(project.locale, "weatherEvents.sectionWeatherEffect")}>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectState")}</div><select value={draft.effect?.state ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), state: e.target.value === "" ? undefined : e.target.value as WeatherState } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{weatherStates.map((s) => <option key={s} value={s}>{t(project.locale, `weather.state.${s}`)}</option>)}</select></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectDominantState")}</div><select value={draft.effect?.dominantState ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dominantState: e.target.value === "" ? undefined : e.target.value as WeatherState } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{weatherStates.map((s) => <option key={s} value={s}>{t(project.locale, `weather.state.${s}`)}</option>)}</select></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectTemperature")}</div><input type="number" value={draft.effect?.temperature ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), temperature: e.target.value.trim()===""?undefined:Number(e.target.value) } })} style={mergedInputStyle} /></label>
+    </WeatherEventFormSection> : null}
+
     <WeatherEventFormSection title={t(project.locale, "weatherEvents.history")}>
       <div style={hint}>{t(project.locale, "weatherEvents.lastTriggeredAtMinutes")}: {typeof draft.lastTriggeredAtMinutes === "number" ? draft.lastTriggeredAtMinutes : t(project.locale, "weatherEvents.neverTriggered")}</div>
       {(draft.triggerHistory ?? []).length === 0 ? <div style={hint}>{t(project.locale, "weatherEvents.noHistory")}</div> : <div style={{ display: "grid", gap: 4 }}>{(draft.triggerHistory ?? []).slice(-5).reverse().map((entry) => <div key={entry.id} style={hint}>{t(project.locale, "weatherEvents.historyAt")} {entry.triggeredAtMinutes}{entry.weatherState ? ` · ${t(project.locale, `weather.state.${entry.weatherState}`)}` : ""}{entry.dominantState ? ` · ${t(project.locale, `weather.state.${entry.dominantState}`)}` : ""}{typeof entry.temperature === "number" ? ` · T:${entry.temperature}` : ""}{typeof entry.rain === "number" ? ` · R:${entry.rain}` : ""}{typeof entry.windSpeed === "number" ? ` · W:${entry.windSpeed}` : ""}</div>)}</div>}
     </WeatherEventFormSection>
 
-    <div style={{ display: "flex", gap: 6, marginTop: 8 }}><button type="button" onClick={onCancel} style={buttonStyle}>{t(project.locale, "events.cancel")}</button><button type="button" onClick={() => onSubmit(draft)} style={buttonStyle}>{mode === "create" ? t(project.locale, "weatherEvents.create") : t(project.locale, "events.update")}</button></div>
+    <div style={{ display: "flex", gap: 6, marginTop: 8 }}><button type="button" onClick={onCancel} style={buttonStyle}>{t(project.locale, "events.cancel")}</button><button type="button" onClick={() => onSubmit(draft)} style={buttonStyle}>{mode === "create" ? t(project.locale, "weatherEvents.create") : t(project.locale, "weatherEvents.update")}</button></div>
   </div>;
 };
 

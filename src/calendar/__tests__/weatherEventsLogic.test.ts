@@ -283,7 +283,7 @@ it("événement désactivé non déclenché", () => {
   it("createDefaultWeatherEvent crée un événement valide", () => {
     const event = createDefaultWeatherEvent("fr");
     expect(event.id.startsWith("weather-event-")).toBe(true);
-    expect(event.name).toBe("Nouvelle alerte météo");
+    expect(event.name).toBe("Nouvel événement météo");
     expect(event.enabled).toBe(true);
     expect(event.requireAllConditions).toBe(true);
     expect(event.conditions).toHaveLength(1);

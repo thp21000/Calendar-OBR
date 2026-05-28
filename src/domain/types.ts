@@ -234,6 +234,20 @@ export type WeatherEventTriggerHistoryEntry = {
   windSpeed?: number;
 };
 
+export type WeatherEventKind = "informational" | "weatherEffect";
+export type WeatherEventEffect = {
+  temperature?: number;
+  dailyMinTemperature?: number;
+  dailyMaxTemperature?: number;
+  rain?: number;
+  dailyRainTotal?: number;
+  windSpeed?: number;
+  windDirection?: WindDirection;
+  state?: WeatherState;
+  dominantState?: WeatherState;
+  trendKind?: WeatherTrendKind;
+};
+
 export type WeatherEvent = {
   id: string;
   name: string;
@@ -249,6 +263,9 @@ export type WeatherEvent = {
   archiveAfterTrigger?: boolean;
   disableAfterTrigger?: boolean;
   triggerHistory?: WeatherEventTriggerHistoryEntry[];
+  kind?: WeatherEventKind;
+  triggerChancePercent?: number;
+  effect?: WeatherEventEffect;
   conditions: WeatherCondition[];
   requireAllConditions: boolean;
   enabled: boolean;

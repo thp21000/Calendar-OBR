@@ -97,8 +97,10 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span>{event.icon || "🌩️"}</span><strong>{event.name}</strong></div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <Badge>{event.enabled !== false ? t(project.locale, "weatherEvents.enabled") : t(project.locale, "weatherEvents.disabled")}</Badge>
+                <Badge>{(event.kind ?? "informational") === "weatherEffect" ? t(project.locale, "weatherEvents.kindWeatherEffect") : t(project.locale, "weatherEvents.kindInformational")}</Badge>
                 <Badge>{visibilityLabel(project, event.visibility)}</Badge>
                 {event.notifyOnTrigger !== false ? <Badge>{t(project.locale, "weatherEvents.notifyOnTrigger")}</Badge> : null}
+                {Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100))) < 100 ? <Badge>{t(project.locale, "weatherEvents.triggerChanceBadge").replace("{count}", String(Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100)))))}</Badge> : null}
                 {typeof event.durationHours === "number" ? <Badge>{t(project.locale, "weatherEvents.durationBadge").replace("{count}", String(event.durationHours))}</Badge> : null}
                 {typeof event.cooldownHours === "number" ? <Badge>{t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(event.cooldownHours))}</Badge> : null}
               </div>
