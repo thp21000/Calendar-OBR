@@ -91,7 +91,7 @@ export const getActiveWeatherEventsWithDuration = (
     if (event.enabled === false || event.status === "archived" || event.status === "disabled") return false;
     const lastTriggeredAt = typeof event.lastTriggeredAtMinutes === "number" ? event.lastTriggeredAtMinutes : lastTriggeredAtMinutesByEventId?.[event.id];
     if (typeof lastTriggeredAt !== "number") return false;
-    return isWithinDurationWindow(lastTriggeredAt, nowMinutes, event.durationHours);
+    return isWithinDurationWindow(lastTriggeredAt, nowMinutes, getWeatherEventDurationHours(event));
   });
 };
 
@@ -111,7 +111,7 @@ export const getNewlyTriggeredWeatherEventsBetween = (
     if (event.enabled === false || event.status === "archived" || event.status === "disabled") return false;
     const lastTriggeredAt = typeof event.lastTriggeredAtMinutes === "number" ? event.lastTriggeredAtMinutes : lastTriggeredAtMinutesByEventId?.[event.id];
     if (typeof lastTriggeredAt === "number") {
-      if (isWithinDurationWindow(lastTriggeredAt, toMinutes, event.durationHours)) return false;
+      if (isWithinDurationWindow(lastTriggeredAt, toMinutes, getWeatherEventDurationHours(event))) return false;
       if (isWithinCooldownWindow(lastTriggeredAt, toMinutes, event.cooldownHours)) return false;
     }
     if (fromTriggeredIds.has(event.id)) return false;
@@ -160,6 +160,13 @@ export const isWithinCooldownWindow = (triggeredAtMinutes: number, currentMinute
   if (typeof cooldownHours !== "number") return false;
   const safeHours = Math.max(0, cooldownHours);
   return currentMinutes - triggeredAtMinutes < safeHours * 60;
+};
+
+export const getWeatherEventDurationHours = (event: WeatherEvent): number | undefined => {
+  if (typeof event.durationHours === "number") return event.durationHours;
+  if ((event.kind ?? "informational") === "weatherEffect") return 1;
+  if (normalizeTriggerChancePercent(event.triggerChancePercent) < 100) return 1;
+  return undefined;
 };
 
 export const getPlayerVisibleWeatherEvents = (
@@ -234,16 +241,25 @@ const applyWeatherEffectsToOverrides = (project: CalendarProject, triggeredWeath
     const effect = event.effect;
     const hasAnyEffect = Object.values(effect).some((value) => value !== undefined && value !== null);
     if (!hasAnyEffect) continue;
-    const spanDays = Math.max(1, Math.ceil((event.durationHours ?? 0) / 24) || 1);
-    for (let i = 0; i < spanDays; i += 1) {
-      const absoluteDay = triggerTime.absoluteDay + i;
-      const overrideId = `weather-effect-${event.id}-${absoluteDay}`;
-      const current = existing.find((item) => item.id === overrideId || item.absoluteDay === absoluteDay);
+    const startAbsoluteMinutes = toAbsoluteMinutes(triggerTime);
+    const durationHours = getWeatherEventDurationHours(event) ?? 1;
+    const endAbsoluteMinutes = startAbsoluteMinutes + durationHours * 60;
+    for (let dayMinuteCursor = startAbsoluteMinutes; dayMinuteCursor < endAbsoluteMinutes;) {
+      const absoluteDay = Math.floor(dayMinuteCursor / (24 * 60));
+      const dayStartAbsoluteMinutes = absoluteDay * 24 * 60;
+      const startMinuteOfDay = dayMinuteCursor - dayStartAbsoluteMinutes;
+      const endOfDayAbsoluteMinutes = dayStartAbsoluteMinutes + 24 * 60;
+      const segmentEndAbsoluteMinutes = Math.min(endAbsoluteMinutes, endOfDayAbsoluteMinutes);
+      const endMinuteOfDay = segmentEndAbsoluteMinutes - dayStartAbsoluteMinutes;
+      const overrideId = `weather-effect-${event.id}-${absoluteDay}-${startMinuteOfDay}-${endMinuteOfDay}`;
+      const current = existing.find((item) => item.id === overrideId);
+      const payload: Partial<WeatherOverride> = { ...effect };
       if (current) {
-        Object.assign(current, { ...effect, id: current.id, absoluteDay: current.absoluteDay, label: current.label ?? event.name, gmNote: current.gmNote ?? event.summary ?? event.gmDescription });
+        Object.assign(current, payload, { id: current.id, absoluteDay: current.absoluteDay, startMinuteOfDay: current.startMinuteOfDay, endMinuteOfDay: current.endMinuteOfDay, label: current.label ?? event.name, gmNote: current.gmNote ?? event.summary ?? event.gmDescription });
       } else {
-        existing.push({ id: overrideId, absoluteDay, label: event.name, gmNote: event.summary ?? event.gmDescription, ...effect });
+        existing.push({ id: overrideId, absoluteDay, startMinuteOfDay, endMinuteOfDay, label: event.name, gmNote: event.summary ?? event.gmDescription, ...payload });
       }
+      dayMinuteCursor = segmentEndAbsoluteMinutes;
     }
   }
   return existing;

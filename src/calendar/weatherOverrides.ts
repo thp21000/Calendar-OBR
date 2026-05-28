@@ -4,7 +4,22 @@ import type { DailyWeatherSummary } from "./weatherDaily";
 const round1 = (v: number) => Math.round(v * 10) / 10;
 
 export const getWeatherOverrideForDay = (project: CalendarProject, absoluteDay: number): WeatherOverride | undefined =>
-  (project.weatherOverrides ?? []).find((o) => o.absoluteDay === absoluteDay);
+  getWeatherOverrideForTime(project, absoluteDay, 12, 0);
+
+export const getWeatherOverrideForTime = (
+  project: CalendarProject,
+  absoluteDay: number,
+  hour: number,
+  minute = 0
+): WeatherOverride | undefined => {
+  const minuteOfDay = Math.max(0, Math.min(1440, Math.trunc(hour) * 60 + Math.trunc(minute)));
+  return (project.weatherOverrides ?? []).find((o) => {
+    if (o.absoluteDay !== absoluteDay) return false;
+    const hasWindow = typeof o.startMinuteOfDay === "number" && typeof o.endMinuteOfDay === "number";
+    if (!hasWindow) return true;
+    return minuteOfDay >= o.startMinuteOfDay! && minuteOfDay < o.endMinuteOfDay!;
+  });
+};
 
 export const applyWeatherOverrideToDailySummary = (
   summary: DailyWeatherSummary | undefined,

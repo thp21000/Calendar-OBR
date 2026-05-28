@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { parseWeatherInput } from "../../calendar/seasonsLogic";
-import type { CalendarProject, MoonPhaseId, WeatherCondition, WeatherConditionMetric, WeatherConditionOperator, WeatherEvent, WeatherState, WindDirection } from "../../domain/types";
+import type { CalendarProject, MoonPhaseId, WeatherCondition, WeatherConditionMetric, WeatherConditionOperator, WeatherEvent, WeatherState, WeatherTrendKind, WindDirection } from "../../domain/types";
 import { t } from "../../i18n/messages";
 
 const weatherStates: WeatherState[] = ["clear", "cloudy", "overcast", "fog", "lightRain", "heavyRain", "storm", "snow", "strongWind", "tempest"];
 const moonPhases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
 const windDirections: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+const weatherTrends = ["cold", "warm", "wet", "dry", "windy", "calm", "stormy", "stable", "unstable"] as const;
 
 type ConditionTab = "all" | "metric" | "state" | "dominantState" | "windDirection" | "season" | "timeOfDay" | "moonPhase";
 
@@ -72,6 +73,7 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
     if (typeof draft.cooldownHours === "number") parts.push(t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(draft.cooldownHours)));
     return parts.join(" · ");
   };
+  const showDefaultDurationHelp = draft.durationHours === undefined && ((draft.kind ?? "informational") === "weatherEffect" || Math.max(0, Math.min(100, Math.round(draft.triggerChancePercent ?? 100))) < 100);
 
   return <div>
     <div style={autoSummaryBoxStyle}><div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "weatherEvents.autoSummary")}</div><div>{getWeatherEventAutoSummary()}</div></div>
@@ -96,7 +98,7 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
     </WeatherEventFormSection>
 
     <WeatherEventFormSection title={t(project.locale, "weatherEvents.sectionDuration")}>
-      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.durationHours")}</div><input type="number" min={0} step={1} value={draft.durationHours ?? ""} onChange={(e) => updateDraft({ durationHours: e.target.value.trim() === "" ? undefined : Math.max(0, Math.trunc(Number(e.target.value) || 0)) })} style={mergedInputStyle} /><div style={hint}>{t(project.locale, "weatherEvents.durationHelp")}</div></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.durationHours")}</div><input type="number" min={0} step={1} value={draft.durationHours ?? ""} onChange={(e) => updateDraft({ durationHours: e.target.value.trim() === "" ? undefined : Math.max(0, Math.trunc(Number(e.target.value) || 0)) })} style={mergedInputStyle} /><div style={hint}>{t(project.locale, "weatherEvents.durationHelp")}</div>{showDefaultDurationHelp ? <div style={hint}>{t(project.locale, "weatherEvents.defaultDurationHelp")}</div> : null}</label>
       <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.cooldownHours")}</div><input type="number" min={0} step={1} value={draft.cooldownHours ?? ""} onChange={(e) => updateDraft({ cooldownHours: e.target.value.trim() === "" ? undefined : Math.max(0, Math.trunc(Number(e.target.value) || 0)) })} style={mergedInputStyle} /><div style={hint}>{t(project.locale, "weatherEvents.cooldownHelp")}</div></label>
     </WeatherEventFormSection>
 
@@ -132,6 +134,13 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
       <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectState")}</div><select value={draft.effect?.state ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), state: e.target.value === "" ? undefined : e.target.value as WeatherState } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{weatherStates.map((s) => <option key={s} value={s}>{t(project.locale, `weather.state.${s}`)}</option>)}</select></label>
       <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectDominantState")}</div><select value={draft.effect?.dominantState ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dominantState: e.target.value === "" ? undefined : e.target.value as WeatherState } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{weatherStates.map((s) => <option key={s} value={s}>{t(project.locale, `weather.state.${s}`)}</option>)}</select></label>
       <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectTemperature")}</div><input type="number" value={draft.effect?.temperature ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), temperature: e.target.value.trim()===""?undefined:Number(e.target.value) } })} style={mergedInputStyle} /></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectDailyMinTemperature")}</div><input type="number" value={draft.effect?.dailyMinTemperature ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyMinTemperature: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectDailyMaxTemperature")}</div><input type="number" value={draft.effect?.dailyMaxTemperature ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyMaxTemperature: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectRain")}</div><input type="number" value={draft.effect?.rain ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), rain: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectDailyRainTotal")}</div><input type="number" value={draft.effect?.dailyRainTotal ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyRainTotal: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectWindSpeed")}</div><input type="number" value={draft.effect?.windSpeed ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), windSpeed: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectWindDirection")}</div><select value={draft.effect?.windDirection ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), windDirection: e.target.value === "" ? undefined : e.target.value as WindDirection } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{windDirections.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.effectTrendKind")}</div><select value={draft.effect?.trendKind ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), trendKind: e.target.value === "" ? undefined : e.target.value as WeatherTrendKind } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{weatherTrends.map((trend) => <option key={trend} value={trend}>{t(project.locale, `weatherEvents.trend${trend.charAt(0).toUpperCase()}${trend.slice(1)}`)}</option>)}</select></label>
     </WeatherEventFormSection> : null}
 
     <WeatherEventFormSection title={t(project.locale, "weatherEvents.history")}>

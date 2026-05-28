@@ -165,6 +165,8 @@ export type MoonPhase = {
 export type WeatherOverride = {
   id: string;
   absoluteDay: number;
+  startMinuteOfDay?: number;
+  endMinuteOfDay?: number;
   label?: string;
   temperature?: number;
   dailyMinTemperature?: number;

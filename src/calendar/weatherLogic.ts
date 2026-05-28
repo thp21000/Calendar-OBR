@@ -3,7 +3,7 @@ import { getHourlyWeatherState, getWeatherState } from "./weatherState";
 import { getDailyWeatherSummary } from "./weatherDaily";
 import { getHourlyRainForDay } from "./weatherRain";
 import { getHourlyWindForDay } from "./weatherWind";
-import { getWeatherOverrideForDay } from "./weatherOverrides";
+import { getWeatherOverrideForTime } from "./weatherOverrides";
 import type { CalendarProject, WeatherSnapshot, WindDirection } from "../domain/types";
 
 const WIND_DIRECTIONS: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -44,7 +44,7 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
   const seed = `${seedBase}|${absoluteDay}|${hour}|${season.id}`;
 
   const dailySummary = getDailyWeatherSummary(project, absoluteDay);
-  const weatherOverride = getWeatherOverrideForDay(project, absoluteDay);
+  const weatherOverride = getWeatherOverrideForTime(project, absoluteDay, hour);
   const temperature = dailySummary
     ? (() => {
         // Simple day/night curve: near min around 05:00, near max around 15:00.
