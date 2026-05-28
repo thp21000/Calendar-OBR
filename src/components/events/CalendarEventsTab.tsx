@@ -110,9 +110,9 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
         }}
         style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", cursor: "pointer" }}
       >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <div style={{ display: "grid", gap: 2, marginBottom: 4 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
-            <div style={{ fontSize: 11, color: "#cbd5e1", textAlign: "right" }}>{formatEventDateTime(project, event)}</div>
+            <div style={{ fontSize: 11, color: "#cbd5e1" }}>{formatEventDateTime(project, event)}</div>
           </div>
           {event.summary ? <div style={{ fontSize: 12, marginBottom: 4, color: "#d1d5db" }}>{event.summary}</div> : null}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatEventRecurrence, formatEventTimeShort, formatEventTriggerOptions } from "../formatEvent";
+import { formatEventDateTime, formatEventRecurrence, formatEventTimeShort, formatEventTriggerOptions } from "../formatEvent";
 import type { CalendarEvent, CalendarProject } from "../../domain/types";
 
 const project: CalendarProject = {
@@ -37,6 +37,24 @@ const baseEvent: CalendarEvent = {
   status: "active",
   allDay: false
 };
+
+describe("formatEventDateTime", () => {
+  it("n'affiche pas une plage pour un événement toute la journée avec endDate le même jour", () => {
+    expect(formatEventDateTime(project, {
+      ...baseEvent,
+      allDay: true,
+      endDate: { year: 1000, monthId: "m1", dayOfMonth: 1, hour: 23, minute: 59 }
+    })).toBe("Lundi 1 Janvier 1000 — Toute la journée");
+  });
+
+  it("garde une plage pour un événement toute la journée sur plusieurs jours", () => {
+    expect(formatEventDateTime(project, {
+      ...baseEvent,
+      allDay: true,
+      endDate: { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 23, minute: 59 }
+    })).toBe("Lundi 1 Janvier 1000 → Lundi 2 Janvier 1000 — Toute la journée");
+  });
+});
 
 describe("formatEventTimeShort", () => {
   it("affiche Toute la journée pour un événement allDay", () => {

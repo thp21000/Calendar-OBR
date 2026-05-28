@@ -36,6 +36,7 @@ export const formatEventDateTime = (project: CalendarProject, event: CalendarEve
   ) === 0;
 
   if (allDay) {
+    if (sameDay) return `${formatDateLabel(project, event.date, false)} — ${t(project.locale, "events.allDay")}`;
     return `${formatDateLabel(project, event.date, false)} → ${formatDateLabel(project, event.endDate, false)} — ${t(project.locale, "events.allDay")}`;
   }
 
