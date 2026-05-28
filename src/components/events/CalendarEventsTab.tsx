@@ -110,7 +110,6 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
         }}
         style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", cursor: "pointer" }}
       >
-         <>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 4 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
             <div style={{ fontSize: 11, color: "#cbd5e1", textAlign: "right" }}>{formatEventDateTime(project, event)}</div>
@@ -132,7 +131,6 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
             {event.status === "disabled" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
             <SecondaryButton type="button" onClick={() => handleDelete(event)}>{t(project.locale, "events.delete")}</SecondaryButton>
           </div>
-        </>
       </div>)}
     </div>}
     </SectionCard>

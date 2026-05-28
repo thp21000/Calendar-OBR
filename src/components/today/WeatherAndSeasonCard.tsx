@@ -135,15 +135,25 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
 
       {triggeredWeatherEvents.length > 0 ? <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
         {triggeredWeatherEvents.map((event) => (
-          <Panel key={event.id}>
+          <div
+            key={event.id}
+            role={onSelectWeatherEvent ? "button" : undefined}
+            tabIndex={onSelectWeatherEvent ? 0 : undefined}
+            onClick={() => onSelectWeatherEvent?.(event.id)}
+            onKeyDown={(keyEvent) => {
+              if (!onSelectWeatherEvent || (keyEvent.key !== "Enter" && keyEvent.key !== " ")) return;
+              keyEvent.preventDefault();
+              onSelectWeatherEvent(event.id);
+            }}
+            style={{ background: ui.colors.surface, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm, cursor: onSelectWeatherEvent ? "pointer" : undefined }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
             {event.summary ? <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{event.summary}</div> : null}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 4 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 4 }} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>
               {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: ui.colors.accent }}>{t(project.locale, "common.openLink")}</a> : null}
               <SecondaryButton type="button" onClick={() => sendWeatherEventToPlayers(project, event, dateLabel)} style={{ padding: "4px 8px", fontSize: 11 }}>{t(project.locale, "common.send")}</SecondaryButton>
-              {onSelectWeatherEvent ? <SecondaryButton type="button" onClick={() => onSelectWeatherEvent(event.id)} style={{ padding: "4px 8px", fontSize: 11 }}>{t(project.locale, "weatherEvents.openDetails")}</SecondaryButton> : null}
             </div>
-          </Panel>
+          </div>
         ))}
       </div> : null}
     </SectionCard>

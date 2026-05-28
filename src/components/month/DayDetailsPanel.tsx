@@ -49,7 +49,18 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
     {dayDetails.events.length === 0 && dayDetails.moonEvents.length === 0 ? <EmptyState text={t(project.locale, "month.noEventsForDay")} /> : (
       <div style={{ display: "grid", gap: 4 }}>
         {dayDetails.events.map((event) => (
-          <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a" }}>
+          <div
+            key={event.id}
+            role={onOpenEvent ? "button" : undefined}
+            tabIndex={onOpenEvent ? 0 : undefined}
+            onClick={() => onOpenEvent?.(event.id)}
+            onKeyDown={(keyEvent) => {
+              if (!onOpenEvent || (keyEvent.key !== "Enter" && keyEvent.key !== " ")) return;
+              keyEvent.preventDefault();
+              onOpenEvent(event.id);
+            }}
+            style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a", cursor: onOpenEvent ? "pointer" : undefined }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <EventIcon icon={event.icon} locale={project.locale} size={14} />
               <strong style={{ color: "#f3f4f6" }}>{event.name}</strong>
@@ -57,7 +68,8 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
               <SecondaryButton
                 type="button"
                 style={{ padding: "4px 8px", fontSize: 11 }}
-                onClick={() =>
+                onClick={(clickEvent) => {
+                  clickEvent.stopPropagation();
                   sendPopupNotification({
                     type: "event",
                     audience: "players",
@@ -68,12 +80,11 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                     summary: event.summary,
                     playerDescription: event.playerDescription,
                     timeLabel: formatEventTimeShort(project, event)
-                  })
-                }
+                  });
+                }}
               >
                 {t(project.locale, "common.send")}
               </SecondaryButton>
-              {onOpenEvent ? <SecondaryButton type="button" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => onOpenEvent(event.id)}>{t(project.locale, "globalSearch.open")}</SecondaryButton> : null}
             </div>
             {event.summary ? <div style={{ color: "#cbd5e1", marginTop: 4 }}>{event.summary}</div> : null}
             <div style={{ marginTop: 4, opacity: 0.86 }}>
@@ -88,7 +99,18 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
             ? t(project.locale, "events.allDay")
             : t(project.locale, "moonEvents.remainingDurationDays").replace("{count}", String(remainingDays));
           return (
-            <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a" }}>
+            <div
+              key={event.id}
+              role={onOpenMoonEvent ? "button" : undefined}
+              tabIndex={onOpenMoonEvent ? 0 : undefined}
+              onClick={() => onOpenMoonEvent?.(event.id)}
+              onKeyDown={(keyEvent) => {
+                if (!onOpenMoonEvent || (keyEvent.key !== "Enter" && keyEvent.key !== " ")) return;
+                keyEvent.preventDefault();
+                onOpenMoonEvent(event.id);
+              }}
+              style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a", cursor: onOpenMoonEvent ? "pointer" : undefined }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span>{event.icon || "🌕"}</span>
                 <strong style={{ color: "#f3f4f6" }}>{event.name}</strong>
@@ -96,7 +118,8 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                 <SecondaryButton
                   type="button"
                   style={{ padding: "4px 8px", fontSize: 11 }}
-                  onClick={() =>
+                  onClick={(clickEvent) => {
+                    clickEvent.stopPropagation();
                     sendPopupNotification({
                       type: "event",
                       audience: "players",
@@ -107,12 +130,11 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                       summary: event.summary,
                       playerDescription: event.playerDescription,
                       timeLabel: durationLabel
-                    })
-                  }
+                    });
+                  }}
                 >
                   {t(project.locale, "common.send")}
                 </SecondaryButton>
-                {onOpenMoonEvent ? <SecondaryButton type="button" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => onOpenMoonEvent(event.id)}>{t(project.locale, "globalSearch.open")}</SecondaryButton> : null}
               </div>
               <div style={{ color: "#cbd5e1", marginTop: 4 }}>
                 {moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · {t(project.locale, `moon.phase.${event.phaseId}`)}
