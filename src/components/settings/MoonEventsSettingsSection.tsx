@@ -76,6 +76,17 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
     onProjectUpdate(updateMoonEvent(project, event.id, { status: "active", enabled: true, lastTriggeredAbsoluteDay: undefined }));
   };
 
+  const isMoonEventInactive = (event: MoonEvent) =>
+    event.enabled === false || event.status === "disabled" || event.status === "archived";
+
+  const handleToggleMoonEventEnabled = (event: MoonEvent) => {
+    if (isMoonEventInactive(event)) {
+      handleReactivateMoonEvent(event);
+      return;
+    }
+    handleDisableMoonEvent(event);
+  };
+
   return <>
     <SectionCard>
       <PrimaryButton type="button" onClick={() => {
@@ -165,21 +176,8 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
             <div style={actionsStyle} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>
               <SecondaryButton type="button" onClick={() => { setSelectedMoonEventId(null); setEditingMoonEventId(event.id); }}>{t(project.locale, "events.edit")}</SecondaryButton>
               <SecondaryButton type="button" onClick={() => handleDuplicateMoonEvent(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
-              {(event.status === "active" || event.status === "triggered") ? (
-                <>
-                  <SecondaryButton type="button" onClick={() => handleDisableMoonEvent(event)}>{t(project.locale, "events.disable")}</SecondaryButton>
-                  <SecondaryButton type="button" onClick={() => handleArchiveMoonEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton>
-                </>
-              ) : null}
-              {event.status === "disabled" ? (
-                <>
-                  <SecondaryButton type="button" onClick={() => handleReactivateMoonEvent(event)}>{t(project.locale, "events.reactivate")}</SecondaryButton>
-                  <SecondaryButton type="button" onClick={() => handleArchiveMoonEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton>
-                </>
-              ) : null}
-              {event.status === "archived" ? (
-                <SecondaryButton type="button" onClick={() => handleReactivateMoonEvent(event)}>{t(project.locale, "events.reactivate")}</SecondaryButton>
-              ) : null}
+              <SecondaryButton type="button" onClick={() => handleToggleMoonEventEnabled(event)}>{isMoonEventInactive(event) ? t(project.locale, "events.reactivate") : t(project.locale, "events.disable")}</SecondaryButton>
+              {event.status !== "archived" ? <SecondaryButton type="button" onClick={() => handleArchiveMoonEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton> : null}
               <SecondaryButton type="button" onClick={() => {
                 if (!confirm(t(project.locale, "moonEvents.confirmDelete"))) return;
                 onProjectUpdate(deleteMoonEvent(project, event.id));

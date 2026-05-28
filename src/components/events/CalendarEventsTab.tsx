@@ -67,7 +67,11 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
   const handleStatusUpdate = (event: CalendarEvent, status: CalendarEvent["status"]) => onProjectUpdate(updateCalendarEvent(project, event.id, { status }));
   const handleDuplicate = (event: CalendarEvent) => onProjectUpdate(duplicateCalendarEvent(project, event.id));
   const handleReveal = (event: CalendarEvent) => onProjectUpdate(revealCalendarEvent(project, event.id));
-
+  const isCalendarEventInactive = (event: CalendarEvent) => event.status === "disabled" || event.status === "archived";
+  const handleToggleCalendarEventEnabled = (event: CalendarEvent) => {
+    handleStatusUpdate(event, isCalendarEventInactive(event) ? "active" : "disabled");
+  };
+  
   return <>
     <SectionCard>
       <PrimaryButton type="button" onClick={() => setIsCreateFormOpen(true)} style={{ marginBottom: 8 }}>
@@ -125,10 +129,8 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
             <SecondaryButton type="button" onClick={() => { setSelectedEventId(null); setEditingEventId(event.id); }}>{t(project.locale, "events.edit")}</SecondaryButton>
             <SecondaryButton type="button" onClick={() => handleDuplicate(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
             {event.visibility === "revealOnTrigger" && event.status !== "triggered" && event.status !== "archived" && event.status !== "disabled" ? <SecondaryButton type="button" onClick={() => handleReveal(event)}>{t(project.locale, "events.reveal")}</SecondaryButton> : null}
-            {event.status === "active" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "disabled")}>{t(project.locale, "events.disable")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
-            {event.status === "triggered" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
-            {event.status === "archived" ? <SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton> : null}
-            {event.status === "disabled" ? <><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "active")}>{t(project.locale, "events.reactivate")}</SecondaryButton><SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton></> : null}
+            <SecondaryButton type="button" onClick={() => handleToggleCalendarEventEnabled(event)}>{isCalendarEventInactive(event) ? t(project.locale, "events.reactivate") : t(project.locale, "events.disable")}</SecondaryButton>
+            {event.status !== "archived" ? <SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton> : null}
             <SecondaryButton type="button" onClick={() => handleDelete(event)}>{t(project.locale, "events.delete")}</SecondaryButton>
           </div>
       </div>)}
