@@ -97,11 +97,8 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span>{event.icon || "🌩️"}</span><strong>{event.name}</strong></div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <Badge>{event.enabled !== false ? t(project.locale, "weatherEvents.enabled") : t(project.locale, "weatherEvents.disabled")}</Badge>
-                <Badge>{statusLabel(project, event.status)}</Badge>
                 <Badge>{visibilityLabel(project, event.visibility)}</Badge>
                 {event.notifyOnTrigger !== false ? <Badge>{t(project.locale, "weatherEvents.notifyOnTrigger")}</Badge> : null}
-                <Badge>{(event.requireAllConditions ?? true) ? t(project.locale, "weatherEvents.requireAll") : t(project.locale, "weatherEvents.requireAny")}</Badge>
-                <Badge>{t(project.locale, "weatherEvents.conditionsCount").replace("{count}", String(conditions.length))}</Badge>
                 {typeof event.durationHours === "number" ? <Badge>{t(project.locale, "weatherEvents.durationBadge").replace("{count}", String(event.durationHours))}</Badge> : null}
                 {typeof event.cooldownHours === "number" ? <Badge>{t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(event.cooldownHours))}</Badge> : null}
               </div>

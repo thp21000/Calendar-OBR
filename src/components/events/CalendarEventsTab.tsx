@@ -132,5 +132,5 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
   </>;
 };
 
-const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", fontSize: 12, boxSizing: "border-box" as const };
+const inputStyle = { width: "100%", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", fontSize: 12, lineHeight: "16px", minHeight: 32, boxSizing: "border-box" as const };
 const label = { display: "block", fontSize: 12, marginBottom: 4 };
