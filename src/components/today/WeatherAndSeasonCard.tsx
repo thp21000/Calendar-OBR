@@ -1,7 +1,6 @@
 import { getWeatherStateIcon } from "../../calendar/weatherState";
 import { getWeatherOverrideForTime } from "../../calendar/weatherOverrides";
 import type { CalendarProject, MoonPhase, Season, WeatherOverride, WeatherSnapshot } from "../../domain/types";
-import type { CalendarProject, MoonPhase, Season, WeatherSnapshot } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
 import { Badge, Panel, SectionCard, SectionHeader } from "../ui";
