@@ -9,6 +9,7 @@ import { getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIco
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
 import { formatEventTimeShort, formatEventVisibility } from "../../calendar/formatEvent";
 import { sendPopupNotification } from "../../obr/popupNotifications";
+import { getMoonEventActivationDurationDays } from "../../calendar/moonEventsLogic";
 
 export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent, onOpenMoonEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void; onOpenMoonEvent?: (eventId: string) => void }) => {
   const dayInternal = calendarDateToAbsoluteDay(dayDetails.date, project.calendarSystem);
@@ -82,12 +83,16 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
         ))}
         {dayDetails.moonEvents.map((event) => {
           const moon = project.moons.find((item) => item.id === event.moonId);
+          const durationDays = getMoonEventActivationDurationDays(project, event, dayInternal.absoluteDay);
+          const durationLabel = durationDays <= 1
+            ? t(project.locale, "events.allDay")
+            : t(project.locale, "moonEvents.durationDays").replace("{count}", String(durationDays));
           return (
             <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span>{event.icon || "🌕"}</span>
                 <strong style={{ color: "#f3f4f6" }}>{event.name}</strong>
-                <span style={{ marginLeft: "auto", color: "#cbd5e1", fontSize: 11 }}>{t(project.locale, "events.allDay")}</span>
+                <span style={{ marginLeft: "auto", color: "#cbd5e1", fontSize: 11 }}>{durationLabel}</span>
                 <SecondaryButton
                   type="button"
                   style={{ padding: "4px 8px", fontSize: 11 }}
@@ -101,7 +106,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                       icon: event.icon,
                       summary: event.summary,
                       playerDescription: event.playerDescription,
-                      timeLabel: t(project.locale, "events.allDay")
+                      timeLabel: durationLabel
                     })
                   }
                 >

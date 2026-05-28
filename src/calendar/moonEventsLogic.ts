@@ -82,6 +82,48 @@ export const getMoonEventsStartingOnDay = (
     !isMoonEventTriggered(project, event, absoluteDay - 1)
   );
 
+  export type MoonEventActivationSpan = {
+  startAbsoluteDay: number;
+  endAbsoluteDay: number;
+  durationDays: number;
+};
+
+export const getMoonEventActivationSpan = (
+  project: CalendarProject,
+  moonEvent: MoonEvent,
+  absoluteDay: number
+): MoonEventActivationSpan | null => {
+  if (!isMoonEventTriggered(project, moonEvent, absoluteDay)) return null;
+  const maxSearchDays = 128;
+
+  let startAbsoluteDay = absoluteDay;
+  for (let i = 0; i < maxSearchDays; i += 1) {
+    if (!isMoonEventTriggered(project, moonEvent, startAbsoluteDay - 1)) break;
+    startAbsoluteDay -= 1;
+  }
+
+  let endAbsoluteDay = absoluteDay;
+  for (let i = 0; i < maxSearchDays; i += 1) {
+    if (!isMoonEventTriggered(project, moonEvent, endAbsoluteDay + 1)) break;
+    endAbsoluteDay += 1;
+  }
+
+  return {
+    startAbsoluteDay,
+    endAbsoluteDay,
+    durationDays: endAbsoluteDay - startAbsoluteDay + 1
+  };
+};
+
+export const getMoonEventActivationDurationDays = (
+  project: CalendarProject,
+  moonEvent: MoonEvent,
+  absoluteDay: number
+): number => {
+  const span = getMoonEventActivationSpan(project, moonEvent, absoluteDay);
+  return span?.durationDays ?? 1;
+};
+
 export const getNextMoonEventActivationDays = (
   project: CalendarProject,
   moonEvent: MoonEvent,
