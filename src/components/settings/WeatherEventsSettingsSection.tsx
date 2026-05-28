@@ -66,6 +66,17 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
     onProjectUpdate(updateWeatherEvent(project, event.id, { status: "active", enabled: true, lastTriggeredAtMinutes: undefined }));
   };
 
+  const isWeatherEventInactive = (event: WeatherEvent) =>
+    event.enabled === false || event.status === "disabled" || event.status === "archived";
+
+  const handleToggleWeatherEventEnabled = (event: WeatherEvent) => {
+    if (isWeatherEventInactive(event)) {
+      handleReactivateWeatherEvent(event);
+      return;
+    }
+    handleDisableWeatherEvent(event);
+  };
+
   return <>
     <SectionCard>
       <PrimaryButton type="button" onClick={() => setIsCreatePopupOpen(true)} style={{ marginBottom: 8 }}>{t(project.locale, "weatherEvents.openCreateForm")}</PrimaryButton>
@@ -127,20 +138,10 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <SecondaryButton type="button" onClick={() => setEditingWeatherEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
               <SecondaryButton type="button" onClick={() => handleDuplicateWeatherEvent(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
-              {event.status === "active" || event.status === "triggered" || event.status === undefined ? (
-                <>
-                  <SecondaryButton type="button" onClick={() => handleDisableWeatherEvent(event)}>{t(project.locale, "events.disable")}</SecondaryButton>
-                  <SecondaryButton type="button" onClick={() => handleArchiveWeatherEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton>
-                </>
-              ) : null}
-              {event.status === "triggered" ? <SecondaryButton type="button" onClick={() => handleReactivateWeatherEvent(event)}>{t(project.locale, "events.reactivate")}</SecondaryButton> : null}
-              {event.status === "disabled" ? (
-                <>
-                  <SecondaryButton type="button" onClick={() => handleReactivateWeatherEvent(event)}>{t(project.locale, "events.reactivate")}</SecondaryButton>
-                  <SecondaryButton type="button" onClick={() => handleArchiveWeatherEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton>
-                </>
-              ) : null}
-              {event.status === "archived" ? <SecondaryButton type="button" onClick={() => handleReactivateWeatherEvent(event)}>{t(project.locale, "events.reactivate")}</SecondaryButton> : null}
+              <SecondaryButton type="button" onClick={() => handleToggleWeatherEventEnabled(event)}>
+                {isWeatherEventInactive(event) ? t(project.locale, "events.reactivate") : t(project.locale, "events.disable")}
+              </SecondaryButton>
+              {event.status !== "archived" ? <SecondaryButton type="button" onClick={() => handleArchiveWeatherEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton> : null}
               <SecondaryButton type="button" onClick={() => { if (!confirm(t(project.locale, "weatherEvents.confirmDelete"))) return; onProjectUpdate(deleteWeatherEvent(project, event.id)); if (editingWeatherEventId === event.id) setEditingWeatherEventId(null); }}>{t(project.locale, "weatherEvents.delete")}</SecondaryButton>
             </div>
           </div>;
