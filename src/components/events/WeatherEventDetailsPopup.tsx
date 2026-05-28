@@ -1,7 +1,9 @@
+import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { conditionSummary } from "./WeatherEventForm";
 import { getWeatherEventDurationHours } from "../../calendar/weatherEventsLogic";
 import type { CalendarProject, WeatherEvent, WeatherEventEffect } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { sendPopupNotification } from "../../obr/popupNotifications";
 import { Badge, SecondaryButton } from "../ui";
 
 const formatVisibility = (project: CalendarProject, visibility: WeatherEvent["visibility"] = "gm") => {
@@ -14,6 +16,31 @@ const formatDuration = (project: CalendarProject, event: WeatherEvent): string |
   const durationHours = getWeatherEventDurationHours(event);
   if (typeof durationHours !== "number") return undefined;
   return t(project.locale, "weatherEvents.durationBadge").replace("{count}", String(durationHours));
+};
+
+const getWeatherEventTimeLabel = (project: CalendarProject, event: WeatherEvent): string => {
+  const durationHours = getWeatherEventDurationHours(event);
+  if (typeof durationHours === "number") return t(project.locale, "weatherEvents.durationShort").replace("{count}", String(durationHours));
+  return t(project.locale, "weatherEvents.activeNow");
+};
+
+const getCurrentDateLabel = (project: CalendarProject): string => {
+  const date = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+  return `${date.weekdayName ?? ""} ${date.dayOfMonth} ${date.monthName} ${date.year}`.trim();
+};
+
+const sendWeatherEventToPlayers = (project: CalendarProject, event: WeatherEvent) => {
+  sendPopupNotification({
+    type: "weather",
+    audience: "players",
+    title: event.name,
+    body: event.playerDescription?.trim() || event.summary || event.name,
+    date: getCurrentDateLabel(project),
+    icon: event.icon,
+    summary: event.summary,
+    playerDescription: event.playerDescription,
+    timeLabel: getWeatherEventTimeLabel(project, event)
+  });
 };
 
 const getEffectLines = (project: CalendarProject, effect: WeatherEventEffect | undefined): string[] => {
@@ -87,7 +114,8 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 10 }}>
+          <SecondaryButton type="button" onClick={() => sendWeatherEventToPlayers(project, event)}>{t(project.locale, "common.send")}</SecondaryButton>
           <SecondaryButton type="button" onClick={onClose}>{t(project.locale, "month.closeDayDetails")}</SecondaryButton>
         </div>
       </div>

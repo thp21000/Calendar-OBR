@@ -1,12 +1,14 @@
 import { getWeatherStateIcon } from "../../calendar/weatherState";
 import { getWeatherOverrideForTime } from "../../calendar/weatherOverrides";
+import { getWeatherEventDurationHours } from "../../calendar/weatherEventsLogic";
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
-import type { CalendarProject, MoonPhase, Season, WeatherOverride, WeatherSnapshot } from "../../domain/types";
+import type { CalendarProject, MoonPhase, Season, WeatherEvent, WeatherOverride, WeatherSnapshot } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
 import { Badge, Panel, SecondaryButton, SectionCard, SectionHeader } from "../ui";
 import { ui } from "../ui/styles";
 import { getRainIcon, getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIcon } from "./weatherIcons";
+import { sendPopupNotification } from "../../obr/popupNotifications";
 
 type WeatherUnits = { temperature: string; windSpeed: string; rain: string };
 
@@ -19,6 +21,26 @@ const formatMinuteOfDay = (minutes: number): string => {
 
 const isTimedOverride = (override: WeatherOverride | undefined): override is WeatherOverride & { startMinuteOfDay: number; endMinuteOfDay: number } =>
   typeof override?.startMinuteOfDay === "number" && typeof override.endMinuteOfDay === "number";
+
+const getWeatherEventTimeLabel = (project: CalendarProject, event: WeatherEvent): string => {
+  const durationHours = getWeatherEventDurationHours(event);
+  if (typeof durationHours === "number") return t(project.locale, "weatherEvents.durationShort").replace("{count}", String(durationHours));
+  return t(project.locale, "weatherEvents.activeNow");
+};
+
+const sendWeatherEventToPlayers = (project: CalendarProject, event: WeatherEvent, dateLabel: string) => {
+  sendPopupNotification({
+    type: "weather",
+    audience: "players",
+    title: event.name,
+    body: event.playerDescription?.trim() || event.summary || event.name,
+    date: dateLabel,
+    icon: event.icon,
+    summary: event.summary,
+    playerDescription: event.playerDescription,
+    timeLabel: getWeatherEventTimeLabel(project, event)
+  });
+};
 
 const getForcedOverrideValues = (project: CalendarProject, override: WeatherOverride, weatherUnits: WeatherUnits): string[] => {
   const values: string[] = [];
@@ -52,6 +74,7 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
   const overrideName = override?.label?.trim();
   const overrideLabel = `${t(project.locale, "weatherOverride.active")}${overrideName ? `: ${overrideName}` : ""}${overrideTimeRange ? `${overrideName ? " · " : ": "}${overrideTimeRange}` : ""}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+  const dateLabel = `${displayDate.weekdayName ?? ""} ${displayDate.dayOfMonth} ${displayDate.monthName} ${displayDate.year}`.trim();
 
   return (
     <SectionCard style={{ background: ui.colors.surfaceElevated, borderColor: "#475569", boxShadow: "0 2px 10px rgba(2,6,23,0.22)" }}>
@@ -117,6 +140,7 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
             {event.summary ? <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{event.summary}</div> : null}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 4 }}>
               {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: ui.colors.accent }}>{t(project.locale, "common.openLink")}</a> : null}
+              <SecondaryButton type="button" onClick={() => sendWeatherEventToPlayers(project, event, dateLabel)} style={{ padding: "4px 8px", fontSize: 11 }}>{t(project.locale, "common.send")}</SecondaryButton>
               {onSelectWeatherEvent ? <SecondaryButton type="button" onClick={() => onSelectWeatherEvent(event.id)} style={{ padding: "4px 8px", fontSize: 11 }}>{t(project.locale, "weatherEvents.openDetails")}</SecondaryButton> : null}
             </div>
           </Panel>

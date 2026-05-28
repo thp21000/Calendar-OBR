@@ -1,5 +1,5 @@
 export type PopupNotificationPayload = {
-  type: "event" | "dayNote";
+  type: "event" | "dayNote" | "weather";
   audience: "gm" | "players";
   title: string;
   body: string;
