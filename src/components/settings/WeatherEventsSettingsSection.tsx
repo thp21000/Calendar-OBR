@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { addWeatherEvent, createDefaultWeatherEvent, deleteWeatherEvent, updateWeatherEvent } from "../../calendar/weatherEventsLogic";
+import { addWeatherEvent, createDefaultWeatherEvent, deleteWeatherEvent, duplicateWeatherEvent, updateWeatherEvent } from "../../calendar/weatherEventsLogic";
 import type { CalendarProject, WeatherCondition, WeatherEvent } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { WeatherEventPopup } from "../events/WeatherEventPopup";
@@ -49,6 +49,22 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
   });
 
   const editingWeatherEvent = editingWeatherEventId ? project.weatherEvents.find((event) => event.id === editingWeatherEventId) : undefined;
+
+  const handleDuplicateWeatherEvent = (event: WeatherEvent) => {
+    onProjectUpdate(duplicateWeatherEvent(project, event.id));
+  };
+
+  const handleDisableWeatherEvent = (event: WeatherEvent) => {
+    onProjectUpdate(updateWeatherEvent(project, event.id, { status: "disabled", enabled: false }));
+  };
+
+  const handleArchiveWeatherEvent = (event: WeatherEvent) => {
+    onProjectUpdate(updateWeatherEvent(project, event.id, { status: "archived", enabled: false }));
+  };
+
+  const handleReactivateWeatherEvent = (event: WeatherEvent) => {
+    onProjectUpdate(updateWeatherEvent(project, event.id, { status: "active", enabled: true, lastTriggeredAtMinutes: undefined }));
+  };
 
   return <>
     <SectionCard>
@@ -103,12 +119,28 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                 {Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100))) < 100 ? <Badge>{t(project.locale, "weatherEvents.triggerChanceBadge").replace("{count}", String(Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100)))))}</Badge> : null}
                 {typeof event.durationHours === "number" ? <Badge>{t(project.locale, "weatherEvents.durationBadge").replace("{count}", String(event.durationHours))}</Badge> : null}
                 {typeof event.cooldownHours === "number" ? <Badge>{t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(event.cooldownHours))}</Badge> : null}
+                {event.status === "archived" ? <Badge>{t(project.locale, "weatherEvents.statusArchivedBadge")}</Badge> : null}
               </div>
             </div>
             <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 6 }}>{event.summary?.trim() ? event.summary : t(project.locale, "weatherEvents.noSummary")}</div>
             {conditions.length > 0 ? <div style={{ marginBottom: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>{conditions.map((condition, index) => <Badge key={`${event.id}-c-${index}`}>{conditionSummary(project, condition)}</Badge>)}</div> : null}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <SecondaryButton type="button" onClick={() => setEditingWeatherEventId(event.id)}>{t(project.locale, "events.edit")}</SecondaryButton>
+              <SecondaryButton type="button" onClick={() => handleDuplicateWeatherEvent(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
+              {event.status === "active" || event.status === "triggered" || event.status === undefined ? (
+                <>
+                  <SecondaryButton type="button" onClick={() => handleDisableWeatherEvent(event)}>{t(project.locale, "events.disable")}</SecondaryButton>
+                  <SecondaryButton type="button" onClick={() => handleArchiveWeatherEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton>
+                </>
+              ) : null}
+              {event.status === "triggered" ? <SecondaryButton type="button" onClick={() => handleReactivateWeatherEvent(event)}>{t(project.locale, "events.reactivate")}</SecondaryButton> : null}
+              {event.status === "disabled" ? (
+                <>
+                  <SecondaryButton type="button" onClick={() => handleReactivateWeatherEvent(event)}>{t(project.locale, "events.reactivate")}</SecondaryButton>
+                  <SecondaryButton type="button" onClick={() => handleArchiveWeatherEvent(event)}>{t(project.locale, "events.archive")}</SecondaryButton>
+                </>
+              ) : null}
+              {event.status === "archived" ? <SecondaryButton type="button" onClick={() => handleReactivateWeatherEvent(event)}>{t(project.locale, "events.reactivate")}</SecondaryButton> : null}
               <SecondaryButton type="button" onClick={() => { if (!confirm(t(project.locale, "weatherEvents.confirmDelete"))) return; onProjectUpdate(deleteWeatherEvent(project, event.id)); if (editingWeatherEventId === event.id) setEditingWeatherEventId(null); }}>{t(project.locale, "weatherEvents.delete")}</SecondaryButton>
             </div>
           </div>;

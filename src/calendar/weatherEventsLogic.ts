@@ -265,6 +265,27 @@ const applyWeatherEffectsToOverrides = (project: CalendarProject, triggeredWeath
   return existing;
 };
 
+export const duplicateWeatherEvent = (project: CalendarProject, eventId: string): CalendarProject => {
+  const sourceEvent = project.weatherEvents.find((event) => event.id === eventId);
+  if (!sourceEvent) return project;
+
+  const suffix = project.locale === "fr" ? "(copie)" : "(copy)";
+  const duplicatedEvent: WeatherEvent = {
+    ...sourceEvent,
+    id: `weather-event-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: `${sourceEvent.name} ${suffix}`.trim(),
+    status: "active",
+    enabled: true,
+    lastTriggeredAtMinutes: undefined,
+    triggerHistory: []
+  };
+
+  return {
+    ...project,
+    weatherEvents: [...project.weatherEvents, duplicatedEvent]
+  };
+};
+
 export const addWeatherEvent = (project: CalendarProject, event: WeatherEvent): CalendarProject => ({
   ...project,
   weatherEvents: [...project.weatherEvents, event]
