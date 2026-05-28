@@ -4,7 +4,7 @@ import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import type { CalendarProject, MoonPhase, Season, WeatherOverride, WeatherSnapshot } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
-import { Badge, Panel, SectionCard, SectionHeader } from "../ui";
+import { Badge, Panel, SecondaryButton, SectionCard, SectionHeader } from "../ui";
 import { ui } from "../ui/styles";
 import { getRainIcon, getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIcon } from "./weatherIcons";
 
@@ -41,9 +41,10 @@ type Props = {
   triggeredWeatherEvents: CalendarProject["weatherEvents"];
   weatherUnits: WeatherUnits;
   currentMoonPhases: Array<{ moon: CalendarProject["moons"][number]; phase: MoonPhase }>;
+  onSelectWeatherEvent?: (eventId: string) => void;
 };
 
-export const TodayStatusSummary = ({ project, currentSeason, currentWeather, triggeredWeatherEvents, weatherUnits, currentMoonPhases }: Pick<Props, "project"|"currentSeason"|"currentWeather"|"triggeredWeatherEvents"|"weatherUnits"|"currentMoonPhases">) => {
+export const TodayStatusSummary = ({ project, currentSeason, currentWeather, triggeredWeatherEvents, weatherUnits, currentMoonPhases, onSelectWeatherEvent }: Pick<Props, "project"|"currentSeason"|"currentWeather"|"triggeredWeatherEvents"|"weatherUnits"|"currentMoonPhases"|"onSelectWeatherEvent">) => {
   const override = getWeatherOverrideForTime(project, project.currentTime.absoluteDay, project.currentTime.hour, project.currentTime.minute);
   const forcedOverrideValues = override ? getForcedOverrideValues(project, override, weatherUnits) : [];
   const overrideIsTimed = isTimedOverride(override);
@@ -114,7 +115,10 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
           <Panel key={event.id}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
             {event.summary ? <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{event.summary}</div> : null}
-            {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: ui.colors.accent }}>{t(project.locale, "common.openLink")}</a> : null}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 4 }}>
+              {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: ui.colors.accent }}>{t(project.locale, "common.openLink")}</a> : null}
+              {onSelectWeatherEvent ? <SecondaryButton type="button" onClick={() => onSelectWeatherEvent(event.id)} style={{ padding: "4px 8px", fontSize: 11 }}>{t(project.locale, "weatherEvents.openDetails")}</SecondaryButton> : null}
+            </div>
           </Panel>
         ))}
       </div> : null}
@@ -142,9 +146,9 @@ export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits }: P
   </SectionCard>
 );
 
-export const WeatherAndSeasonCard = ({ project, currentSeason, currentWeather, hourlyForecast, triggeredWeatherEvents, weatherUnits, currentMoonPhases }: Props) => (
+export const WeatherAndSeasonCard = ({ project, currentSeason, currentWeather, hourlyForecast, triggeredWeatherEvents, weatherUnits, currentMoonPhases, onSelectWeatherEvent }: Props) => (
   <>
-    <TodayStatusSummary project={project} currentSeason={currentSeason} currentWeather={currentWeather} triggeredWeatherEvents={triggeredWeatherEvents} weatherUnits={weatherUnits} currentMoonPhases={currentMoonPhases} />
+    <TodayStatusSummary project={project} currentSeason={currentSeason} currentWeather={currentWeather} triggeredWeatherEvents={triggeredWeatherEvents} weatherUnits={weatherUnits} currentMoonPhases={currentMoonPhases} onSelectWeatherEvent={onSelectWeatherEvent} />
     <WeatherForecastCard project={project} hourlyForecast={hourlyForecast} weatherUnits={weatherUnits} />
   </>
 );

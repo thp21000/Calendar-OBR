@@ -20,6 +20,7 @@ import { TodayEventsCard } from "./today/TodayEventsCard";
 import { TodayStatusSummary, WeatherForecastCard } from "./today/WeatherAndSeasonCard";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
 import { MoonEventDetailsPopup } from "./events/MoonEventDetailsPopup";
+import { WeatherEventDetailsPopup } from "./events/WeatherEventDetailsPopup";
 import { PrimaryButton, SecondaryButton, SectionCard, SectionHeader, Toolbar } from "./ui";
 
 type QuickAction = { key: string; deltaMinutes: number };
@@ -85,8 +86,10 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const [notifications, setNotifications] = useState<CalendarNotification[]>([]);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedMoonEventId, setSelectedMoonEventId] = useState<string | null>(null);
+  const [selectedWeatherEventId, setSelectedWeatherEventId] = useState<string | null>(null);
   const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
   const selectedMoonEvent = selectedMoonEventId ? (project.moonEvents ?? []).find((event) => event.id === selectedMoonEventId) ?? null : null;
+  const selectedWeatherEvent = selectedWeatherEventId ? project.weatherEvents.find((event) => event.id === selectedWeatherEventId) ?? null : null;
 
   const readDismissed = (): Set<string> => {
     try {
@@ -161,6 +164,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         triggeredWeatherEvents={triggeredWeatherEvents}
         weatherUnits={weatherUnits}
         currentMoonPhases={currentMoonPhases}
+        onSelectWeatherEvent={setSelectedWeatherEventId}
       />
 
       <TodayEventsCard project={project} eventsToday={eventsToday} moonEventsToday={triggeredMoonEvents} onSelectEvent={setSelectedEventId} onSelectMoonEvent={setSelectedMoonEventId} />
@@ -194,6 +198,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
 
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={(updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent))} /> : null}
       {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={todayDateLabel} /> : null}
+      {selectedWeatherEvent ? <WeatherEventDetailsPopup project={project} event={selectedWeatherEvent} onClose={() => setSelectedWeatherEventId(null)} /> : null}
     </>
   );
 };
