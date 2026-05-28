@@ -115,6 +115,16 @@ export const getMoonEventActivationSpan = (
   };
 };
 
+export const getMoonEventRemainingDurationDays = (
+  project: CalendarProject,
+  moonEvent: MoonEvent,
+  absoluteDay: number
+): number => {
+  const span = getMoonEventActivationSpan(project, moonEvent, absoluteDay);
+  if (!span) return 1;
+  return Math.max(1, span.endAbsoluteDay - absoluteDay + 1);
+};
+
 export const getMoonEventActivationDurationDays = (
   project: CalendarProject,
   moonEvent: MoonEvent,

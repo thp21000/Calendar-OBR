@@ -9,7 +9,7 @@ import { getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIco
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
 import { formatEventTimeShort, formatEventVisibility } from "../../calendar/formatEvent";
 import { sendPopupNotification } from "../../obr/popupNotifications";
-import { getMoonEventActivationDurationDays } from "../../calendar/moonEventsLogic";
+import { getMoonEventRemainingDurationDays } from "../../calendar/moonEventsLogic";
 
 export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent, onOpenMoonEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void; onOpenMoonEvent?: (eventId: string) => void }) => {
   const dayInternal = calendarDateToAbsoluteDay(dayDetails.date, project.calendarSystem);
@@ -83,10 +83,10 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
         ))}
         {dayDetails.moonEvents.map((event) => {
           const moon = project.moons.find((item) => item.id === event.moonId);
-          const durationDays = getMoonEventActivationDurationDays(project, event, dayInternal.absoluteDay);
-          const durationLabel = durationDays <= 1
+          const remainingDays = getMoonEventRemainingDurationDays(project, event, dayInternal.absoluteDay);
+          const durationLabel = remainingDays <= 1
             ? t(project.locale, "events.allDay")
-            : t(project.locale, "moonEvents.durationDays").replace("{count}", String(durationDays));
+            : t(project.locale, "moonEvents.remainingDurationDays").replace("{count}", String(remainingDays));
           return (
             <div key={event.id} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
