@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { CalendarProject, MoonEvent, MoonEventRepeatMode, MoonPhaseId } from "../../domain/types";
 import { t } from "../../i18n/messages";
 
@@ -6,7 +6,7 @@ const phases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingG
 
 type MoonEventFormSectionProps = {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 const MoonEventFormSection = ({ title, children }: MoonEventFormSectionProps) => {
