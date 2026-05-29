@@ -52,3 +52,5 @@ export const EmptyState = ({ text }: { text: string }) => <div style={{ fontSize
 export const Divider = () => <div style={{ height: 1, background: ui.colors.border, margin: `${ui.spacing.sm}px 0` }} />;
 export const Toolbar = ({ children }: PropsWithChildren) => <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: ui.spacing.sm }}>{children}</div>;
 export const InfoRow = ({ label, value }: { label: string; value?: ReactNode }) => <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, marginBottom: 4 }}><span style={{ color: ui.colors.textMuted }}>{label}</span><span style={{ color: ui.colors.textSecondary, textAlign: "right" }}>{value ?? "—"}</span></div>;
+
+export { CollapsibleDetailSection } from "./CollapsibleDetailSection";

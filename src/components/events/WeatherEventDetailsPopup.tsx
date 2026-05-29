@@ -1,4 +1,3 @@
-import { useState, type ReactNode } from "react";
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { conditionSummary } from "./WeatherEventForm";
 import { getWeatherEventDiagnostics, getWeatherEventDurationHours, getWeatherEventUpcomingTriggerWindows, type WeatherEventUpcomingTriggerWindow } from "../../calendar/weatherEventsLogic";
@@ -6,7 +5,7 @@ import { getCurrentWeather } from "../../calendar/weatherLogic";
 import type { CalendarProject, WeatherEvent, WeatherEventEffect } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { sendPopupNotification } from "../../obr/popupNotifications";
-import { Badge, SecondaryButton } from "../ui";
+import { Badge, CollapsibleDetailSection, SecondaryButton } from "../ui";
 
 const formatVisibility = (project: CalendarProject, visibility: WeatherEvent["visibility"] = "gm") => {
   if (visibility === "players") return t(project.locale, "weatherEvents.visibilityPlayers");
@@ -74,23 +73,24 @@ const formatWindow = (project: CalendarProject, window: WeatherEventUpcomingTrig
     ? `${formatDate(project, window.startTime)} — ${formatTime(window.startTime)}–${formatTime(window.endTime)}`
     : `${formatDate(project, window.startTime)} ${formatTime(window.startTime)} → ${formatDate(project, window.endTime)} ${formatTime(window.endTime)}`;
 
-const CollapsibleDetailSection = ({ title, children, defaultOpen = false, empty = false }: { title: string; children: ReactNode; defaultOpen?: boolean; empty?: boolean }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+const formatCountMeta = (project: CalendarProject, key: string, count: number, emptyKey = "common.none"): string =>
+  count === 0 ? t(project.locale, emptyKey) : t(project.locale, key).replace("{count}", String(count));
 
-  return (
-    <section style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6, opacity: empty ? 0.85 : 1 }}>
-      <button
-        type="button"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((current) => !current)}
-        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: 0, background: "transparent", color: "#e5e7eb", padding: 0, fontWeight: 700, textAlign: "left", cursor: "pointer" }}
-      >
-        <span>{title}</span>
-        <span aria-hidden="true">{isOpen ? "▾" : "▸"}</span>
-      </button>
-      {isOpen ? <div style={{ marginTop: 6 }}>{children}</div> : null}
-    </section>
-  );
+const getDiagnosticMeta = (project: CalendarProject, diagnostics: ReturnType<typeof getWeatherEventDiagnostics> | undefined): string => {
+  if (!diagnostics) return t(project.locale, "weatherEvents.diagnosticUnavailableShort");
+  if (diagnostics.isCurrentlyTriggerable) return t(project.locale, "weatherEvents.diagnosticTriggerableShort");
+  return t(project.locale, "weatherEvents.diagnosticBlockedShort");
+};
+
+const formatWeatherHistoryDate = (project: CalendarProject, triggeredAtMinutes: number): string => {
+  const absoluteDay = Math.floor(triggeredAtMinutes / 1440);
+  const minuteOfDay = ((triggeredAtMinutes % 1440) + 1440) % 1440;
+  const hour = Math.floor(minuteOfDay / 60);
+  const minute = minuteOfDay % 60;
+  const date = absoluteDayToCalendarDate({ absoluteDay, hour, minute }, project.calendarSystem);
+  const timeLabel = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  const dateLabel = `${date.weekdayName ?? ""} ${date.dayOfMonth} ${date.monthName} ${date.year}`.trim();
+  return `${dateLabel} — ${timeLabel}`;
 };
 const textStyle = { whiteSpace: "pre-wrap" as const, color: "#d1d5db" };
 
@@ -143,15 +143,15 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
               <div style={textStyle}>{event.summary}</div>
             </CollapsibleDetailSection>
           ) : null}
-          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.playerDescription")} empty={!event.playerDescription?.trim()}>
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.playerDescription")} empty={!event.playerDescription?.trim()} meta={!event.playerDescription?.trim() ? t(project.locale, "common.empty") : undefined}>
             <div style={textStyle}>{event.playerDescription?.trim() || t(project.locale, "weatherEvents.noPlayerDescription")}</div>
           </CollapsibleDetailSection>
-          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.gmDescription")} empty={!event.gmDescription?.trim()}>
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.gmDescription")} empty={!event.gmDescription?.trim()} tone="gm" meta={event.gmDescription?.trim() ? t(project.locale, "common.gm") : t(project.locale, "common.empty")}>
             <div style={textStyle}>{event.gmDescription?.trim() || t(project.locale, "weatherEvents.noGmDescription")}</div>
           </CollapsibleDetailSection>
           {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#93c5fd" }}>{t(project.locale, "common.openLink")}</a> : null}
 
-          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.diagnostics")} empty={!diagnostics}>
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.diagnostics")} empty={!diagnostics} tone={diagnostics?.isCurrentlyTriggerable ? "success" : "warning"} meta={getDiagnosticMeta(project, diagnostics)}>
             {diagnostics ? (
               <div style={{ display: "grid", gap: 6 }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -178,7 +178,7 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
             ) : <div style={textStyle}>{t(project.locale, "weatherEvents.noCurrentWeather")}</div>}
           </CollapsibleDetailSection>
 
-          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.upcomingWindows")} empty={upcomingWindows.length === 0}>
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.upcomingWindows")} empty={upcomingWindows.length === 0} meta={formatCountMeta(project, "common.windowsCount", upcomingWindows.length)}>
             <div style={{ ...textStyle, fontSize: 11, marginBottom: 6 }}>{t(project.locale, "weatherEvents.upcomingWindowsHelp")}</div>
             {upcomingWindows.length === 0 ? (
               <div style={textStyle}>{t(project.locale, "weatherEvents.noUpcomingWindows")}</div>
@@ -196,18 +196,18 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
             )}
           </CollapsibleDetailSection>
 
-          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.conditions")} empty={conditions.length === 0}>
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.conditions")} empty={conditions.length === 0} meta={formatCountMeta(project, "common.conditionsCount", conditions.length)}>
             {conditions.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noConditions")}</div> : <div style={{ display: "grid", gap: 4 }}>{conditions.map((condition, index) => <div key={`${condition.type ?? "metric"}-${index}`} style={textStyle}>• {conditionSummary(project, condition)}</div>)}</div>}
           </CollapsibleDetailSection>
 
           {kind === "weatherEffect" ? (
-            <CollapsibleDetailSection title={t(project.locale, "weatherEvents.effectSection")} empty={effectLines.length === 0}>
+            <CollapsibleDetailSection title={t(project.locale, "weatherEvents.effectSection")} empty={effectLines.length === 0} meta={formatCountMeta(project, "common.effectsCount", effectLines.length)}>
               {effectLines.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noEffect")}</div> : <div style={{ display: "grid", gap: 4 }}>{effectLines.map((line) => <div key={line} style={textStyle}>• {line}</div>)}</div>}
             </CollapsibleDetailSection>
           ) : null}
 
-          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.history")} empty={history.length === 0}>
-            {history.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noHistory")}</div> : <div style={{ display: "grid", gap: 4 }}>{history.map((entry) => <div key={entry.id} style={textStyle}>• {t(project.locale, "weatherEvents.historyAt")} {entry.triggeredAtMinutes}{entry.weatherState ? ` · ${t(project.locale, `weather.state.${entry.weatherState}`)}` : ""}{typeof entry.temperature === "number" ? ` · T:${entry.temperature}` : ""}{typeof entry.rain === "number" ? ` · R:${entry.rain}` : ""}{typeof entry.windSpeed === "number" ? ` · W:${entry.windSpeed}` : ""}</div>)}</div>}
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.history")} empty={history.length === 0} meta={formatCountMeta(project, "common.entriesCount", history.length, "common.empty")}>
+            {history.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noHistory")}</div> : <div style={{ display: "grid", gap: 4 }}>{history.map((entry) => <div key={entry.id} style={textStyle}>• {formatWeatherHistoryDate(project, entry.triggeredAtMinutes)}{entry.weatherState ? ` · ${t(project.locale, `weather.state.${entry.weatherState}`)}` : ""}{typeof entry.temperature === "number" ? ` · T:${entry.temperature}` : ""}{typeof entry.rain === "number" ? ` · R:${entry.rain}` : ""}{typeof entry.windSpeed === "number" ? ` · W:${entry.windSpeed}` : ""}</div>)}</div>}
           </CollapsibleDetailSection>
         </div>
 

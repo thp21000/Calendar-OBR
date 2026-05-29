@@ -1,29 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEventTriggerOptions, formatEventVisibility } from "../../calendar/formatEvent";
 import type { CalendarEvent, CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
-import { Badge, SecondaryButton } from "../ui";
+import { Badge, CollapsibleDetailSection, SecondaryButton } from "../ui";
 import { EventForm } from "./EventForm";
-
-const CollapsibleDetailSection = ({ title, children, defaultOpen = false, empty = false }: { title: string; children: ReactNode; defaultOpen?: boolean; empty?: boolean }) => {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  return (
-    <section style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6, opacity: empty ? 0.85 : 1 }}>
-      <button
-        type="button"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((current) => !current)}
-        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: 0, background: "transparent", color: "#e5e7eb", padding: 0, fontWeight: 700, textAlign: "left", cursor: "pointer" }}
-      >
-        <span>{title}</span>
-        <span aria-hidden="true">{isOpen ? "▾" : "▸"}</span>
-      </button>
-      {isOpen ? <div style={{ marginTop: 6 }}>{children}</div> : null}
-    </section>
-  );
-};
 
 export const EventDetailsPopup = ({ project, event, onClose, onUpdate, initialEditing = false }: { project: CalendarProject; event: CalendarEvent; onClose: () => void; onUpdate?: (event: CalendarEvent) => void; initialEditing?: boolean }) => {
   const [isEditing, setIsEditing] = useState(initialEditing);
@@ -91,7 +72,7 @@ export const EventDetailsPopup = ({ project, event, onClose, onUpdate, initialEd
             </CollapsibleDetailSection>
           ) : null}
           {event.gmDescription ? (
-            <CollapsibleDetailSection title={t(project.locale, "events.gmDescription")}>
+            <CollapsibleDetailSection title={t(project.locale, "events.gmDescription")} tone="gm" meta={t(project.locale, "common.gm")}>
               <div style={{ whiteSpace: "pre-wrap", color: "#d1d5db" }}>{event.gmDescription}</div>
             </CollapsibleDetailSection>
           ) : null}
