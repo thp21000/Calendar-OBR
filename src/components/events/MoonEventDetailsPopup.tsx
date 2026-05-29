@@ -108,3 +108,5 @@ export const MoonEventDetailsPopup = ({ project, event, onClose, contextDateLabe
         ) : null}
       </div>
     </div>
+  );
+};
