@@ -22,6 +22,12 @@ export const formatEventVisibility = (project: CalendarProject, visibility: Cale
   return t(project.locale, "events.visibilityGm");
 };
 
+export const formatEventVisibilityShort = (project: CalendarProject, visibility: CalendarEvent["visibility"]): string => {
+  if (visibility === "players") return t(project.locale, "events.visibilityPlayersShort");
+  if (visibility === "revealOnTrigger") return t(project.locale, "events.visibilityRevealOnTriggerShort");
+  return t(project.locale, "events.visibilityGmShort");
+};
+
 export const formatEventDateTime = (project: CalendarProject, event: CalendarEvent): string => {
   const allDay = isEventAllDay(event);
   if (!event.endDate) {
@@ -87,6 +93,21 @@ export const formatEventTriggerOptions = (project: CalendarProject, event: Calen
       ? Math.trunc(event.reminderMinutesBefore)
       : 60;
     parts.push(t(project.locale, "events.reminder").replace("{n}", String(mins)));
+  }
+  if (parts.length === 0) return t(project.locale, "events.triggerNone");
+  return parts.join(", ");
+};
+
+export const formatEventTriggerOptionsShort = (project: CalendarProject, event: CalendarEvent): string => {
+  const parts: string[] = [];
+  if (event.notifyOnTrigger) parts.push(t(project.locale, "events.triggerNotifyShort"));
+  if (event.deleteAfterTrigger) parts.push(t(project.locale, "events.triggerDelete"));
+  if (event.archiveAfterTrigger) parts.push(t(project.locale, "events.triggerArchive"));
+  if (event.reminderEnabled === true) {
+    const mins = typeof event.reminderMinutesBefore === "number" && Number.isFinite(event.reminderMinutesBefore) && event.reminderMinutesBefore > 0
+      ? Math.trunc(event.reminderMinutesBefore)
+      : 60;
+    parts.push(t(project.locale, "events.reminderShort").replace("{n}", String(mins)));
   }
   if (parts.length === 0) return t(project.locale, "events.triggerNone");
   return parts.join(", ");

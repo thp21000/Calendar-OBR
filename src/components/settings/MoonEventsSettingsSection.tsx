@@ -164,7 +164,7 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <Badge>{event.enabled ? t(project.locale, "moonEvents.enabled") : t(project.locale, "moonEvents.disabled")}</Badge>
                 <Badge>{formatMoonEventVisibility(project, event.visibility)}</Badge>
-                {event.notifyOnTrigger ? <Badge>{t(project.locale, "moonEvents.notifyOnTrigger")}</Badge> : null}
+                {event.notifyOnTrigger ? <Badge>{t(project.locale, "moonEvents.notifyOnTriggerShort")}</Badge> : null}
                 {event.status === "archived" ? <Badge>{t(project.locale, "moonEvents.statusArchived")}</Badge> : null}
               </div>
             </div>
@@ -197,9 +197,9 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
 };
 
 const formatMoonEventVisibility = (project: CalendarProject, visibility: "gm" | "players" | "revealOnTrigger"): string => {
-  if (visibility === "gm") return t(project.locale, "events.visibilityGm");
-  if (visibility === "players") return t(project.locale, "events.visibilityPlayers");
-  return t(project.locale, "events.visibilityRevealOnTrigger");
+  if (visibility === "gm") return t(project.locale, "events.visibilityGmShort");
+  if (visibility === "players") return t(project.locale, "events.visibilityPlayersShort");
+  return t(project.locale, "events.visibilityRevealOnTriggerShort");
 };
 
 const getMoonEventConditionBadges = (project: CalendarProject, event: MoonEvent): string[] => {

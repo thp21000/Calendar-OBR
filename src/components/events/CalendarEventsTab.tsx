@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { addCalendarEvent, deleteCalendarEvent, duplicateCalendarEvent, getEventTimeBucket, revealCalendarEvent, sortEventsByDate, updateCalendarEvent } from "../../calendar/eventsLogic";
-import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEventTriggerOptions, formatEventVisibility } from "../../calendar/formatEvent";
+import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEventTriggerOptionsShort, formatEventVisibilityShort } from "../../calendar/formatEvent";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
@@ -102,29 +102,33 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
     <SectionCard>
       <SectionHeader title={`${t(project.locale, "events.calendarListTitle")} (${filteredEvents.length})`} />
     {filteredEvents.length === 0 ? <EmptyState text={normalizedQuery ? t(project.locale, "events.noEventsForSearch") : t(project.locale, "events.noEventsForFilter")} /> : <div style={{ display: "grid", gap: 8 }}>
-      {filteredEvents.map((event) => <div
-        key={event.id}
-        role="button"
-        tabIndex={0}
-        onClick={() => setSelectedEventId(event.id)}
-        onKeyDown={(keyEvent) => {
-          if (keyEvent.key !== "Enter" && keyEvent.key !== " ") return;
-          keyEvent.preventDefault();
-          setSelectedEventId(event.id);
-        }}
-        style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", cursor: "pointer" }}
-      >
-          <div style={{ display: "grid", gap: 2, marginBottom: 4 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
-            <div style={{ fontSize: 11, color: "#cbd5e1" }}>{formatEventDateTime(project, event)}</div>
+      {filteredEvents.map((event) => {
+        const recurrenceLabel = formatEventRecurrence(project, event);
+        const triggerLabel = formatEventTriggerOptionsShort(project, event);
+
+        return <div
+          key={event.id}
+          role="button"
+          tabIndex={0}
+          onClick={() => setSelectedEventId(event.id)}
+          onKeyDown={(keyEvent) => {
+            if (keyEvent.key !== "Enter" && keyEvent.key !== " ") return;
+            keyEvent.preventDefault();
+            setSelectedEventId(event.id);
+          }}
+          style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", cursor: "pointer" }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: "1 1 150px" }}><EventIcon icon={event.icon} locale={project.locale} /><strong style={{ overflowWrap: "anywhere" }}>{event.name}</strong></div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "flex-end", flex: "1 1 120px" }}>
+              <Badge>{formatEventStatus(project, event)}</Badge>
+              <Badge>{formatEventVisibilityShort(project, event.visibility)}</Badge>
+              {recurrenceLabel !== t(project.locale, "events.recurrenceNone") ? <Badge>{recurrenceLabel}</Badge> : null}
+              {triggerLabel !== t(project.locale, "events.triggerNone") ? <Badge>{triggerLabel}</Badge> : null}
+            </div>
           </div>
-          {event.summary ? <div style={{ fontSize: 12, marginBottom: 4, color: "#d1d5db" }}>{event.summary}</div> : null}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
-            <Badge>{formatEventStatus(project, event)}</Badge>
-            <Badge>{formatEventVisibility(project, event.visibility)}</Badge>
-            {formatEventRecurrence(project, event) !== t(project.locale, "events.recurrenceNone") ? <Badge>{formatEventRecurrence(project, event)}</Badge> : null}
-            {formatEventTriggerOptions(project, event) !== t(project.locale, "events.triggerNone") ? <Badge>{formatEventTriggerOptions(project, event)}</Badge> : null}
-          </div>
+          <div style={{ fontSize: 11, color: "#cbd5e1", marginBottom: 4 }}>{formatEventDateTime(project, event)}</div>
+          {event.summary ? <div style={{ fontSize: 12, marginBottom: 6, color: "#d1d5db" }}>{event.summary}</div> : null}
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>
             <SecondaryButton type="button" onClick={() => { setSelectedEventId(null); setEditingEventId(event.id); }}>{t(project.locale, "events.edit")}</SecondaryButton>
             <SecondaryButton type="button" onClick={() => handleDuplicate(event)}>{t(project.locale, "events.duplicate")}</SecondaryButton>
@@ -133,7 +137,8 @@ export const CalendarEventsTab = ({ project, onProjectUpdate, initialCreateDate,
             {event.status !== "archived" ? <SecondaryButton type="button" onClick={() => handleStatusUpdate(event, "archived")}>{t(project.locale, "events.archive")}</SecondaryButton> : null}
             <SecondaryButton type="button" onClick={() => handleDelete(event)}>{t(project.locale, "events.delete")}</SecondaryButton>
           </div>
-      </div>)}
+      </div>;
+      })}
     </div>}
     </SectionCard>
     {isCreateFormOpen ? <EventCreatePopup project={project} date={initialCreateDate ?? absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)} onClose={() => { setIsCreateFormOpen(false); onInitialCreateDateConsumed?.(); }} onCreate={handleCreate} /> : null}
