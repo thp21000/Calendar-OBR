@@ -1,3 +1,4 @@
+import { useState, type ReactNode } from "react";
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { conditionSummary } from "./WeatherEventForm";
 import { getWeatherEventDiagnostics, getWeatherEventDurationHours, getWeatherEventUpcomingTriggerWindows, type WeatherEventUpcomingTriggerWindow } from "../../calendar/weatherEventsLogic";
@@ -73,8 +74,24 @@ const formatWindow = (project: CalendarProject, window: WeatherEventUpcomingTrig
     ? `${formatDate(project, window.startTime)} — ${formatTime(window.startTime)}–${formatTime(window.endTime)}`
     : `${formatDate(project, window.startTime)} ${formatTime(window.startTime)} → ${formatDate(project, window.endTime)} ${formatTime(window.endTime)}`;
 
-const fieldBoxStyle = { fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6 };
-const boxTitleStyle = { fontWeight: 700, marginBottom: 4 };
+const CollapsibleDetailSection = ({ title, children, defaultOpen = false, empty = false }: { title: string; children: ReactNode; defaultOpen?: boolean; empty?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <section style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6, opacity: empty ? 0.85 : 1 }}>
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((current) => !current)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: 0, background: "transparent", color: "#e5e7eb", padding: 0, fontWeight: 700, textAlign: "left", cursor: "pointer" }}
+      >
+        <span>{title}</span>
+        <span aria-hidden="true">{isOpen ? "▾" : "▸"}</span>
+      </button>
+      {isOpen ? <div style={{ marginTop: 6 }}>{children}</div> : null}
+    </section>
+  );
+};
 const textStyle = { whiteSpace: "pre-wrap" as const, color: "#d1d5db" };
 
 export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project: CalendarProject; event: WeatherEvent; onClose: () => void }) => {
@@ -121,13 +138,20 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
         </div>
 
         <div style={{ display: "grid", gap: 8 }}>
-          {event.summary ? <div style={fieldBoxStyle}><div style={boxTitleStyle}>{t(project.locale, "weatherEvents.summary")}</div><div style={textStyle}>{event.summary}</div></div> : null}
-          <div style={fieldBoxStyle}><div style={boxTitleStyle}>{t(project.locale, "weatherEvents.playerDescription")}</div><div style={textStyle}>{event.playerDescription?.trim() || t(project.locale, "weatherEvents.noPlayerDescription")}</div></div>
-          <div style={fieldBoxStyle}><div style={boxTitleStyle}>{t(project.locale, "weatherEvents.gmDescription")}</div><div style={textStyle}>{event.gmDescription?.trim() || t(project.locale, "weatherEvents.noGmDescription")}</div></div>
+          {event.summary ? (
+            <CollapsibleDetailSection title={t(project.locale, "weatherEvents.summary")}>
+              <div style={textStyle}>{event.summary}</div>
+            </CollapsibleDetailSection>
+          ) : null}
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.playerDescription")} empty={!event.playerDescription?.trim()}>
+            <div style={textStyle}>{event.playerDescription?.trim() || t(project.locale, "weatherEvents.noPlayerDescription")}</div>
+          </CollapsibleDetailSection>
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.gmDescription")} empty={!event.gmDescription?.trim()}>
+            <div style={textStyle}>{event.gmDescription?.trim() || t(project.locale, "weatherEvents.noGmDescription")}</div>
+          </CollapsibleDetailSection>
           {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#93c5fd" }}>{t(project.locale, "common.openLink")}</a> : null}
 
-          <div style={fieldBoxStyle}>
-            <div style={boxTitleStyle}>{t(project.locale, "weatherEvents.diagnostics")}</div>
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.diagnostics")} empty={!diagnostics}>
             {diagnostics ? (
               <div style={{ display: "grid", gap: 6 }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -152,10 +176,9 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
                 </div>
               </div>
             ) : <div style={textStyle}>{t(project.locale, "weatherEvents.noCurrentWeather")}</div>}
-          </div>
+          </CollapsibleDetailSection>
 
-          <div style={fieldBoxStyle}>
-            <div style={boxTitleStyle}>{t(project.locale, "weatherEvents.upcomingWindows")}</div>
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.upcomingWindows")} empty={upcomingWindows.length === 0}>
             <div style={{ ...textStyle, fontSize: 11, marginBottom: 6 }}>{t(project.locale, "weatherEvents.upcomingWindowsHelp")}</div>
             {upcomingWindows.length === 0 ? (
               <div style={textStyle}>{t(project.locale, "weatherEvents.noUpcomingWindows")}</div>
@@ -171,22 +194,21 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
                 })}
               </div>
             )}
-          </div>
+          </CollapsibleDetailSection>
 
-          <div style={fieldBoxStyle}>
-            <div style={boxTitleStyle}>{t(project.locale, "weatherEvents.conditions")}</div>
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.conditions")} empty={conditions.length === 0}>
             {conditions.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noConditions")}</div> : <div style={{ display: "grid", gap: 4 }}>{conditions.map((condition, index) => <div key={`${condition.type ?? "metric"}-${index}`} style={textStyle}>• {conditionSummary(project, condition)}</div>)}</div>}
-          </div>
+          </CollapsibleDetailSection>
 
-          {kind === "weatherEffect" ? <div style={fieldBoxStyle}>
-            <div style={boxTitleStyle}>{t(project.locale, "weatherEvents.effectSection")}</div>
-            {effectLines.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noEffect")}</div> : <div style={{ display: "grid", gap: 4 }}>{effectLines.map((line) => <div key={line} style={textStyle}>• {line}</div>)}</div>}
-          </div> : null}
+          {kind === "weatherEffect" ? (
+            <CollapsibleDetailSection title={t(project.locale, "weatherEvents.effectSection")} empty={effectLines.length === 0}>
+              {effectLines.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noEffect")}</div> : <div style={{ display: "grid", gap: 4 }}>{effectLines.map((line) => <div key={line} style={textStyle}>• {line}</div>)}</div>}
+            </CollapsibleDetailSection>
+          ) : null}
 
-          <div style={fieldBoxStyle}>
-            <div style={boxTitleStyle}>{t(project.locale, "weatherEvents.history")}</div>
+          <CollapsibleDetailSection title={t(project.locale, "weatherEvents.history")} empty={history.length === 0}>
             {history.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noHistory")}</div> : <div style={{ display: "grid", gap: 4 }}>{history.map((entry) => <div key={entry.id} style={textStyle}>• {t(project.locale, "weatherEvents.historyAt")} {entry.triggeredAtMinutes}{entry.weatherState ? ` · ${t(project.locale, `weather.state.${entry.weatherState}`)}` : ""}{typeof entry.temperature === "number" ? ` · T:${entry.temperature}` : ""}{typeof entry.rain === "number" ? ` · R:${entry.rain}` : ""}{typeof entry.windSpeed === "number" ? ` · W:${entry.windSpeed}` : ""}</div>)}</div>}
-          </div>
+          </CollapsibleDetailSection>
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 10 }}>

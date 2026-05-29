@@ -1,10 +1,29 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { formatEventDateTime, formatEventRecurrence, formatEventStatus, formatEventTriggerOptions, formatEventVisibility } from "../../calendar/formatEvent";
 import type { CalendarEvent, CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
 import { Badge, SecondaryButton } from "../ui";
 import { EventForm } from "./EventForm";
+
+const CollapsibleDetailSection = ({ title, children, defaultOpen = false, empty = false }: { title: string; children: ReactNode; defaultOpen?: boolean; empty?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <section style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6, opacity: empty ? 0.85 : 1 }}>
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((current) => !current)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: 0, background: "transparent", color: "#e5e7eb", padding: 0, fontWeight: 700, textAlign: "left", cursor: "pointer" }}
+      >
+        <span>{title}</span>
+        <span aria-hidden="true">{isOpen ? "▾" : "▸"}</span>
+      </button>
+      {isOpen ? <div style={{ marginTop: 6 }}>{children}</div> : null}
+    </section>
+  );
+};
 
 export const EventDetailsPopup = ({ project, event, onClose, onUpdate, initialEditing = false }: { project: CalendarProject; event: CalendarEvent; onClose: () => void; onUpdate?: (event: CalendarEvent) => void; initialEditing?: boolean }) => {
   const [isEditing, setIsEditing] = useState(initialEditing);
@@ -34,6 +53,7 @@ export const EventDetailsPopup = ({ project, event, onClose, onUpdate, initialEd
       </div>
     );
   }
+  
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }} onClick={onClose}>
@@ -61,22 +81,19 @@ export const EventDetailsPopup = ({ project, event, onClose, onUpdate, initialEd
 
         <div style={{ display: "grid", gap: 8 }}>
           {event.summary ? (
-            <div style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6 }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "events.summary")}</div>
+            <CollapsibleDetailSection title={t(project.locale, "events.summary")}>
               <div style={{ whiteSpace: "pre-wrap", color: "#d1d5db" }}>{event.summary}</div>
-            </div>
+            </CollapsibleDetailSection>
           ) : null}
           {event.playerDescription ? (
-            <div style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6 }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "events.playerDescription")}</div>
+            <CollapsibleDetailSection title={t(project.locale, "events.playerDescription")}>
               <div style={{ whiteSpace: "pre-wrap", color: "#d1d5db" }}>{event.playerDescription}</div>
-            </div>
+            </CollapsibleDetailSection>
           ) : null}
           {event.gmDescription ? (
-            <div style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6 }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "events.gmDescription")}</div>
+            <CollapsibleDetailSection title={t(project.locale, "events.gmDescription")}>
               <div style={{ whiteSpace: "pre-wrap", color: "#d1d5db" }}>{event.gmDescription}</div>
-            </div>
+            </CollapsibleDetailSection>
           ) : null}
         </div>
 

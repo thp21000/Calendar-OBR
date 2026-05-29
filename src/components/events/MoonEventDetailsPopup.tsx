@@ -1,9 +1,30 @@
+import { useState, type ReactNode } from "react";
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { getNextMoonEventActivationDays } from "../../calendar/moonEventsLogic";
 import type { CalendarProject, MoonEvent } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { sendPopupNotification } from "../../obr/popupNotifications";
 import { Badge, SecondaryButton } from "../ui";
+
+
+const CollapsibleDetailSection = ({ title, children, defaultOpen = false, empty = false }: { title: string; children: ReactNode; defaultOpen?: boolean; empty?: boolean }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <section style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6, opacity: empty ? 0.85 : 1 }}>
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((current) => !current)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: 0, background: "transparent", color: "#e5e7eb", padding: 0, fontWeight: 700, textAlign: "left", cursor: "pointer" }}
+      >
+        <span>{title}</span>
+        <span aria-hidden="true">{isOpen ? "▾" : "▸"}</span>
+      </button>
+      {isOpen ? <div style={{ marginTop: 6 }}>{children}</div> : null}
+    </section>
+  );
+};
 
 const formatMoonEventVisibility = (project: CalendarProject, visibility: "gm" | "players" | "revealOnTrigger") => {
   if (visibility === "gm") return t(project.locale, "events.visibilityGm");
@@ -47,23 +68,21 @@ export const MoonEventDetailsPopup = ({ project, event, onClose, contextDateLabe
 
         <div style={{ display: "grid", gap: 8 }}>
           {event.summary ? (
-            <div style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6 }}>
-              <div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "moonEvents.summary")}</div>
+            <CollapsibleDetailSection title={t(project.locale, "moonEvents.summary")}>
               <div style={{ whiteSpace: "pre-wrap", color: "#d1d5db" }}>{event.summary}</div>
-            </div>
+            </CollapsibleDetailSection>
           ) : null}
-          <div style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6 }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "moonEvents.playerDescription")}</div>
+          <CollapsibleDetailSection title={t(project.locale, "moonEvents.playerDescription")} empty={!event.playerDescription?.trim()}>
             <div style={{ whiteSpace: "pre-wrap", color: "#d1d5db" }}>{event.playerDescription?.trim() || t(project.locale, "moonEvents.noPlayerDescription")}</div>
-          </div>
-          <div style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, background: "#0f172a", padding: 6 }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "moonEvents.gmDescription")}</div>
+          </CollapsibleDetailSection>
+          <CollapsibleDetailSection title={t(project.locale, "moonEvents.gmDescription")} empty={!event.gmDescription?.trim()}>
             <div style={{ whiteSpace: "pre-wrap", color: "#d1d5db" }}>{event.gmDescription?.trim() || t(project.locale, "moonEvents.noGmDescription")}</div>
-          </div>
-          <div style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, fontSize: 12, color: "#d1d5db" }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "moonEvents.nextActivationsTitle")}</div>
-            {nextActivationLabels.length === 0 ? <div>{t(project.locale, "moonEvents.nextActivationUnknown")}</div> : <ul style={{ margin: 0, paddingLeft: 16 }}>{nextActivationLabels.map((label) => <li key={label}>{label}</li>)}</ul>}
-          </div>
+          </CollapsibleDetailSection>
+          <CollapsibleDetailSection title={t(project.locale, "moonEvents.nextActivationsTitle")} empty={nextActivationLabels.length === 0}>
+            <div style={{ color: "#d1d5db" }}>
+              {nextActivationLabels.length === 0 ? <div>{t(project.locale, "moonEvents.nextActivationUnknown")}</div> : <ul style={{ margin: 0, paddingLeft: 16 }}>{nextActivationLabels.map((label) => <li key={label}>{label}</li>)}</ul>}
+            </div>
+          </CollapsibleDetailSection>
         </div>
 
         {canSendToPlayers ? (
@@ -89,5 +108,3 @@ export const MoonEventDetailsPopup = ({ project, event, onClose, contextDateLabe
         ) : null}
       </div>
     </div>
-  );
-};
