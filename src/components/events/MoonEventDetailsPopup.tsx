@@ -86,7 +86,7 @@ export const MoonEventDetailsPopup = ({ project, event, onClose, contextDateLabe
               }
             >
               {t(project.locale, "moonEvents.sendToPlayers")}
-            </SecondaryButton>>
+            </SecondaryButton>
           </div>
         ) : null}
       </div>
