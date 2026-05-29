@@ -165,7 +165,7 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
                 {currentWeatherSummary ? <div style={textStyle}>{currentWeatherSummary}</div> : null}
                 <div style={textStyle}>{t(project.locale, "weatherEvents.triggerChance")}: {diagnostics.triggerChancePercent} %</div>
                 <div style={textStyle}>{t(project.locale, "weatherEvents.effectiveDuration")}: {typeof diagnostics.durationHours === "number" ? t(project.locale, "weatherEvents.durationShort").replace("{count}", String(diagnostics.durationHours)) : t(project.locale, "weatherEvents.activeNow")}</div>
-                <div style={textStyle}>{t(project.locale, "weatherEvents.lastTriggeredAtMinutes")}: {typeof diagnostics.lastTriggeredAtMinutes === "number" ? diagnostics.lastTriggeredAtMinutes : t(project.locale, "weatherEvents.neverTriggered")}</div>
+                <div style={textStyle}>{t(project.locale, "weatherEvents.lastTriggeredAtMinutes")}: {typeof diagnostics.lastTriggeredAtMinutes === "number" ? formatWeatherHistoryDate(project, diagnostics.lastTriggeredAtMinutes) : t(project.locale, "weatherEvents.neverTriggered")}</div>
                 {typeof diagnostics.cooldownHours === "number" ? <div style={textStyle}>{t(project.locale, "weatherEvents.cooldownHours")}: {t(project.locale, "weatherEvents.durationShort").replace("{count}", String(diagnostics.cooldownHours))}</div> : null}
                 <div style={{ display: "grid", gap: 4 }}>
                   {diagnostics.conditions.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noConditions")}</div> : diagnostics.conditions.map(({ condition, met }, index) => (
