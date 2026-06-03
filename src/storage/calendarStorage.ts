@@ -1,6 +1,7 @@
 import type { CalendarProject } from "../domain/types";
 import { createDefaultMoonSystem, ensureDefaultMoonSystem } from "../calendar/moonLogic";
 import { sanitizeCalendarProject, validateImportedCalendarProject } from "../importExport/calendarImportExport";
+import { DEFAULT_WEATHER_BIOME_ID } from "../calendar/weather/biomes";
 
 const STORAGE_KEY = "calendar-obr.project.local-dev";
 
@@ -38,6 +39,7 @@ const defaultProject: CalendarProject = {
   weatherSettings: {},
   weatherEvents: [],
   weatherOverrides: [],
+  weatherBiome: { currentBiomeId: DEFAULT_WEATHER_BIOME_ID },
   uiSettings: { activeTab: "today", compactMode: true, defaultMoonSystemInitialized: true }
 };
 

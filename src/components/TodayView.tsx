@@ -21,6 +21,7 @@ import { TodayStatusSummary, WeatherForecastCard } from "./today/WeatherAndSeaso
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
 import { MoonEventDetailsPopup } from "./events/MoonEventDetailsPopup";
 import { WeatherEventDetailsPopup } from "./events/WeatherEventDetailsPopup";
+import { WeatherBiomePickerPopup } from "./weather/WeatherBiomePickerPopup";
 import { PrimaryButton, SecondaryButton, SectionCard, SectionHeader, Toolbar } from "./ui";
 
 type QuickAction = { key: string; deltaMinutes: number };
@@ -87,6 +88,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedMoonEventId, setSelectedMoonEventId] = useState<string | null>(null);
   const [selectedWeatherEventId, setSelectedWeatherEventId] = useState<string | null>(null);
+  const [biomePickerOpen, setBiomePickerOpen] = useState(false);
   const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
   const selectedMoonEvent = selectedMoonEventId ? (project.moonEvents ?? []).find((event) => event.id === selectedMoonEventId) ?? null : null;
   const selectedWeatherEvent = selectedWeatherEventId ? project.weatherEvents.find((event) => event.id === selectedWeatherEventId) ?? null : null;
@@ -193,12 +195,20 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
           >
             🛌 {t(project.locale, "time.longRest")}
           </PrimaryButton>
+          <SecondaryButton
+            type="button"
+            onClick={() => setBiomePickerOpen(true)}
+            style={longRestButtonStyle}
+          >
+            🌐 {t(project.locale, "weatherBiome.changeAction")}
+          </SecondaryButton>
         </Toolbar>
       </SectionCard>
 
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={(updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent))} /> : null}
       {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={todayDateLabel} /> : null}
       {selectedWeatherEvent ? <WeatherEventDetailsPopup project={project} event={selectedWeatherEvent} onClose={() => setSelectedWeatherEventId(null)} /> : null}
+      {biomePickerOpen ? <WeatherBiomePickerPopup project={project} onClose={() => setBiomePickerOpen(false)} onApply={onProjectUpdate} /> : null}
     </>
   );
 };

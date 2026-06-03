@@ -1,3 +1,4 @@
+import type { WeatherBiomeState } from "../calendar/weather/biomes/types";
 export type LocaleCode = "fr" | "en";
 
 export type UnitsSettings = {
@@ -326,6 +327,7 @@ export type CalendarProject = {
   weatherSettings: WeatherSettings;
   weatherEvents: WeatherEvent[];
   weatherOverrides?: WeatherOverride[];
+  weatherBiome?: WeatherBiomeState;
   uiSettings: UiSettings;
 };
 

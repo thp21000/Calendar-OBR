@@ -36,15 +36,16 @@ const aroundAverage = (min: number, max: number, average: number, seed: string, 
 const windDirectionIndex = (direction: WindDirection): number => WIND_DIRECTIONS.indexOf(direction);
 const wrapDirection = (index: number): WindDirection => WIND_DIRECTIONS[(index + WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
 
-export const generateWeatherForTime = (project: CalendarProject, absoluteDay: number, hour: number): WeatherSnapshot | undefined => {
-  const season = getCurrentSeason({ ...project, currentTime: { ...project.currentTime, absoluteDay, hour } });
+export const generateWeatherForTime = (project: CalendarProject, absoluteDay: number, hour: number, minute = 0): WeatherSnapshot | undefined => {
+  const scopedProject = { ...project, currentTime: { ...project.currentTime, absoluteDay, hour, minute } };
+  const season = getCurrentSeason(scopedProject);
   if (!season) return undefined;
   const profile = season.weatherProfile ?? createDefaultSeasonWeatherProfile();
   const seedBase = project.weatherSettings.seed || project.id;
   const seed = `${seedBase}|${absoluteDay}|${hour}|${season.id}`;
 
-  const dailySummary = getDailyWeatherSummary(project, absoluteDay);
-  const weatherOverride = getWeatherOverrideForTime(project, absoluteDay, hour);
+  const dailySummary = getDailyWeatherSummary(scopedProject, absoluteDay);
+  const weatherOverride = getWeatherOverrideForTime(project, absoluteDay, hour, minute);
   const temperature = dailySummary
     ? (() => {
         // Simple day/night curve: near min around 05:00, near max around 15:00.
@@ -102,7 +103,7 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
 };
 
 export const getCurrentWeather = (project: CalendarProject): WeatherSnapshot | undefined =>
-  generateWeatherForTime(project, project.currentTime.absoluteDay, project.currentTime.hour);
+  generateWeatherForTime(project, project.currentTime.absoluteDay, project.currentTime.hour, project.currentTime.minute);
 
 export const getForecastWeatherForTime = (
   project: CalendarProject,

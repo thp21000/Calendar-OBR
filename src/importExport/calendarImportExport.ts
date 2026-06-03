@@ -1,10 +1,16 @@
 import type { CalendarProject, LocaleCode } from "../domain/types";
+import type { WeatherBiomeId } from "../calendar/weather/biomes";
 import { assertCalendarSystem } from "../calendar/dateEngine";
 import { normalizeMoon } from "../calendar/moonLogic";
 import { normalizeSeasonWeatherProfile } from "../calendar/seasonsLogic";
+import { DEFAULT_WEATHER_BIOME_ID, WEATHER_BIOME_DEFINITIONS } from "../calendar/weather/biomes";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+const weatherBiomeIds = new Set(WEATHER_BIOME_DEFINITIONS.map((definition) => definition.id));
+const isWeatherBiomeId = (value: unknown): value is WeatherBiomeId =>
+  typeof value === "string" && weatherBiomeIds.has(value as WeatherBiomeId);
 
   const isLocale = (value: unknown): value is LocaleCode => value === "fr" || value === "en";
   
@@ -80,6 +86,17 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
 
   if (!isRecord(maybeCompat.weatherSettings)) {
     maybeCompat.weatherSettings = {};
+  }
+
+  if (isRecord(maybeCompat.weatherBiome)) {
+    const biome = maybeCompat.weatherBiome as Record<string, unknown>;
+    const currentBiomeId = isWeatherBiomeId(biome.currentBiomeId) ? biome.currentBiomeId : DEFAULT_WEATHER_BIOME_ID;
+    const previousBiomeId = isWeatherBiomeId(biome.previousBiomeId) ? biome.previousBiomeId : undefined;
+    const biomeChangedAtMinutes = typeof biome.biomeChangedAtMinutes === "number" && Number.isFinite(biome.biomeChangedAtMinutes) ? Math.trunc(biome.biomeChangedAtMinutes) : undefined;
+    const transitionDurationMinutes = typeof biome.transitionDurationMinutes === "number" && Number.isFinite(biome.transitionDurationMinutes) && biome.transitionDurationMinutes > 0 ? Math.trunc(biome.transitionDurationMinutes) : undefined;
+    maybeCompat.weatherBiome = { currentBiomeId, ...(previousBiomeId ? { previousBiomeId } : {}), ...(biomeChangedAtMinutes !== undefined ? { biomeChangedAtMinutes } : {}), ...(transitionDurationMinutes !== undefined ? { transitionDurationMinutes } : {}) };
+  } else if (maybeCompat.weatherBiome !== undefined) {
+    delete maybeCompat.weatherBiome;
   }
 
   if (!isRecord(maybeCompat.uiSettings)) {

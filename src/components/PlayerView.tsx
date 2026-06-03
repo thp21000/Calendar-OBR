@@ -8,6 +8,7 @@ import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getCurrentWeather } from "../calendar/weatherLogic";
+import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getWeatherStateIcon } from "../calendar/weatherState";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
@@ -61,6 +62,9 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
           weatherLabel={weatherLabel}
           moons={snapshot.moons.map((m) => ({ id: `${m.name}:${m.phaseId}`, text: `${m.icon} ${m.name} — ${t(snapshot.locale, `moon.phase.${m.phaseId}`)}` }))}
         />
+        <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
+          {snapshot.weatherBiome.icon} {snapshot.weatherBiome.name}: {snapshot.weatherBiome.description}
+        </div>
         {snapshot.weather?.dailyMinTemperature !== undefined && snapshot.weather?.dailyMaxTemperature !== undefined ? (
           <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
             {t(snapshot.locale, "weather.dailyMinMax")}: {snapshot.weather.dailyMinTemperature} / {snapshot.weather.dailyMaxTemperature} {snapshot.weather.units.temperature}
@@ -96,6 +100,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
   const visibleEvents = getPlayerVisibleEventsForCurrentDay(project);
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
+  const currentBiome = getCurrentWeatherBiomeDefinition(project);
   const currentMoonPhases = getCurrentMoonPhases(project);
   const visibleWeatherEvents = currentWeather ? getPlayerVisibleWeatherEvents(project, currentWeather, project.currentTime) : [];
   const visibleMoonEvents = getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay);
@@ -149,6 +154,9 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
         weatherLabel={weatherLabel}
         moons={currentMoonPhases.map(({ moon, phase }) => ({ id: moon.id, text: `${phase.icon} ${moon.name} — ${t(project.locale, `moon.phase.${phase.id}`)}` }))}
       />
+      <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
+        {currentBiome.icon} {t(project.locale, currentBiome.nameKey)}: {t(project.locale, currentBiome.descriptionKey)}
+      </div>
       {currentWeather?.dailyMinTemperature !== undefined && currentWeather?.dailyMaxTemperature !== undefined ? (
         <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
           {t(project.locale, "weather.dailyMinMax")}: {currentWeather.dailyMinTemperature} / {currentWeather.dailyMaxTemperature} {weatherUnits.temperature}

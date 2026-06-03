@@ -1,5 +1,6 @@
 import { getWeatherStateIcon } from "../../calendar/weatherState";
 import { getWeatherOverrideForTime } from "../../calendar/weatherOverrides";
+import { getCurrentWeatherBiomeDefinition } from "../../calendar/weather/biomes";
 import { getWeatherEventDurationHours } from "../../calendar/weatherEventsLogic";
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import type { CalendarProject, MoonPhase, Season, WeatherEvent, WeatherOverride, WeatherSnapshot } from "../../domain/types";
@@ -75,6 +76,7 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
   const overrideLabel = `${t(project.locale, "weatherOverride.active")}${overrideName ? `: ${overrideName}` : ""}${overrideTimeRange ? `${overrideName ? " · " : ": "}${overrideTimeRange}` : ""}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const dateLabel = `${displayDate.weekdayName ?? ""} ${displayDate.dayOfMonth} ${displayDate.monthName} ${displayDate.year}`.trim();
+  const biome = getCurrentWeatherBiomeDefinition(project);
 
   return (
     <SectionCard style={{ background: ui.colors.surfaceElevated, borderColor: "#475569", boxShadow: "0 2px 10px rgba(2,6,23,0.22)" }}>
@@ -109,6 +111,14 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
             {currentWeather.dailyRainTotal !== undefined ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>24 h: {currentWeather.dailyRainTotal} {weatherUnits.rain}</span> : null}
           </>
         ) : <span style={{ fontSize: 12, color: "#94a3b8" }}>{t(project.locale, "calendar.noWeather")}</span>}
+      </div>
+
+      <div style={{ marginTop: 8, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, background: ui.colors.surface, padding: ui.spacing.sm, display: "grid", gridTemplateColumns: "28px 1fr", gap: 8, alignItems: "start" }}>
+        <span style={{ fontSize: 20 }}>{biome.icon}</span>
+        <span style={{ display: "grid", gap: 2 }}>
+          <strong style={{ fontSize: 12 }}>{t(project.locale, biome.nameKey)}</strong>
+          <span style={{ fontSize: 11, color: ui.colors.textSecondary }}>{t(project.locale, biome.descriptionKey)}</span>
+        </span>
       </div>
 
       {currentWeather?.trendKind || currentWeather?.dominantState ? (

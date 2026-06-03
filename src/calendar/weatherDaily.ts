@@ -3,6 +3,7 @@ import { deriveSeasonWeatherTraits } from "./seasonWeatherProfile";
 import { createDefaultSeasonWeatherProfile, getSeasonForDate } from "./seasonsLogic";
 import { getWeatherTrendForDay } from "./weatherTrend";
 import { applyWeatherOverrideToDailySummary, getWeatherOverrideForDay } from "./weatherOverrides";
+import { applyBiomeToDailyWeatherSummary } from "./weather/biomes";
 import type { CalendarProject, WeatherState, WindDirection } from "../domain/types";
 
 export type DailyWeatherSummary = {
@@ -135,5 +136,7 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
     dominantState: safeState,
     trendKind: trend.kind
   };
-  return applyWeatherOverrideToDailySummary(summary, getWeatherOverrideForDay(project, absoluteDay));
+  const biomeTime = absoluteDay === project.currentTime.absoluteDay ? project.currentTime : { absoluteDay, hour: 12, minute: 0 };
+  const biomeSummary = applyBiomeToDailyWeatherSummary(project, summary, biomeTime);
+  return applyWeatherOverrideToDailySummary(biomeSummary, getWeatherOverrideForDay(project, absoluteDay));
 };

@@ -7,9 +7,11 @@ import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getCurrentWeather } from "../calendar/weatherLogic";
+import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import type { CalendarCurrentTime, CalendarProject, LocaleCode, MoonPhaseId, WeatherSnapshot } from "../domain/types";
+import { t } from "../i18n/messages";
 
 export type PublicCalendarIndex = {
   schemaVersion: 1;
@@ -32,6 +34,12 @@ export type PublicCalendarEventSnapshot = {
 export type PublicCalendarSeasonSnapshot = {
   name: string;
   icon?: string;
+};
+
+export type PublicCalendarBiomeSnapshot = {
+  name: string;
+  icon: string;
+  description: string;
 };
 
 export type PublicCalendarWeatherSnapshot = WeatherSnapshot & {
@@ -60,6 +68,7 @@ export type PublicCalendarTodaySnapshot = {
   formattedDate: string;
   season?: PublicCalendarSeasonSnapshot;
   weather?: PublicCalendarWeatherSnapshot;
+  weatherBiome: PublicCalendarBiomeSnapshot;
   moons: PublicCalendarMoonSnapshot[];
   eventsToday: PublicCalendarEventSnapshot[];
   weatherEventsToday: Array<{
@@ -98,6 +107,7 @@ export const createPublicCalendarTodaySnapshot = (
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
+  const currentBiome = getCurrentWeatherBiomeDefinition(project);
   const weatherUnits = getWeatherUnitLabels(project.locale);
   const visibleWeatherEvents = currentWeather
     ? getPlayerVisibleWeatherEvents(project, currentWeather, project.currentTime)
@@ -113,6 +123,11 @@ export const createPublicCalendarTodaySnapshot = (
     formattedDate: formatDisplayDate(displayDate, project.locale),
     season: currentSeason ? { name: currentSeason.name, icon: currentSeason.icon } : undefined,
     weather: currentWeather ? { ...currentWeather, units: weatherUnits } : undefined,
+    weatherBiome: {
+      name: t(project.locale, currentBiome.nameKey),
+      icon: currentBiome.icon,
+      description: t(project.locale, currentBiome.descriptionKey)
+    },
     moons: getCurrentMoonPhases(project).map(({ moon, phase }) => ({
       name: moon.name,
       icon: moon.icon ?? phase.icon,
