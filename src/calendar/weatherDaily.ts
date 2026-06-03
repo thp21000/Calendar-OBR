@@ -77,7 +77,11 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
   const season = getSeasonForDate(project, date);
   if (!season) return undefined;
 
-  const profile = resolveEffectiveWeatherProfile(project, { absoluteDay, hour: 12, minute: 0 });
+  const profileTime =
+    absoluteDay === project.currentTime.absoluteDay
+      ? project.currentTime
+      : { absoluteDay, hour: 12, minute: 0 };
+  const profile = resolveEffectiveWeatherProfile(project, profileTime);
   const traits = profile.traits;
   const seedBase = project.weatherSettings.seed || project.id;
   const seed = `${seedBase}|daily|${project.id}|${season.id}|${absoluteDay}`;

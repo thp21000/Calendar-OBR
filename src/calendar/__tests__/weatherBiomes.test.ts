@@ -6,7 +6,8 @@ import {
   getWeatherBiomeTransitionProgress,
   resolveEffectiveWeatherProfile
 } from "../weather/biomes";
-import { generateWeatherForTime } from "../weatherLogic";
+import { getDailyWeatherSummary } from "../weatherDaily";
+import { generateWeatherForTime, getForecastWeatherForTime } from "../weatherLogic";
 import type { CalendarProject, WeatherSnapshot } from "../../domain/types";
 
 const baseWeather: WeatherSnapshot = {
@@ -85,6 +86,28 @@ describe("weather biomes", () => {
     expect(profile.windSpeed.average).toBe(22.5);
     expect(profile.traits.precipitationChance).toBeCloseTo(0.62);
     expect(profile.stateWeights.snow).toBe(2);
+  });
+
+  it("uses current project time for same-day biome transition daily summaries", () => {
+    const base = changeWeatherBiome(projectAtBiome("temperate"), "hell", 8 * 60);
+    const atFourMinutes = { ...base, currentTime: { ...base.currentTime, absoluteDay: 0, hour: 8, minute: 4 } };
+    const atFiveMinutes = { ...base, currentTime: { ...base.currentTime, absoluteDay: 0, hour: 8, minute: 5 } };
+
+    const firstSummary = getDailyWeatherSummary(atFourMinutes, 0)!;
+    const steppedSummary = getDailyWeatherSummary(atFiveMinutes, 0)!;
+
+    expect(firstSummary.averageTemperature).toBeLessThan(steppedSummary.averageTemperature);
+    expect(firstSummary.maxTemperature).toBeLessThan(steppedSummary.maxTemperature);
+  });
+
+  it("lets same-day forecasts progress biome transitions through generated weather", () => {
+    const project = changeWeatherBiome(projectAtBiome("temperate"), "hell", 8 * 60);
+    project.currentTime = { absoluteDay: 0, hour: 8, minute: 0 };
+
+    const currentWeather = generateWeatherForTime(project, 0, 8, 0)!;
+    const forecastWeather = getForecastWeatherForTime(project, 0, 9, 1)!;
+
+    expect(forecastWeather.temperature).toBeGreaterThan(currentWeather.temperature);
   });
 
   it("generates distinct weather from desert, arctic and cave base profiles", () => {
