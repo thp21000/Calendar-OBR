@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { changeWeatherBiome, getCurrentWeatherBiomeDefinition, getWeatherBiomeDefinition, WEATHER_BIOME_DEFINITIONS, type WeatherBiomeId } from "../../calendar/weather/biomes";
+import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
+import { formatDisplayDate } from "../../calendar/formatDisplayDate";
 import { toAbsoluteMinutes } from "../../calendar/weatherEventsLogic";
 import type { CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { sendPopupNotification } from "../../obr/popupNotifications";
 import { PrimaryButton, SecondaryButton } from "../ui";
 
 export const WeatherBiomePickerPopup = ({ project, onClose, onApply }: { project: CalendarProject; onClose: () => void; onApply: (project: CalendarProject) => void }) => {
@@ -11,8 +14,21 @@ export const WeatherBiomePickerPopup = ({ project, onClose, onApply }: { project
   const selectedDefinition = getWeatherBiomeDefinition(selectedBiomeId);
 
   const applySelection = () => {
+    const changed = selectedBiomeId !== currentDefinition.id;
     onApply(changeWeatherBiome(project, selectedBiomeId, toAbsoluteMinutes(project.currentTime)));
     onClose();
+    if (!changed) return;
+
+    const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
+    sendPopupNotification({
+      type: "weather",
+      audience: "players",
+      title: t(project.locale, selectedDefinition.nameKey),
+      body: t(project.locale, selectedDefinition.entryMessageKey),
+      date: formatDisplayDate(displayDate, project.locale),
+      icon: selectedDefinition.icon,
+      summary: t(project.locale, selectedDefinition.descriptionKey)
+    });
   };
 
   return (
@@ -42,10 +58,6 @@ export const WeatherBiomePickerPopup = ({ project, onClose, onApply }: { project
               </button>
             );
           })}
-        </div>
-
-        <div style={{ marginTop: 8, fontSize: 12, color: "#cbd5e1" }}>
-          {selectedDefinition.icon} {t(project.locale, selectedDefinition.entryMessageKey)}
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>

@@ -1,15 +1,14 @@
+import { useState } from "react";
 import { getWeatherStateIcon } from "../../calendar/weatherState";
 import { getWeatherOverrideForTime } from "../../calendar/weatherOverrides";
 import { getCurrentWeatherBiomeDefinition } from "../../calendar/weather/biomes";
-import { getWeatherEventDurationHours } from "../../calendar/weatherEventsLogic";
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
-import type { CalendarProject, MoonPhase, Season, WeatherEvent, WeatherOverride, WeatherSnapshot } from "../../domain/types";
+import type { CalendarProject, MoonPhase, Season, WeatherOverride, WeatherSnapshot } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
-import { Badge, Panel, SecondaryButton, SectionCard, SectionHeader } from "../ui";
+import { Badge, Panel, SectionCard } from "../ui";
 import { ui } from "../ui/styles";
 import { getRainIcon, getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIcon } from "./weatherIcons";
-import { sendPopupNotification } from "../../obr/popupNotifications";
 
 type WeatherUnits = { temperature: string; windSpeed: string; rain: string };
 
@@ -22,26 +21,6 @@ const formatMinuteOfDay = (minutes: number): string => {
 
 const isTimedOverride = (override: WeatherOverride | undefined): override is WeatherOverride & { startMinuteOfDay: number; endMinuteOfDay: number } =>
   typeof override?.startMinuteOfDay === "number" && typeof override.endMinuteOfDay === "number";
-
-const getWeatherEventTimeLabel = (project: CalendarProject, event: WeatherEvent): string => {
-  const durationHours = getWeatherEventDurationHours(event);
-  if (typeof durationHours === "number") return t(project.locale, "weatherEvents.durationShort").replace("{count}", String(durationHours));
-  return t(project.locale, "weatherEvents.activeNow");
-};
-
-const sendWeatherEventToPlayers = (project: CalendarProject, event: WeatherEvent, dateLabel: string) => {
-  sendPopupNotification({
-    type: "weather",
-    audience: "players",
-    title: event.name,
-    body: event.playerDescription?.trim() || event.summary || event.name,
-    date: dateLabel,
-    icon: event.icon,
-    summary: event.summary,
-    playerDescription: event.playerDescription,
-    timeLabel: getWeatherEventTimeLabel(project, event)
-  });
-};
 
 const getForcedOverrideValues = (project: CalendarProject, override: WeatherOverride, weatherUnits: WeatherUnits): string[] => {
   const values: string[] = [];
@@ -75,7 +54,6 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
   const overrideName = override?.label?.trim();
   const overrideLabel = `${t(project.locale, "weatherOverride.active")}${overrideName ? `: ${overrideName}` : ""}${overrideTimeRange ? `${overrideName ? " · " : ": "}${overrideTimeRange}` : ""}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
-  const dateLabel = `${displayDate.weekdayName ?? ""} ${displayDate.dayOfMonth} ${displayDate.monthName} ${displayDate.year}`.trim();
   const biome = getCurrentWeatherBiomeDefinition(project);
 
   return (
@@ -88,6 +66,12 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
         <span style={{ whiteSpace: "nowrap" }}>{String(project.currentTime.hour).padStart(2, "0")}:{String(project.currentTime.minute).padStart(2, "0")}</span>
         {currentSeason ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{currentSeason.icon ?? "🍃"} {currentSeason.name}</span> : null}
         {currentMoonPhases.map(({ moon, phase }) => <span key={moon.id} title={t(project.locale, `moon.phase.${phase.id}`)} style={{ whiteSpace: "nowrap" }}>{moon.icon ?? phase.icon}</span>)}
+      </div>
+
+      <div style={biomeInlineStyle}>
+        <span>{biome.icon}</span>
+        <strong>{t(project.locale, "weatherBiome.label")} {t(project.locale, biome.nameKey)}</strong>
+        <span>: {t(project.locale, biome.descriptionKey)}</span>
       </div>
 
       <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, rowGap: 6, fontSize: 13 }}>
@@ -111,14 +95,6 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
             {currentWeather.dailyRainTotal !== undefined ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>24 h: {currentWeather.dailyRainTotal} {weatherUnits.rain}</span> : null}
           </>
         ) : <span style={{ fontSize: 12, color: "#94a3b8" }}>{t(project.locale, "calendar.noWeather")}</span>}
-      </div>
-
-      <div style={{ marginTop: 8, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, background: ui.colors.surface, padding: ui.spacing.sm, display: "grid", gridTemplateColumns: "28px 1fr", gap: 8, alignItems: "start" }}>
-        <span style={{ fontSize: 20 }}>{biome.icon}</span>
-        <span style={{ display: "grid", gap: 2 }}>
-          <strong style={{ fontSize: 12 }}>{t(project.locale, biome.nameKey)}</strong>
-          <span style={{ fontSize: 11, color: ui.colors.textSecondary }}>{t(project.locale, biome.descriptionKey)}</span>
-        </span>
       </div>
 
       {currentWeather?.trendKind || currentWeather?.dominantState ? (
@@ -161,7 +137,6 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
             {event.summary ? <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{event.summary}</div> : null}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 4 }} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>
               {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: ui.colors.accent }}>{t(project.locale, "common.openLink")}</a> : null}
-              <SecondaryButton type="button" onClick={() => sendWeatherEventToPlayers(project, event, dateLabel)} style={{ padding: "4px 8px", fontSize: 11 }}>{t(project.locale, "common.send")}</SecondaryButton>
             </div>
           </div>
         ))}
@@ -170,25 +145,56 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
   );
 };
 
-export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits }: Pick<Props, "project"|"hourlyForecast"|"weatherUnits">) => (
-  <SectionCard>
-    <SectionHeader title={t(project.locale, "weather.forecast5h")} />
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(74px, 1fr))", gap: 6, width: "100%" }}>
-      {hourlyForecast.map((entry) => (
-        <Panel key={entry.offsetHours} style={{ background: ui.colors.surfaceSoft, minHeight: 96, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
-          <div style={{ fontSize: 12, fontWeight: 800 }}>+{entry.offsetHours} h</div>
-          <div>{getTemperatureIcon(entry.weather.temperature)} {entry.weather.temperature} {weatherUnits.temperature}</div>
-          <div>
-            {getWindSpeedIcon(entry.weather.windSpeed)} {entry.weather.windSpeed} {weatherUnits.windSpeed}
-            {entry.weather.windDirection ? <span title={entry.weather.windDirection}> {getWindDirectionIcon(entry.weather.windDirection)}</span> : null}
-          </div>
-          <div>{getRainIcon(entry.weather)} {entry.weather.rain} {weatherUnits.rain}</div>
-          {entry.weather.trendKind ? <div>{getTrendIcon(entry.weather.trendKind)} {t(project.locale, `weather.trend.${entry.weather.trendKind}`)}</div> : null}
-        </Panel>
-      ))}
-    </div>
-  </SectionCard>
-);
+const biomeInlineStyle: React.CSSProperties = {
+  marginTop: 8,
+  fontSize: 12,
+  color: ui.colors.textSecondary,
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: 4
+};
+
+const forecastHeaderButtonStyle: React.CSSProperties = {
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: ui.spacing.sm,
+  padding: 0,
+  border: 0,
+  background: "transparent",
+  color: ui.colors.textPrimary,
+  cursor: "pointer",
+  fontSize: 14,
+  fontWeight: 700
+};
+
+export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits }: Pick<Props, "project"|"hourlyForecast"|"weatherUnits">) => {
+  const [open, setOpen] = useState(true);
+  return (
+    <SectionCard>
+      <button type="button" onClick={() => setOpen((value) => !value)} style={forecastHeaderButtonStyle}>
+        <span>{t(project.locale, "weather.forecast5h")}</span>
+        <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+      </button>
+      {open ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(74px, 1fr))", gap: 6, width: "100%" }}>
+        {hourlyForecast.map((entry) => (
+          <Panel key={entry.offsetHours} style={{ background: ui.colors.surfaceSoft, minHeight: 96, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
+            <div style={{ fontSize: 12, fontWeight: 800 }}>+{entry.offsetHours} h</div>
+            <div>{getTemperatureIcon(entry.weather.temperature)} {entry.weather.temperature} {weatherUnits.temperature}</div>
+            <div>
+              {getWindSpeedIcon(entry.weather.windSpeed)} {entry.weather.windSpeed} {weatherUnits.windSpeed}
+              {entry.weather.windDirection ? <span title={entry.weather.windDirection}> {getWindDirectionIcon(entry.weather.windDirection)}</span> : null}
+            </div>
+            <div>{getRainIcon(entry.weather)} {entry.weather.rain} {weatherUnits.rain}</div>
+            {entry.weather.trendKind ? <div>{getTrendIcon(entry.weather.trendKind)} {t(project.locale, `weather.trend.${entry.weather.trendKind}`)}</div> : null}
+          </Panel>
+        ))}
+      </div> : null}
+    </SectionCard>
+  );
+};
 
 export const WeatherAndSeasonCard = ({ project, currentSeason, currentWeather, hourlyForecast, triggeredWeatherEvents, weatherUnits, currentMoonPhases, onSelectWeatherEvent }: Props) => (
   <>
