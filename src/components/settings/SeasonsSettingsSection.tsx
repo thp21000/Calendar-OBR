@@ -1,10 +1,9 @@
-import { createDefaultSeason, createDefaultSeasonWeatherProfile, deleteSeason, parseWeatherInput, sortSeasonsByStartDate, updateSeason } from "../../calendar/seasonsLogic";
-import { deriveSeasonWeatherTraits } from "../../calendar/seasonWeatherProfile";
-import { useEffect, useState } from "react";
+import { createDefaultSeason, deleteSeason, sortSeasonsByStartDate, updateSeason } from "../../calendar/seasonsLogic";
 import { getWeatherUnitLabels } from "../../calendar/weatherUnits";
 import type { CalendarProject, Season } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { CollapsibleSection } from "../CollapsibleSection";
+import { SeasonWeatherModifierEditor } from "./WeatherProfileEditor";
 
 export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; inputStyle: React.CSSProperties }) => {
   const seasons = sortSeasonsByStartDate(project, project.seasons);
@@ -12,7 +11,11 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
   const units = getWeatherUnitLabels(project.locale);
 
   const patchSeason = (season: Season, patch: Partial<Season>) => onProjectUpdate(updateSeason(project, season.id, patch));
-
+  const resetWeatherModifier = (season: Season) => {
+    if (!window.confirm(t(project.locale, "seasons.confirmResetWeatherModifier"))) return;
+    patchSeason(season, { weatherModifier: undefined });
+  };
+  
   return (
     <>
       {seasons.length === 0 ? <div style={{ color: "#9ca3af", fontSize: 12, marginBottom: 8 }}>{t(project.locale, "seasons.empty")}</div> : null}
@@ -34,47 +37,20 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
             </Field>
             <Field label={t(project.locale, "seasons.endDay")}><input type="number" min={1} value={season.end.dayOfMonth} onChange={(e) => patchSeason(season, { end: { ...season.end, dayOfMonth: Number(e.target.value) } })} style={inputStyle} /></Field>
           </div>
-          <CollapsibleSection title={t(project.locale, "seasons.weatherProfile")}>
-            {(() => {
-              const profile = season.weatherProfile ?? createDefaultSeasonWeatherProfile();
-              return (
-                <>
-                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.temperature")} ({units.temperature})</div>
-                  <RangeEditor
-                    allowNegative
-                    locale={project.locale}
-                    inputStyle={inputStyle}
-                    value={profile.temperature}
-                    onChange={(next) => patchSeason(season, { weatherProfile: { ...profile, temperature: next } })}
-                  />
-                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.windSpeed")} ({units.windSpeed})</div>
-                  <RangeEditor
-                    allowNegative={false}
-                    locale={project.locale}
-                    inputStyle={inputStyle}
-                    value={profile.windSpeed}
-                    onChange={(next) => patchSeason(season, { weatherProfile: { ...profile, windSpeed: next } })}
-                  />
-                  <div style={{ fontSize: 12, color: "#cbd5e1", marginBottom: 4 }}>{t(project.locale, "seasons.rain")} ({units.rain})</div>
-                  <RangeEditor
-                    allowNegative={false}
-                    locale={project.locale}
-                    inputStyle={inputStyle}
-                    value={profile.rain}
-                    onChange={(next) => patchSeason(season, { weatherProfile: { ...profile, rain: next } })}
-                  />
-                  <CollapsibleSection title={t(project.locale, "seasons.weatherAdvanced")}>
-                    <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6 }}>{t(project.locale, "seasons.weatherAdvancedHelp")}</div>
-                    <AdvancedWeatherTraitsEditor
-                      locale={project.locale}
-                      inputStyle={inputStyle}
-                      profile={profile}
-                      onChange={(nextTraits) => patchSeason(season, { weatherProfile: { ...profile, ...nextTraits } })}
-                    />
-                  </CollapsibleSection>
-                </>
-              );
-            })()}
+          <CollapsibleSection title={t(project.locale, "seasons.weatherModifier")}>
+            <SeasonWeatherModifierEditor
+              locale={project.locale}
+              units={units}
+              inputStyle={inputStyle}
+              modifier={season.weatherModifier}
+              onChange={(weatherModifier) => patchSeason(season, { weatherModifier })}
+            />
+            <Action
+              onClick={() => resetWeatherModifier(season)}
+              title={t(project.locale, "weatherProfile.help.resetSeasonModifier")}
+            >
+              {t(project.locale, "seasons.resetWeatherModifier")}
+            </Action>
           </CollapsibleSection>
           <Action onClick={() => {
             if (!window.confirm(t(project.locale, "seasons.confirmDelete"))) return;
@@ -88,77 +64,4 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
 };
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (<label style={{ display: "block" }}><div style={{ fontSize: 12, color: "#cbd5e1" }}>{label}</div>{children}</label>);
-const Action = ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button type="button" style={{ border: "1px solid #4b5563", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "5px 8px", fontSize: 12 }} {...props}>{children}</button>;
-
-const RangeEditor = ({
-  allowNegative = false,
-  locale,
-  inputStyle,
-  value,
-  onChange
-}: {
-  allowNegative?: boolean;
-  locale: "fr" | "en";
-  inputStyle: React.CSSProperties;
-  value: { min: number; max: number; average: number };
-  onChange: (next: { min: number; max: number; average: number }) => void;
-}) => {
-  const [draft, setDraft] = useState({ min: String(value.min), average: String(value.average), max: String(value.max) });
-
-  useEffect(() => {
-    setDraft({ min: String(value.min), average: String(value.average), max: String(value.max) });
-  }, [value.min, value.average, value.max]);
-
-  const updateDraft = (key: "min" | "average" | "max", raw: string) => {
-    const nextDraft = { ...draft, [key]: raw };
-    setDraft(nextDraft);
-    const parsed = parseWeatherInput(raw);
-    if (parsed === null) return;
-    const safe = allowNegative ? parsed : Math.max(0, parsed);
-    onChange({ ...value, [key]: safe });
-  };
-
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 8 }}>
-      <Field label={t(locale, "seasons.min")}><input type="text" inputMode="decimal" value={draft.min} onChange={(e) => updateDraft("min", e.target.value)} style={inputStyle} /></Field>
-      <Field label={t(locale, "seasons.average")}><input type="text" inputMode="decimal" value={draft.average} onChange={(e) => updateDraft("average", e.target.value)} style={inputStyle} /></Field>
-      <Field label={t(locale, "seasons.max")}><input type="text" inputMode="decimal" value={draft.max} onChange={(e) => updateDraft("max", e.target.value)} style={inputStyle} /></Field>
-    </div>
-  );
-};
-
-const AdvancedWeatherTraitsEditor = ({ locale, inputStyle, profile, onChange }: { locale: "fr" | "en"; inputStyle: React.CSSProperties; profile: ReturnType<typeof createDefaultSeasonWeatherProfile>; onChange: (next: Partial<ReturnType<typeof createDefaultSeasonWeatherProfile> & { [k: string]: number | undefined }>) => void }) => {
-  const derived = deriveSeasonWeatherTraits(profile);
-  const rows: Array<{ key: "stability" | "precipitationChance" | "stormChance" | "fogChance" | "temperatureSwing" | "windVariability"; labelKey: string }> = [
-    { key: "stability", labelKey: "seasons.stability" },
-    { key: "precipitationChance", labelKey: "seasons.precipitationChance" },
-    { key: "stormChance", labelKey: "seasons.stormChance" },
-    { key: "fogChance", labelKey: "seasons.fogChance" },
-    { key: "temperatureSwing", labelKey: "seasons.temperatureSwing" },
-    { key: "windVariability", labelKey: "seasons.windVariability" }
-  ];
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-    {rows.map((row) => {
-      const raw = (profile as Record<string, unknown>)[row.key];
-      const shown = typeof raw === "number" ? String(Math.round(raw * 100)) : "";
-      const placeholder = String(Math.round(derived[row.key] * 100));
-      return <Field key={row.key} label={t(locale, row.labelKey)}>
-        <input
-          type="number"
-          min={0}
-          max={100}
-          placeholder={placeholder}
-          value={shown}
-          onChange={(e) => {
-            const v = e.target.value.trim();
-            if (v === "") return onChange({ [row.key]: undefined });
-            const n = Number(v);
-            if (!Number.isFinite(n)) return;
-            onChange({ [row.key]: Math.min(1, Math.max(0, n / 100)) });
-          }}
-          style={inputStyle}
-        />
-      </Field>;
-    })}
-  </div>;
-};
+const Action = ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button type="button" style={{ border: "1px solid #4b5563", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "5px 8px", fontSize: 12, marginTop: 6 }} {...props}>{children}</button>;

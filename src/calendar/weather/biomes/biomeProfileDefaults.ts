@@ -9,8 +9,8 @@ import type { WeatherBiomeId, WeatherBiomeProfile } from "./types";
 * La vitesse du vent définit la plage de vitesses du vent du biome.
 * La stabilité des caractéristiques (traits.stability) varie de 0 à 1; une valeur plus élevée indique une météo plus stable.
 * La probabilité de précipitations (traits.precipitationChance) varie de 0 à 1; il s'agit d'une probabilité générale de précipitations.
-* La probabilité de brouillard (traits.fogChance) varie de 0 à 1; il s'agit d'une probabilité générale d'orages/tempêtes.
-* L'amplitude jour/nuit (traits.dayNightAmplitude) correspond à l'écart de température entre le jour et la nuit, exprimé en degrés.
+* La probabilité de brouillard (traits.fogChance) varie de 0 à 1 ; il s’agit d’une probabilité générale de brouillard.
+* traits.stormChance varie de 0 à 1 ; il s’agit d’une probabilité générale d’orage ou de tempête.
 * La variabilité du vent (traits.windVariability) varie de 0 à 1; une valeur plus élevée indique une plus grande variabilité du vent.
 * Les pondérations des états météorologiques sont des coefficients multiplicatifs; une valeur manquante correspond à 1.
 */

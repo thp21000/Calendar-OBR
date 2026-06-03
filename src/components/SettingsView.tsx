@@ -11,6 +11,7 @@ import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
 import { MoonsSettingsSection } from "./settings/MoonsSettingsSection";
 import { PacksSettingsSection } from "./settings/PacksSettingsSection";
 import { SeasonsSettingsSection } from "./settings/SeasonsSettingsSection";
+import { WeatherBiomesSettingsSection } from "./settings/WeatherBiomesSettingsSection";
 import { WeatherSettingsSection } from "./settings/WeatherSettingsSection";
 
 export const SettingsView = ({
@@ -48,6 +49,10 @@ export const SettingsView = ({
 
       <CollapsibleSection title={t(project.locale, "settings.section.seasons")} storageKey="calendar-obr.settings.section.seasons">
         <SeasonsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
+      </CollapsibleSection>
+
+      <CollapsibleSection title={t(project.locale, "settings.section.weatherBiomes")} storageKey="calendar-obr.settings.section.weatherBiomes">
+        <WeatherBiomesSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </CollapsibleSection>
       
       <CollapsibleSection title={t(project.locale, "settings.section.moons")} storageKey="calendar-obr.settings.section.moons">
