@@ -184,6 +184,52 @@ export type WeatherOverride = {
   dominantState?: WeatherState;
   trendKind?: WeatherTrendKind;
   gmNote?: string;
+  source?: "manual" | "weatherEvent" | "sceneWeather";
+  sourceId?: string;
+  sceneId?: string;
+  sceneName?: string;
+  transitionStartAtMinutes?: number;
+  transitionDurationMinutes?: number;
+  transitionFrom?: {
+    temperature?: number;
+    dailyMinTemperature?: number;
+    dailyMaxTemperature?: number;
+    rain?: number;
+    dailyRainTotal?: number;
+    windSpeed?: number;
+  };
+};
+
+export type SceneWeatherProfile = {
+  id: string;
+  name: string;
+  icon?: string;
+  enabled: boolean;
+  durationMinutes?: number;
+  transitionMinutes?: number;
+  forceBiomeId?: WeatherBiomeId;
+  override: {
+    temperature?: number;
+    dailyMinTemperature?: number;
+    dailyMaxTemperature?: number;
+    rain?: number;
+    dailyRainTotal?: number;
+    windSpeed?: number;
+    windDirection?: WindDirection;
+    state?: WeatherState;
+    dominantState?: WeatherState;
+    trendKind?: WeatherTrendKind;
+    gmNote?: string;
+  };
+};
+
+export type SceneWeatherSceneState = {
+  profileId?: string;
+  profileName?: string;
+  profileIcon?: string;
+  isActive?: boolean;
+  lastAppliedAtMinutes?: number;
+  lastPromptedAtMinutes?: number;
 };
 
 export type WeatherConditionMetric = "temperature" | "windSpeed" | "rain" | "dailyMinTemperature" | "dailyMaxTemperature" | "dailyRainTotal";
@@ -333,6 +379,7 @@ export type CalendarProject = {
   weatherOverrides?: WeatherOverride[];
   weatherBiome?: WeatherBiomeState;
   weatherBiomeProfiles?: Partial<Record<WeatherBiomeId, WeatherBiomeProfile>>;
+  sceneWeatherProfiles?: SceneWeatherProfile[];
   uiSettings: UiSettings;
 };
 

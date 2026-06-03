@@ -40,6 +40,7 @@ const defaultProject: CalendarProject = {
   weatherEvents: [],
   weatherOverrides: [],
   weatherBiome: { currentBiomeId: DEFAULT_WEATHER_BIOME_ID },
+  sceneWeatherProfiles: [],
   uiSettings: { activeTab: "today", compactMode: true, defaultMoonSystemInitialized: true }
 };
 

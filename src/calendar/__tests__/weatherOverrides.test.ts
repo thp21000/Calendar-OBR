@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
-import { applyWeatherOverrideToDailySummary, getWeatherOverrideForDay } from "../weatherOverrides";
+import { applyWeatherOverrideToDailySummary, getWeatherOverrideForDay, getWeatherOverrideForTime } from "../weatherOverrides";
 
 describe("weatherOverrides", () => {
   it("récupère l'override du jour", () => {
@@ -31,4 +31,33 @@ describe("weatherOverrides", () => {
     expect(next.maxWindSpeed).toBe(base.maxWindSpeed);
     expect(next.rainTotal24h).toBe(base.rainTotal24h);
   });
+});
+
+
+it("interpole les overrides de météo de scène pendant la transition", () => {
+  const project = createDefaultCalendarProject();
+  project.weatherOverrides = [{
+    id: "scene-transition",
+    absoluteDay: 0,
+    startMinuteOfDay: 60,
+    endMinuteOfDay: 180,
+    source: "sceneWeather",
+    temperature: 20,
+    rain: 10,
+    windSpeed: 30,
+    state: "storm",
+    transitionStartAtMinutes: 60,
+    transitionDurationMinutes: 60,
+    transitionFrom: { temperature: 10, rain: 0, windSpeed: 10 }
+  }];
+
+  const early = getWeatherOverrideForTime(project, 0, 1, 15);
+  expect(early?.temperature).toBe(12.5);
+  expect(early?.rain).toBe(2.5);
+  expect(early?.windSpeed).toBe(15);
+  expect(early?.state).toBeUndefined();
+
+  const late = getWeatherOverrideForTime(project, 0, 1, 45);
+  expect(late?.temperature).toBe(17.5);
+  expect(late?.state).toBe("storm");
 });

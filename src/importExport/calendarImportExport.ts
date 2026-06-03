@@ -13,6 +13,15 @@ const weatherBiomeIds = new Set(WEATHER_BIOME_DEFINITIONS.map((definition) => de
 const isWeatherBiomeId = (value: unknown): value is WeatherBiomeId =>
   typeof value === "string" && weatherBiomeIds.has(value as WeatherBiomeId);
 
+const isWeatherState = (value: unknown): boolean =>
+  value === "clear" || value === "cloudy" || value === "overcast" || value === "fog" || value === "lightRain" || value === "heavyRain" || value === "storm" || value === "snow" || value === "strongWind" || value === "tempest";
+
+const isWindDirection = (value: unknown): boolean =>
+  value === "N" || value === "NE" || value === "E" || value === "SE" || value === "S" || value === "SW" || value === "W" || value === "NW";
+
+const isTrendKind = (value: unknown): boolean =>
+  value === "cold" || value === "warm" || value === "wet" || value === "dry" || value === "windy" || value === "calm" || value === "stormy" || value === "stable" || value === "unstable";
+
 const numericRange = (value: unknown, fallback: WeatherValueRange): WeatherValueRange =>
   isRecord(value)
     ? {
@@ -146,7 +155,8 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     dayNotes: Array.isArray(data.dayNotes) ? data.dayNotes : [],
     moonEvents: Array.isArray(data.moonEvents) ? data.moonEvents : [],
     weatherEvents: Array.isArray(data.weatherEvents) ? data.weatherEvents : [],
-    weatherOverrides: Array.isArray((data as Record<string, unknown>).weatherOverrides) ? (data as Record<string, unknown>).weatherOverrides as unknown[] : []
+    weatherOverrides: Array.isArray((data as Record<string, unknown>).weatherOverrides) ? (data as Record<string, unknown>).weatherOverrides as unknown[] : [],
+    sceneWeatherProfiles: Array.isArray((data as Record<string, unknown>).sceneWeatherProfiles) ? (data as Record<string, unknown>).sceneWeatherProfiles as unknown[] : []
   };
 
   if (!isRecord(maybeCompat.weatherSettings)) {
@@ -231,6 +241,37 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     });
   }
 
+  if (Array.isArray(maybeCompat.sceneWeatherProfiles)) {
+    maybeCompat.sceneWeatherProfiles = maybeCompat.sceneWeatherProfiles
+      .filter(isRecord)
+      .filter((profile) => typeof profile.id === "string" && profile.id.trim().length > 0)
+      .filter((profile) => typeof profile.name === "string" && profile.name.trim().length > 0)
+      .map((profile) => {
+        const next = { ...profile } as Record<string, unknown>;
+        if (typeof next.icon !== "string") delete next.icon;
+        if (typeof next.enabled !== "boolean") next.enabled = true;
+        if (typeof next.durationMinutes !== "number" || !Number.isFinite(next.durationMinutes) || next.durationMinutes < 5) delete next.durationMinutes;
+        else next.durationMinutes = Math.trunc(next.durationMinutes);
+        if (typeof next.transitionMinutes !== "number" || !Number.isFinite(next.transitionMinutes) || next.transitionMinutes < 0) delete next.transitionMinutes;
+        else next.transitionMinutes = Math.trunc(next.transitionMinutes);
+        if (!isWeatherBiomeId(next.forceBiomeId)) delete next.forceBiomeId;
+        const sourceOverride = isRecord(next.override) ? next.override : {};
+        const override: Record<string, unknown> = {};
+        for (const key of ["temperature", "dailyMinTemperature", "dailyMaxTemperature", "rain", "dailyRainTotal", "windSpeed"]) {
+          const value = sourceOverride[key];
+          if (typeof value !== "number" || !Number.isFinite(value)) continue;
+          override[key] = (key === "rain" || key === "dailyRainTotal" || key === "windSpeed") && value < 0 ? 0 : value;
+        }
+        if (isWindDirection(sourceOverride.windDirection)) override.windDirection = sourceOverride.windDirection;
+        if (isWeatherState(sourceOverride.state)) override.state = sourceOverride.state;
+        if (isWeatherState(sourceOverride.dominantState)) override.dominantState = sourceOverride.dominantState;
+        if (isTrendKind(sourceOverride.trendKind)) override.trendKind = sourceOverride.trendKind;
+        if (typeof sourceOverride.gmNote === "string") override.gmNote = sourceOverride.gmNote;
+        next.override = override;
+        return next;
+      });
+  }
+
   if (Array.isArray((maybeCompat as Record<string, unknown>).weatherOverrides)) {
     (maybeCompat as Record<string, unknown>).weatherOverrides = ((maybeCompat as Record<string, unknown>).weatherOverrides as unknown[])
       .filter(isRecord)
@@ -246,10 +287,24 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         for (const k of ["temperature", "dailyMinTemperature", "dailyMaxTemperature", "dailyRainTotal", "windSpeed", "rain"]) num(k, ["dailyRainTotal","windSpeed","rain"].includes(k));
         if (typeof n.label !== "string") delete n.label;
         if (typeof n.gmNote !== "string") delete n.gmNote;
-        if (!(n.windDirection === "N" || n.windDirection === "NE" || n.windDirection === "E" || n.windDirection === "SE" || n.windDirection === "S" || n.windDirection === "SW" || n.windDirection === "W" || n.windDirection === "NW")) delete n.windDirection;
-        if (!(n.state === "clear" || n.state === "cloudy" || n.state === "overcast" || n.state === "fog" || n.state === "lightRain" || n.state === "heavyRain" || n.state === "storm" || n.state === "snow" || n.state === "strongWind" || n.state === "tempest")) delete n.state;
-        if (!(n.dominantState === "clear" || n.dominantState === "cloudy" || n.dominantState === "overcast" || n.dominantState === "fog" || n.dominantState === "lightRain" || n.dominantState === "heavyRain" || n.dominantState === "storm" || n.dominantState === "snow" || n.dominantState === "strongWind" || n.dominantState === "tempest")) delete n.dominantState;
-        if (!(n.trendKind === "cold" || n.trendKind === "warm" || n.trendKind === "wet" || n.trendKind === "dry" || n.trendKind === "windy" || n.trendKind === "calm" || n.trendKind === "stormy" || n.trendKind === "stable" || n.trendKind === "unstable")) delete n.trendKind;
+        if (!isWindDirection(n.windDirection)) delete n.windDirection;
+        if (!isWeatherState(n.state)) delete n.state;
+        if (!isWeatherState(n.dominantState)) delete n.dominantState;
+        if (!isTrendKind(n.trendKind)) delete n.trendKind;
+        if (!(n.source === "manual" || n.source === "weatherEvent" || n.source === "sceneWeather")) delete n.source;
+        if (typeof n.sourceId !== "string") delete n.sourceId;
+        if (typeof n.sceneId !== "string") delete n.sceneId;
+        if (typeof n.sceneName !== "string") delete n.sceneName;
+        for (const k of ["transitionStartAtMinutes", "transitionDurationMinutes"]) num(k, true);
+        if (isRecord(n.transitionFrom)) {
+          const from = { ...n.transitionFrom } as Record<string, unknown>;
+          for (const k of ["temperature", "dailyMinTemperature", "dailyMaxTemperature", "dailyRainTotal", "windSpeed", "rain"]) {
+            const v = from[k];
+            if (typeof v !== "number" || !Number.isFinite(v)) delete from[k];
+            else if (["dailyRainTotal", "windSpeed", "rain"].includes(k) && v < 0) from[k] = 0;
+          }
+          n.transitionFrom = from;
+        } else delete n.transitionFrom;
         return n;
       });
   }

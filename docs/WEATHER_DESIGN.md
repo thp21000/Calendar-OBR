@@ -1208,3 +1208,21 @@ Précisions :
 - `dominantState` correspond à l'état dominant du jour au moment du déclenchement.
 - `temperature`, `rain` et `windSpeed` correspondent aux valeurs météo au moment du déclenchement.
 - L'historique ne stocke pas toute la météo heure par heure, seulement un résumé du moment du déclenchement.
+
+## Météo de scène OBR
+
+La météo de scène est un forçage temporaire lié à la scène Owlbear Rodeo courante.
+
+Principes :
+
+- les profils météo de scène sont des modèles globaux du calendrier, configurés dans Paramètres ;
+- l’affectation d’un profil à une scène est stockée dans les métadonnées de la scène OBR, sous la clé `com.gmtools.calendar.sceneWeather` ;
+- l’affectation stocke au minimum l’identifiant, le nom et l’icône du profil, ainsi que l’état actif/inactif ;
+- sélectionner un profil pour une scène ne l’applique pas immédiatement ;
+- à l’ouverture d’une scène avec profil enregistré mais inactif, le MJ doit confirmer l’application ;
+- une scène sans profil actif désactive les overrides de source `sceneWeather` et revient à la météo automatique ;
+- l’application d’un profil passe par `WeatherOverride`, avec `source: "sceneWeather"`, afin de conserver la priorité existante des overrides récents ;
+- les overrides manuels et les événements météo ne sont pas supprimés par le retour automatique, seuls les overrides de source `sceneWeather` concernés le sont ;
+- les transitions interpolent les champs numériques et basculent les champs non numériques à mi-transition.
+
+Hors contexte OBR, l’addon doit rester utilisable : les helpers de métadonnées ne plantent pas et la gestion manuelle du menu reste possible avec une scène locale implicite.

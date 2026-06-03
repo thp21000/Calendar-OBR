@@ -623,12 +623,14 @@ describe("calendarImportExport phase17 integrity", () => {
     const project = createDefaultCalendarProject();
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];
     project.weatherOverrides = [{ id: "ov1", absoluteDay: 2, temperature: 8, dailyRainTotal: 4, windSpeed: 6, rain: 1 }];
+    project.sceneWeatherProfiles = [{ id: "sw1", name: "Scene rain", enabled: true, durationMinutes: 30, transitionMinutes: 5, override: { rain: 4, state: "lightRain" } }];
     project.weatherEvents = [{ id: "we1", name: "W", enabled: true, requireAllConditions: true, conditions: [{ metric: "temperature", operator: "gte", value: 0 }] }];
 
     const reimported = importCalendarProject(exportCalendarProject(project), project);
     expect(reimported.ok).toBe(true);
     if (!reimported.ok) return;
     expect(reimported.project.weatherOverrides).toEqual(project.weatherOverrides);
+    expect(reimported.project.sceneWeatherProfiles).toEqual(project.sceneWeatherProfiles);
     expect(reimported.project.weatherEvents[0].id).toBe("we1");
   });
 
