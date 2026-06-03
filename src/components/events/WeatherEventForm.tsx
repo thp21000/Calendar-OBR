@@ -142,7 +142,7 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
       <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.cooldownHours")} help={t(project.locale, "weatherEvents.cooldownHelp")} /><input type="number" min={0} step={1} value={draft.cooldownHours ?? ""} onChange={(e) => updateDraft({ cooldownHours: e.target.value.trim() === "" ? undefined : Math.max(0, Math.trunc(Number(e.target.value) || 0)) })} style={mergedInputStyle} /></label>
     </WeatherEventFormSection>
 
-    <WeatherEventFormSection title={t(project.locale, "weatherEvents.conditions")}>
+    <WeatherEventFormSection title={`${t(project.locale, "weatherEvents.conditions")} (${conditions.length})`}>
       <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.conditions")} help={t(project.locale, "weatherEvents.help.requireAllConditions")} /><select value={draft.requireAllConditions ?? true ? "all" : "any"} onChange={(e) => updateDraft({ requireAllConditions: e.target.value === "all" })} style={mergedInputStyle}><option value="all">{t(project.locale, "weatherEvents.requireAll")}</option><option value="any">{t(project.locale, "weatherEvents.requireAny")}</option></select></label>
 
       {conditions.length === 0 ? <div style={hint}>{t(project.locale, "weatherEvents.noConditions")}</div> : conditions.map((condition, index) => <CollapsibleEditorBlock key={index} title={conditionSummary(project, condition)}>
