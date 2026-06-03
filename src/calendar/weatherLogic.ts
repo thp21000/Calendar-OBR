@@ -1,9 +1,10 @@
-import { createDefaultSeasonWeatherProfile, getCurrentSeason } from "./seasonsLogic";
+import { getCurrentSeason } from "./seasonsLogic";
 import { getHourlyWeatherState, getWeatherState } from "./weatherState";
 import { getDailyWeatherSummary } from "./weatherDaily";
 import { getHourlyRainForDay } from "./weatherRain";
 import { getHourlyWindForDay } from "./weatherWind";
 import { getWeatherOverrideForTime } from "./weatherOverrides";
+import { resolveEffectiveWeatherProfile } from "./weather/biomes";
 import type { CalendarProject, WeatherSnapshot, WindDirection } from "../domain/types";
 
 const WIND_DIRECTIONS: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
@@ -40,7 +41,7 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
   const scopedProject = { ...project, currentTime: { ...project.currentTime, absoluteDay, hour, minute } };
   const season = getCurrentSeason(scopedProject);
   if (!season) return undefined;
-  const profile = season.weatherProfile ?? createDefaultSeasonWeatherProfile();
+  const profile = resolveEffectiveWeatherProfile(scopedProject, { absoluteDay, hour, minute });
   const seedBase = project.weatherSettings.seed || project.id;
   const seed = `${seedBase}|${absoluteDay}|${hour}|${season.id}`;
 

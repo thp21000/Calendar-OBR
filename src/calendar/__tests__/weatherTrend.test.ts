@@ -44,14 +44,14 @@ describe("weatherTrend", () => {
 
   it("saison stable => durée plutôt longue", () => {
     const p = build();
-    (p.seasons[0].weatherProfile as any).stability = 0.9;
+    p.seasons[0].weatherModifier = { traits: { stabilityOffset: 0.4 } };
     const t = getWeatherTrendForDay(p, 20);
     expect(t.durationDays).toBeGreaterThanOrEqual(6);
   });
 
   it("saison instable => durée plutôt courte", () => {
     const p = build();
-    (p.seasons[0].weatherProfile as any).stability = 0.1;
+    p.seasons[0].weatherModifier = { traits: { stabilityOffset: -0.45 } };
     const t = getWeatherTrendForDay(p, 20);
     expect(t.durationDays).toBeLessThanOrEqual(4);
   });

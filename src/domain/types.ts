@@ -1,4 +1,6 @@
-import type { WeatherBiomeState } from "../calendar/weather/biomes/types";
+import type { WeatherBiomeId, WeatherBiomeProfile, WeatherBiomeState } from "../calendar/weather/biomes/types";
+import type { SeasonWeatherModifier } from "../calendar/weather/seasonModifiers/types";
+
 export type LocaleCode = "fr" | "en";
 
 export type UnitsSettings = {
@@ -119,7 +121,9 @@ export type Season = {
   icon?: string;
   start: SeasonDate;
   end: SeasonDate;
+  /** Legacy absolute season climate profile kept for old saves and current settings UI. */
   weatherProfile?: SeasonWeatherProfile;
+  weatherModifier?: SeasonWeatherModifier;
 };
 
 export type SeasonDate = {
@@ -328,6 +332,7 @@ export type CalendarProject = {
   weatherEvents: WeatherEvent[];
   weatherOverrides?: WeatherOverride[];
   weatherBiome?: WeatherBiomeState;
+  weatherBiomeProfiles?: Partial<Record<WeatherBiomeId, WeatherBiomeProfile>>;
   uiSettings: UiSettings;
 };
 

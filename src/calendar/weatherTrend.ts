@@ -1,6 +1,6 @@
 import { absoluteDayToCalendarDate } from "./dateEngine";
-import { deriveSeasonWeatherTraits } from "./seasonWeatherProfile";
-import { createDefaultSeasonWeatherProfile, getSeasonForDate } from "./seasonsLogic";
+import { getSeasonForDate } from "./seasonsLogic";
+import { resolveEffectiveWeatherProfile } from "./weather/biomes";
 import type { CalendarProject, WeatherTrendKind } from "../domain/types";
 
 export type WeatherTrendSummary = {
@@ -56,8 +56,8 @@ const profileForKind = (kind: WeatherTrendKind): Omit<WeatherTrendSummary, "kind
 export const getWeatherTrendForDay = (project: CalendarProject, absoluteDay: number): WeatherTrendSummary => {
   const date = absoluteDayToCalendarDate({ absoluteDay, hour: 12, minute: 0 }, project.calendarSystem);
   const season = getSeasonForDate(project, date);
-  const profile = season?.weatherProfile ?? createDefaultSeasonWeatherProfile();
-  const traits = deriveSeasonWeatherTraits(profile);
+  const profile = resolveEffectiveWeatherProfile(project, { absoluteDay, hour: 12, minute: 0 });
+  const traits = profile.traits;
   const seedBase = project.weatherSettings.seed || project.id;
 
   const avgDuration = traits.stability >= 0.7 ? 8 : traits.stability >= 0.4 ? 5.5 : 3;

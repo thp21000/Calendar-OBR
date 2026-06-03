@@ -151,30 +151,43 @@ Règles actuelles :
 - la pluie ne doit pas rester négative ;
 - les valeurs doivent garantir `min <= average <= max`.
 
-Cette structure reste la base de la météo v2.
+Cette structure est maintenant conservée comme champ legacy pour les anciens calendriers et l'interface existante.
+La base météo principale de la v2 est désormais le profil de biome actif.
 
 ## Modèle cible météo v2
 
-La météo v2 doit fonctionner en couches.
+La météo v2 fonctionne en couches.
 
-Ordre logique :
+Ordre logique actuel :
 
-1. Saison.
-2. Tendance météo sur plusieurs jours.
-3. Résumé météo journalier.
-4. État météo dominant du jour.
-5. Variation horaire.
-6. Snapshot météo actuel.
-7. Événements météo conditionnels.
-8. Affichage MJ / joueur.
+1. Biome actif : profil météo de base.
+2. Saison actuelle : modificateur du profil de biome.
+3. Tendance météo sur plusieurs jours.
+4. Résumé météo journalier.
+5. État météo dominant du jour.
+6. Variation horaire.
+7. Snapshot météo actuel.
+8. Effets météo actifs / overrides MJ, prioritaires sur la génération de base.
+9. Événements météo conditionnels.
+10. Affichage MJ / joueur.
 
 La génération doit rester automatique et déterministe.
 
-## Couche 1 — Saison
+## Couche 1 — Biome + modificateur saisonnier
 
-La saison reste la source principale de la météo.
+Le biome actif est la source principale de la météo.
+Il définit un profil complet : température, pluie horaire, pluie 24 h, vent, traits avancés et poids d'états météo.
 
-Elle définit le climat général avec :
+La saison ne définit plus un climat absolu dans le moteur de génération principal.
+Elle applique un `weatherModifier` optionnel au profil du biome : offsets de température, multiplicateurs de pluie/vent, ajustements de traits et poids d'états météo.
+
+Les anciens champs `season.weatherProfile` sont conservés pour compatibilité et pour l'interface historique, mais ils ne sont plus la source principale de génération.
+
+Un profil ou modificateur absent reste compatible : le moteur utilise le biome tempéré par défaut, les profils de biome intégrés et un modificateur saisonnier neutre.
+
+## Couche legacy — Profil météo de saison
+
+Le profil météo saisonnier historique définit :
 
 - température minimale ;
 - température moyenne ;

@@ -18,11 +18,26 @@ export type WeatherBiomeId =
   | "underground"
   | "cave";
 
-export type WeatherBiomeRules = {
-  temperatureOffset?: number;
-  rainMultiplier?: number;
-  windMultiplier?: number;
-  stateWeights?: Partial<Record<WeatherState, number>>;
+export type WeatherValueRange = {
+  min: number;
+  average: number;
+  max: number;
+};
+
+export type WeatherBiomeProfile = {
+  temperature: WeatherValueRange;
+  rain: WeatherValueRange;
+  dailyRain: WeatherValueRange;
+  windSpeed: WeatherValueRange;
+  traits: {
+    stability: number;
+    precipitationChance: number;
+    fogChance: number;
+    stormChance: number;
+    dayNightAmplitude: number;
+    windVariability: number;
+  };
+  stateWeights: Partial<Record<WeatherState, number>>;
 };
 
 export type WeatherBiomeDefinition = {
@@ -32,7 +47,6 @@ export type WeatherBiomeDefinition = {
   descriptionKey: string;
   entryMessageKey: string;
   transitionDurationMinutes: number;
-  rules: WeatherBiomeRules;
 };
 
 export type WeatherBiomeState = {

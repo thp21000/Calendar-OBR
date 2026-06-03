@@ -1,9 +1,9 @@
 import { absoluteDayToCalendarDate } from "./dateEngine";
-import { deriveSeasonWeatherTraits } from "./seasonWeatherProfile";
-import { createDefaultSeasonWeatherProfile, getSeasonForDate } from "./seasonsLogic";
+import { getSeasonForDate } from "./seasonsLogic";
 import { getWeatherTrendForDay } from "./weatherTrend";
 import { applyWeatherOverrideToDailySummary, getWeatherOverrideForDay } from "./weatherOverrides";
-import { applyBiomeToDailyWeatherSummary } from "./weather/biomes";
+import { adjustStateForWeatherProfile } from "./weather/biomes";
+import { resolveEffectiveWeatherProfile } from "./weather/biomes/biomeProfileResolver";
 import type { CalendarProject, WeatherState, WindDirection } from "../domain/types";
 
 export type DailyWeatherSummary = {
@@ -77,8 +77,8 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
   const season = getSeasonForDate(project, date);
   if (!season) return undefined;
 
-  const profile = season.weatherProfile ?? createDefaultSeasonWeatherProfile();
-  const traits = deriveSeasonWeatherTraits(profile);
+  const profile = resolveEffectiveWeatherProfile(project, { absoluteDay, hour: 12, minute: 0 });
+  const traits = profile.traits;
   const seedBase = project.weatherSettings.seed || project.id;
   const seed = `${seedBase}|daily|${project.id}|${season.id}|${absoluteDay}`;
 
@@ -87,7 +87,7 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
   const effectiveStormChance = clamp01(traits.stormChance + trend.stormChanceModifier);
 
   const temperatureSpan = Math.max(0, profile.temperature.max - profile.temperature.min);
-  const baseSwing = temperatureSpan * (0.25 + traits.temperatureSwing * 0.75);
+  const baseSwing = Math.min(temperatureSpan, traits.dayNightAmplitude);
   const swingNoise = (seeded(seed, "temp:swing") - 0.5) * 2;
   const swingFactor = 1 + swingNoise * (1 - effectiveStability) * 0.5;
   const rawSwing = clamp(baseSwing * swingFactor, 0, temperatureSpan);
@@ -101,9 +101,9 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
   const rainNoise = seeded(seed, "rain:roll");
   const rainHit = rainNoise < traits.precipitationChance;
   const rainIntensity = seeded(seed, "rain:intensity");
-  const rainBase = rainHit ? profile.rain.average * trend.rainMultiplier * (0.3 + rainIntensity * (0.7 + (1 - effectiveStability) * 0.6)) : 0;
-  const rainBoost = profile.rain.max * effectiveStormChance * trend.rainMultiplier * seeded(seed, "rain:storm");
-  const rainTotal24h = Math.max(0, clamp(rainBase + rainBoost, 0, profile.rain.max * 1.8));
+  const rainBase = rainHit ? profile.dailyRain.average * trend.rainMultiplier * (0.3 + rainIntensity * (0.7 + (1 - effectiveStability) * 0.6)) : profile.dailyRain.min;
+  const rainBoost = profile.dailyRain.max * effectiveStormChance * trend.rainMultiplier * seeded(seed, "rain:storm");
+  const rainTotal24h = Math.max(0, clamp(rainBase + rainBoost, profile.dailyRain.min, profile.dailyRain.max));
 
   const windNoise = (seeded(seed, "wind:avg") - 0.5) * 2;
   const windVariance = (profile.windSpeed.max - profile.windSpeed.min) * (0.15 + traits.windVariability * 0.85) * (1 + (1 - effectiveStability) * 0.25);
@@ -123,7 +123,13 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
     rainAverage: profile.rain.average
   });
 
-  const safeState = WEATHER_STATES.includes(dominantState) ? dominantState : "clear";
+  const weightedState = adjustStateForWeatherProfile(dominantState, {
+    temperature: averageTemperature,
+    rain: rainTotal24h,
+    windSpeed: maxWindSpeed,
+    profile
+  }) ?? dominantState;
+  const safeState = WEATHER_STATES.includes(weightedState) ? weightedState : "clear";
 
   const summary: DailyWeatherSummary = {
     absoluteDay,
@@ -136,7 +142,5 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
     dominantState: safeState,
     trendKind: trend.kind
   };
-  const biomeTime = absoluteDay === project.currentTime.absoluteDay ? project.currentTime : { absoluteDay, hour: 12, minute: 0 };
-  const biomeSummary = applyBiomeToDailyWeatherSummary(project, summary, biomeTime);
-  return applyWeatherOverrideToDailySummary(biomeSummary, getWeatherOverrideForDay(project, absoluteDay));
+  return applyWeatherOverrideToDailySummary(summary, getWeatherOverrideForDay(project, absoluteDay));
 };

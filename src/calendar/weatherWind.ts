@@ -1,6 +1,4 @@
-import { deriveSeasonWeatherTraits } from "./seasonWeatherProfile";
-import { createDefaultSeasonWeatherProfile, getSeasonForDate } from "./seasonsLogic";
-import { absoluteDayToCalendarDate } from "./dateEngine";
+import { resolveEffectiveWeatherProfile } from "./weather/biomes";
 import type { CalendarProject, WindDirection } from "../domain/types";
 import type { DailyWeatherSummary } from "./weatherDaily";
 
@@ -51,10 +49,8 @@ export const getHourlyWindForDay = (
   const seedBase = project.weatherSettings.seed || project.id;
   const seed = `${seedBase}|wind|${project.id}|${absoluteDay}|${dailySummary.dominantWindDirection}|${dailySummary.dominantState}`;
 
-  const date = absoluteDayToCalendarDate({ absoluteDay, hour: 12, minute: 0 }, project.calendarSystem);
-  const season = getSeasonForDate(project, date);
-  const profile = season?.weatherProfile ?? createDefaultSeasonWeatherProfile();
-  const traits = deriveSeasonWeatherTraits(profile);
+  const profile = resolveEffectiveWeatherProfile(project, { absoluteDay, hour: 12, minute: 0 });
+  const traits = profile.traits;
 
   const variability = clamp01(traits.windVariability * 0.75 + (1 - traits.stability) * 0.25);
   const dominantIndex = directionIndex(dailySummary.dominantWindDirection);

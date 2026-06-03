@@ -80,6 +80,16 @@ describe("weatherLogic", () => {
       }
     };
     project.seasons = [season];
+    project.weatherBiomeProfiles = {
+      temperate: {
+        temperature: { min: -20, average: -10, max: -5 },
+        windSpeed: { min: 0, average: 3, max: 10 },
+        rain: { min: 0, average: 1, max: 5 },
+        dailyRain: { min: 0, average: 2, max: 8 },
+        traits: { stability: 0.6, precipitationChance: 0.35, fogChance: 0.1, stormChance: 0.1, dayNightAmplitude: 5, windVariability: 0.3 },
+        stateWeights: {}
+      }
+    };
     const weather = getCurrentWeather(project)!;
     expect(weather.temperature).toBeLessThanOrEqual(-5);
     expect(weather.temperature).toBeGreaterThanOrEqual(-20);

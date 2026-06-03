@@ -59,14 +59,19 @@ describe("weatherDaily", () => {
         id: "s1",
         name: "Season",
         start: { monthId: "month-1", dayOfMonth: 1 },
-        end: { monthId: "month-2", dayOfMonth: 30 },
-        weatherProfile: {
-          temperature: { min: 1, average: 9, max: 12 },
-          windSpeed: { min: 0, average: 8, max: 18 },
-          rain: { min: 0, average: 2, max: 5 }
-        }
+        end: { monthId: "month-2", dayOfMonth: 30 }
       }
     ];
+    project.weatherBiomeProfiles = {
+      temperate: {
+        temperature: { min: 1, average: 9, max: 12 },
+        windSpeed: { min: 0, average: 8, max: 18 },
+        rain: { min: 0, average: 2, max: 5 },
+        dailyRain: { min: 0, average: 4, max: 10 },
+        traits: { stability: 0.6, precipitationChance: 0.4, fogChance: 0.2, stormChance: 0.1, dayNightAmplitude: 4, windVariability: 0.4 },
+        stateWeights: {}
+      }
+    };
 
     const summary = getDailyWeatherSummary(project, 10);
     expect(summary).toBeDefined();
@@ -109,10 +114,10 @@ describe("weatherDaily", () => {
         name: "Dry",
         start: { monthId: "month-1", dayOfMonth: 1 },
         end: { monthId: "month-2", dayOfMonth: 30 },
-        weatherProfile: {
-          temperature: { min: 5, average: 12, max: 20 },
-          windSpeed: { min: 1, average: 10, max: 20 },
-          rain: { min: 0, average: 0.2, max: 1 }
+        weatherModifier: {
+          rain: { averageMultiplier: 0.1, maxMultiplier: 0.2 },
+          dailyRain: { averageMultiplier: 0.1, maxMultiplier: 0.2 },
+          traits: { precipitationChanceOffset: -0.3, stormChanceOffset: -0.1 }
         }
       }
     ];
@@ -125,10 +130,10 @@ describe("weatherDaily", () => {
         name: "Wet",
         start: { monthId: "month-1", dayOfMonth: 1 },
         end: { monthId: "month-2", dayOfMonth: 30 },
-        weatherProfile: {
-          temperature: { min: 5, average: 12, max: 20 },
-          windSpeed: { min: 1, average: 10, max: 20 },
-          rain: { min: 1, average: 6, max: 12 }
+        weatherModifier: {
+          rain: { averageMultiplier: 2, maxMultiplier: 2 },
+          dailyRain: { averageMultiplier: 2, maxMultiplier: 2 },
+          traits: { precipitationChanceOffset: 0.3, stormChanceOffset: 0.1 }
         }
       }
     ];

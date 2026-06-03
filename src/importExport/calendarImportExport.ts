@@ -1,9 +1,10 @@
 import type { CalendarProject, LocaleCode } from "../domain/types";
-import type { WeatherBiomeId } from "../calendar/weather/biomes";
+import type { WeatherBiomeId, WeatherBiomeProfile, WeatherValueRange } from "../calendar/weather/biomes";
+import type { SeasonWeatherModifier } from "../calendar/weather/seasonModifiers";
 import { assertCalendarSystem } from "../calendar/dateEngine";
 import { normalizeMoon } from "../calendar/moonLogic";
 import { normalizeSeasonWeatherProfile } from "../calendar/seasonsLogic";
-import { DEFAULT_WEATHER_BIOME_ID, WEATHER_BIOME_DEFINITIONS } from "../calendar/weather/biomes";
+import { DEFAULT_WEATHER_BIOME_ID, DEFAULT_WEATHER_BIOME_PROFILES, WEATHER_BIOME_DEFINITIONS, normalizeWeatherBiomeProfile } from "../calendar/weather/biomes";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -12,9 +13,73 @@ const weatherBiomeIds = new Set(WEATHER_BIOME_DEFINITIONS.map((definition) => de
 const isWeatherBiomeId = (value: unknown): value is WeatherBiomeId =>
   typeof value === "string" && weatherBiomeIds.has(value as WeatherBiomeId);
 
-  const isLocale = (value: unknown): value is LocaleCode => value === "fr" || value === "en";
+const numericRange = (value: unknown, fallback: WeatherValueRange): WeatherValueRange =>
+  isRecord(value)
+    ? {
+        min: typeof value.min === "number" ? value.min : fallback.min,
+        average: typeof value.average === "number" ? value.average : fallback.average,
+        max: typeof value.max === "number" ? value.max : fallback.max
+      }
+    : fallback;
+
+const optionalNumber = (value: unknown): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
+const sanitizeStateWeights = (value: unknown): WeatherBiomeProfile["stateWeights"] | undefined => {
+  if (!isRecord(value)) return undefined;
+  const out: WeatherBiomeProfile["stateWeights"] = {};
+  for (const [state, weight] of Object.entries(value)) {
+    if (typeof weight !== "number" || !Number.isFinite(weight) || weight < 0) continue;
+    if (state === "clear" || state === "cloudy" || state === "overcast" || state === "fog" || state === "lightRain" || state === "heavyRain" || state === "storm" || state === "snow" || state === "strongWind" || state === "tempest") {
+      out[state] = weight;
+    }
+  }
+  return out;
+};
+
+const sanitizeWeatherBiomeProfile = (value: unknown, fallback: WeatherBiomeProfile): WeatherBiomeProfile | undefined => {
+  if (!isRecord(value)) return undefined;
+  const traits = isRecord(value.traits) ? value.traits : {};
+  return normalizeWeatherBiomeProfile({
+    temperature: numericRange(value.temperature, fallback.temperature),
+    rain: numericRange(value.rain, fallback.rain),
+    dailyRain: numericRange(value.dailyRain, fallback.dailyRain),
+    windSpeed: numericRange(value.windSpeed, fallback.windSpeed),
+    traits: {
+      stability: optionalNumber(traits.stability) ?? fallback.traits.stability,
+      precipitationChance: optionalNumber(traits.precipitationChance) ?? fallback.traits.precipitationChance,
+      fogChance: optionalNumber(traits.fogChance) ?? fallback.traits.fogChance,
+      stormChance: optionalNumber(traits.stormChance) ?? fallback.traits.stormChance,
+      dayNightAmplitude: optionalNumber(traits.dayNightAmplitude) ?? fallback.traits.dayNightAmplitude,
+      windVariability: optionalNumber(traits.windVariability) ?? fallback.traits.windVariability
+    },
+    stateWeights: sanitizeStateWeights(value.stateWeights) ?? fallback.stateWeights
+  });
+};
+
+const sanitizeSeasonWeatherModifier = (value: unknown): SeasonWeatherModifier | undefined => {
+  if (!isRecord(value)) return undefined;
+  const out: SeasonWeatherModifier = {};
+  const copyNumbers = <T extends Record<string, unknown>>(source: unknown, keys: string[]): T | undefined => {
+    if (!isRecord(source)) return undefined;
+    const next: Record<string, unknown> = {};
+    for (const key of keys) {
+      if (typeof source[key] === "number" && Number.isFinite(source[key])) next[key] = source[key];
+    }
+    return Object.keys(next).length > 0 ? next as T : undefined;
+  };
+  out.temperature = copyNumbers(value.temperature, ["minOffset", "averageOffset", "maxOffset"]);
+  out.rain = copyNumbers(value.rain, ["minMultiplier", "averageMultiplier", "maxMultiplier"]);
+  out.dailyRain = copyNumbers(value.dailyRain, ["minMultiplier", "averageMultiplier", "maxMultiplier"]);
+  out.windSpeed = copyNumbers(value.windSpeed, ["minMultiplier", "averageMultiplier", "maxMultiplier"]);
+  out.traits = copyNumbers(value.traits, ["stabilityOffset", "precipitationChanceOffset", "fogChanceOffset", "stormChanceOffset", "dayNightAmplitudeMultiplier", "windVariabilityMultiplier"]);
+  out.stateWeights = sanitizeStateWeights(value.stateWeights);
+  return Object.values(out).some((entry) => entry && Object.keys(entry).length > 0) ? out : undefined;
+};
+
+const isLocale = (value: unknown): value is LocaleCode => value === "fr" || value === "en";
   
-  const isValidUiTab = (value: unknown): value is CalendarProject["uiSettings"]["activeTab"] =>
+const isValidUiTab = (value: unknown): value is CalendarProject["uiSettings"]["activeTab"] =>
   value === "today" || value === "month" || value === "events" || value === "settings" || value === "player";
 
 export const validateImportedCalendarProject = (
@@ -99,6 +164,18 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     delete maybeCompat.weatherBiome;
   }
 
+  if (isRecord(maybeCompat.weatherBiomeProfiles)) {
+    const profiles: Partial<Record<WeatherBiomeId, WeatherBiomeProfile>> = {};
+    for (const [id, profile] of Object.entries(maybeCompat.weatherBiomeProfiles)) {
+      if (!isWeatherBiomeId(id)) continue;
+      const sanitizedProfile = sanitizeWeatherBiomeProfile(profile, DEFAULT_WEATHER_BIOME_PROFILES[id]);
+      if (sanitizedProfile) profiles[id] = sanitizedProfile;
+    }
+    maybeCompat.weatherBiomeProfiles = profiles;
+  } else if (maybeCompat.weatherBiomeProfiles !== undefined) {
+    delete maybeCompat.weatherBiomeProfiles;
+  }
+
   if (!isRecord(maybeCompat.uiSettings)) {
     maybeCompat.uiSettings = { activeTab: "today", compactMode: true };
   }
@@ -134,16 +211,6 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
       const next = { ...season } as Record<string, unknown>;
       if (isRecord(next.weatherProfile)) {
         const wp = next.weatherProfile as Record<string, unknown>;
-        const numericRange = (value: unknown, fallback: { min: number; average: number; max: number }) =>
-          isRecord(value)
-            ? {
-                min: typeof value.min === "number" ? value.min : fallback.min,
-                average: typeof value.average === "number" ? value.average : fallback.average,
-                max: typeof value.max === "number" ? value.max : fallback.max
-              }
-            : fallback;
-        const optionalNumber = (value: unknown): number | undefined =>
-          typeof value === "number" && Number.isFinite(value) ? value : undefined;
         next.weatherProfile = normalizeSeasonWeatherProfile({
           temperature: numericRange(wp.temperature, { min: 0, average: 10, max: 20 }),
           windSpeed: numericRange(wp.windSpeed, { min: 0, average: 15, max: 40 }),
@@ -155,6 +222,10 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
           temperatureSwing: optionalNumber(wp.temperatureSwing),
           windVariability: optionalNumber(wp.windVariability)
         });
+      }
+      if (isRecord(next.weatherModifier)) {
+        next.weatherModifier = sanitizeSeasonWeatherModifier(next.weatherModifier);
+        if (!next.weatherModifier) delete next.weatherModifier;
       }
       return next;
     });
