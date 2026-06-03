@@ -115,6 +115,7 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
     return parts.join(" · ");
   };
   const showDefaultDurationHelp = draft.durationHours === undefined && ((draft.kind ?? "informational") === "weatherEffect" || Math.max(0, Math.min(100, Math.round(draft.triggerChancePercent ?? 100))) < 100);
+  const hasConfiguredWeatherEffect = (Object.values(draft.effect ?? {}) as unknown[]).some((value) => value !== undefined && value !== null && value !== "");
 
   return <div>
     <div style={autoSummaryBoxStyle}><div style={{ fontWeight: 700, marginBottom: 4 }}>{t(project.locale, "weatherEvents.autoSummary")}</div><div>{getWeatherEventAutoSummary()}</div></div>
@@ -165,21 +166,22 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
 
     {(draft.kind ?? "informational") === "weatherEffect" ? <WeatherEventFormSection title={t(project.locale, "weatherEvents.sectionWeatherEffect")}>
       <div style={hint}>{t(project.locale, "weatherEvents.effectEmptyFieldsHelp")}</div>
-      <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupSky")} help={t(project.locale, "weatherEvents.effectEmptyFieldsHelp")}>
+      {!hasConfiguredWeatherEffect ? <div style={warningBoxStyle}>{t(project.locale, "weatherEvents.noConfiguredEffectWarning")}</div> : null}
+      <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupSky")} help={t(project.locale, "weatherEvents.help.effectGroupSky")}>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectState")} help={t(project.locale, "weatherEvents.help.weatherState")} /><select value={draft.effect?.state ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), state: e.target.value === "" ? undefined : e.target.value as WeatherState } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{weatherStates.map((s) => <option key={s} value={s}>{t(project.locale, `weather.state.${s}`)}</option>)}</select></label>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectDominantState")} help={t(project.locale, "weatherEvents.help.weatherState")} /><select value={draft.effect?.dominantState ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dominantState: e.target.value === "" ? undefined : e.target.value as WeatherState } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{weatherStates.map((s) => <option key={s} value={s}>{t(project.locale, `weather.state.${s}`)}</option>)}</select></label>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectTrendKind")} help={t(project.locale, "weatherEvents.effectEmptyFieldsHelp")} /><select value={draft.effect?.trendKind ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), trendKind: e.target.value === "" ? undefined : e.target.value as WeatherTrendKind } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{weatherTrends.map((trend) => <option key={trend} value={trend}>{t(project.locale, `weatherEvents.trend${trend.charAt(0).toUpperCase()}${trend.slice(1)}`)}</option>)}</select></label>
       </CollapsibleEditorBlock>
-      <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupTemperature")} help={t(project.locale, "weatherEvents.effectEmptyFieldsHelp")}>
+      <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupTemperature")} help={t(project.locale, "weatherEvents.help.effectGroupTemperature")}>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectTemperature")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.temperature ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), temperature: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectDailyMinTemperature")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.dailyMinTemperature ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyMinTemperature: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectDailyMaxTemperature")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.dailyMaxTemperature ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyMaxTemperature: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
       </CollapsibleEditorBlock>
-      <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupRain")} help={t(project.locale, "weatherEvents.effectEmptyFieldsHelp")}>
+      <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupRain")} help={t(project.locale, "weatherEvents.help.effectGroupRain")}>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectRain")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.rain ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), rain: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectDailyRainTotal")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.dailyRainTotal ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyRainTotal: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
       </CollapsibleEditorBlock>
-      <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupWind")} help={t(project.locale, "weatherEvents.effectEmptyFieldsHelp")}>
+      <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupWind")} help={t(project.locale, "weatherEvents.help.effectGroupWind")}>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectWindSpeed")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.windSpeed ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), windSpeed: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectWindDirection")} help={t(project.locale, "weatherEvents.help.windDirection")} /><select value={draft.effect?.windDirection ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), windDirection: e.target.value === "" ? undefined : e.target.value as WindDirection } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{windDirections.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>
       </CollapsibleEditorBlock>
@@ -208,6 +210,7 @@ const defaultInputStyle = { width: "100%", background: "#1f2937", border: "1px s
 const buttonStyle = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "6px 10px", cursor: "pointer" };
 const smallButtonStyle = { ...buttonStyle, fontSize: 12, padding: "5px 8px" };
 const dangerButtonStyle = { ...smallButtonStyle, borderColor: "#7f1d1d", background: "#450a0a", color: "#fecaca" };
+const warningBoxStyle = { border: "1px solid #92400e", background: "#451a03", color: "#fed7aa", borderRadius: 8, padding: 8, fontSize: 12 };
 const condCard = { border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", display: "grid", gap: 6 };
 const collapsibleEditorHeaderStyle = { width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, background: "transparent", color: "#f3f4f6", padding: 0, border: 0, cursor: "pointer", fontSize: 12, fontWeight: 700, textAlign: "left" as const };
 const checkLabel = { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 };
