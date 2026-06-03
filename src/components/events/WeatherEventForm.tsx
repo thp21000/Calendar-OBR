@@ -93,7 +93,6 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
 
   const conditions = draft.conditions ?? [];
   const conditionTypeOptions: Array<{ id: ConditionTypeToAdd; label: string }> = [
-    { id: "all", label: t(project.locale, "weatherEvents.conditionTabAll") },
     { id: "metric", label: t(project.locale, "weatherEvents.conditionTypeMetric") },
     { id: "state", label: t(project.locale, "weatherEvents.conditionTypeState") },
     { id: "dominantState", label: t(project.locale, "weatherEvents.conditionDominantState") },
