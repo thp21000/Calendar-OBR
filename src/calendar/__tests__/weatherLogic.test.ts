@@ -203,6 +203,38 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
     expect(forecast).toHaveLength(5);
   });
 
+  it("les prévisions horaires conservent les champs forcés par la météo de scène persistante", () => {
+    const project = buildProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    project.weatherOverrides = [{
+      id: "scene-weather",
+      absoluteDay: 0,
+      source: "sceneWeather",
+      temperature: 3,
+      rain: 7,
+      dailyRainTotal: 40,
+      windSpeed: 42,
+      windDirection: "NE",
+      state: "storm",
+      dominantState: "storm",
+      trendKind: "stormy"
+    } as any];
+
+    const forecast = getHourlyWeatherForecast(project, 5);
+
+    expect(forecast).toHaveLength(5);
+    for (const entry of forecast) {
+      expect(entry.weather.temperature).toBe(3);
+      expect(entry.weather.rain).toBe(7);
+      expect(entry.weather.dailyRainTotal).toBe(40);
+      expect(entry.weather.windSpeed).toBe(42);
+      expect(entry.weather.windDirection).toBe("NE");
+      expect(entry.weather.state).toBe("storm");
+      expect(entry.weather.dominantState).toBe("storm");
+      expect(entry.weather.trendKind).toBe("stormy");
+    }
+  });
+
   it("la première entrée de forecast correspond à +1 h", () => {
     const project = buildProject();
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];

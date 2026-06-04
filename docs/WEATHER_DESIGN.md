@@ -1248,3 +1248,9 @@ Ces profils utilisent uniquement les états météo existants (`clear`, `cloudy`
 La météo de scène est pilotée depuis une modal OBR externe. Quand cette modal sauvegarde le calendrier, un signal local `BroadcastChannel("calendar-obr-project")` et un événement navigateur local préviennent les autres iframes ouvertes du même addon afin de recharger le calendrier depuis le stockage scopé. Cela permet à la popover principale de refléter immédiatement un profil météo de scène appliqué depuis la modal.
 
 La popover principale conserve son auto-ajustement de hauteur via `OBR.action.setHeight`, mais les vues modales dédiées (`view=scene-weather` et `view=scene-weather-confirm`) désactivent cette mesure pour ne pas polluer la taille de la fenêtre principale. Les contenus longs doivent scroller dans leur conteneur plutôt que forcer une hauteur OBR excessive.
+
+### Météo de scène persistante
+
+Une météo de scène appliquée n'est pas un effet temporaire borné par `durationMinutes` : elle représente l'état forcé de la scène OBR active. L'override `source: "sceneWeather"` créé pour une scène n'a donc pas de `endMinuteOfDay` et reste pris en compte tant qu'il existe dans le projet, jusqu'au retour en météo automatique, au retrait du profil de scène ou à la synchronisation d'une autre scène sans profil actif.
+
+Dans la vue Aujourd'hui, la météo de scène active est affichée dans la même liste visuelle que les alertes météo actives, avec le nom du profil et le sous-texte « Météo de scène active ». Elle ne doit pas afficher de plage horaire ni le libellé d'override manuel « Météo forcée MJ ».

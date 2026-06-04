@@ -47,12 +47,18 @@ type Props = {
 };
 
 export const TodayStatusSummary = ({ project, currentSeason, currentWeather, triggeredWeatherEvents, weatherUnits, currentMoonPhases, onSelectWeatherEvent }: Pick<Props, "project"|"currentSeason"|"currentWeather"|"triggeredWeatherEvents"|"weatherUnits"|"currentMoonPhases"|"onSelectWeatherEvent">) => {
-  const override = getWeatherOverrideForTime(project, project.currentTime.absoluteDay, project.currentTime.hour, project.currentTime.minute);
+  const activeOverride = getWeatherOverrideForTime(project, project.currentTime.absoluteDay, project.currentTime.hour, project.currentTime.minute);
+  const sceneWeatherOverride = activeOverride?.source === "sceneWeather" ? activeOverride : undefined;
+  const override = activeOverride?.source === "sceneWeather" ? undefined : activeOverride;
   const forcedOverrideValues = override ? getForcedOverrideValues(project, override, weatherUnits) : [];
   const overrideIsTimed = isTimedOverride(override);
   const overrideTimeRange = overrideIsTimed ? `${formatMinuteOfDay(override.startMinuteOfDay)}–${formatMinuteOfDay(override.endMinuteOfDay)}` : undefined;
   const overrideName = override?.label?.trim();
   const overrideLabel = `${t(project.locale, "weatherOverride.active")}${overrideName ? `: ${overrideName}` : ""}${overrideTimeRange ? `${overrideName ? " · " : ": "}${overrideTimeRange}` : ""}`;
+  const sceneWeatherLabel = sceneWeatherOverride?.label?.trim() || t(project.locale, "sceneWeather.title");
+  const [sceneWeatherIconCandidate, ...sceneWeatherNameParts] = sceneWeatherLabel.split(" ");
+  const sceneWeatherIcon = sceneWeatherNameParts.length > 0 ? sceneWeatherIconCandidate : "🎬";
+  const sceneWeatherName = sceneWeatherNameParts.length > 0 ? sceneWeatherNameParts.join(" ") : sceneWeatherLabel;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const biome = getCurrentWeatherBiomeDefinition(project);
 
@@ -119,7 +125,16 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
         </div>
       ) : null}
 
-      {triggeredWeatherEvents.length > 0 ? <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+      {sceneWeatherOverride || triggeredWeatherEvents.length > 0 ? <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+        {sceneWeatherOverride ? (
+          <div style={{ background: ui.colors.surface, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <EventIcon icon={sceneWeatherIcon} locale={project.locale} />
+              <strong>{sceneWeatherName}</strong>
+            </div>
+            <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{t(project.locale, "sceneWeather.activeAlert")}</div>
+          </div>
+        ) : null}
         {triggeredWeatherEvents.map((event) => (
           <div
             key={event.id}

@@ -9,7 +9,6 @@ export const DEFAULT_SCENE_WEATHER_TRANSITION_MINUTES = 15;
 export const MIN_SCENE_WEATHER_TRANSITION_MINUTES = 0;
 
 const hasNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
-const clampDuration = (value: number | undefined): number => Math.max(MIN_SCENE_WEATHER_DURATION_MINUTES, Math.trunc(hasNumber(value) ? value : DEFAULT_SCENE_WEATHER_DURATION_MINUTES));
 const clampTransition = (value: number | undefined): number => Math.max(MIN_SCENE_WEATHER_TRANSITION_MINUTES, Math.trunc(hasNumber(value) ? value : DEFAULT_SCENE_WEATHER_TRANSITION_MINUTES));
 
 export type ApplySceneWeatherProfileOptions = {
@@ -65,46 +64,28 @@ export const applySceneWeatherProfile = (
   if (!profile.enabled || isSceneWeatherProfileEmpty(profile)) return project;
 
   const nowAbsoluteMinutes = options.nowAbsoluteMinutes ?? toAbsoluteMinutes(project.currentTime);
-  const startAbsoluteDay = Math.floor(nowAbsoluteMinutes / 1440);
-  const startMinute = ((nowAbsoluteMinutes % 1440) + 1440) % 1440;
-  const durationMinutes = clampDuration(profile.durationMinutes);
+  const absoluteDay = Math.floor(nowAbsoluteMinutes / 1440);
   const transitionMinutes = clampTransition(profile.transitionMinutes);
   const cleanedOverride = cleanSceneWeatherOverride(profile.override ?? {});
 
   let nextProject = profile.forceBiomeId ? changeWeatherBiome(project, profile.forceBiomeId, nowAbsoluteMinutes) : project;
   const transitionFrom = buildTransitionFrom(options.currentWeather ?? getCurrentWeather(project));
   const existing = (nextProject.weatherOverrides ?? []).filter((override) => !(override.source === "sceneWeather" && (!options.sceneId || override.sceneId === options.sceneId)));
-  const overrides: WeatherOverride[] = [];
-  let remaining = durationMinutes;
-  let day = startAbsoluteDay;
-  let minute = startMinute;
-  let index = 0;
+  const override: WeatherOverride = {
+    id: `scene-weather-override-${profile.id}-${nowAbsoluteMinutes}`,
+    absoluteDay,
+    label: `${profile.icon ?? "🎬"} ${profile.name}`.trim(),
+    ...cleanedOverride,
+    source: "sceneWeather",
+    sourceId: profile.id,
+    sceneId: options.sceneId,
+    sceneName: options.sceneName,
+    transitionStartAtMinutes: nowAbsoluteMinutes,
+    transitionDurationMinutes: transitionMinutes,
+    transitionFrom
+  };
 
-  while (remaining > 0) {
-    const chunk = Math.min(remaining, 1440 - minute);
-    const override: WeatherOverride = {
-      id: `scene-weather-override-${profile.id}-${nowAbsoluteMinutes}-${index}`,
-      absoluteDay: day,
-      startMinuteOfDay: minute,
-      endMinuteOfDay: minute + chunk,
-      label: `${profile.icon ?? "🎬"} ${profile.name}`.trim(),
-      ...cleanedOverride,
-      source: "sceneWeather",
-      sourceId: profile.id,
-      sceneId: options.sceneId,
-      sceneName: options.sceneName,
-      transitionStartAtMinutes: nowAbsoluteMinutes,
-      transitionDurationMinutes: transitionMinutes,
-      transitionFrom
-    };
-    overrides.push(override);
-    remaining -= chunk;
-    day += 1;
-    minute = 0;
-    index += 1;
-  }
-
-  return { ...nextProject, weatherOverrides: [...existing, ...overrides] };
+  return { ...nextProject, weatherOverrides: [...existing, override] };
 };
 
 export const disableSceneWeatherForScene = (project: CalendarProject, sceneId?: string): CalendarProject => ({
@@ -116,11 +97,10 @@ export const hasActiveSceneWeatherOverride = (project: CalendarProject, profileI
   (project.weatherOverrides ?? []).some((override) => {
     if (override.source !== "sceneWeather") return false;
     if (profileId && override.sourceId !== profileId) return false;
-    if (sceneId && override.sceneId !== sceneId) return false;
+    if (typeof override.endMinuteOfDay !== "number") return true;
     const startMinute = typeof override.startMinuteOfDay === "number" ? override.startMinuteOfDay : 0;
-    const endMinute = typeof override.endMinuteOfDay === "number" ? override.endMinuteOfDay : 1440;
     const start = override.absoluteDay * 1440 + startMinute;
-    const end = override.absoluteDay * 1440 + endMinute;
+    const end = override.absoluteDay * 1440 + override.endMinuteOfDay;
     return currentAbsoluteMinutes >= start && currentAbsoluteMinutes < end;
   });
 
@@ -128,7 +108,7 @@ export const cleanupExpiredSceneWeatherOverrides = (project: CalendarProject, cu
   ...project,
   weatherOverrides: (project.weatherOverrides ?? []).filter((override) => {
     if (override.source !== "sceneWeather") return true;
-    const endMinute = typeof override.endMinuteOfDay === "number" ? override.endMinuteOfDay : 1440;
-    return override.absoluteDay * 1440 + endMinute > currentAbsoluteMinutes;
+    if (typeof override.endMinuteOfDay !== "number") return true;
+    return override.absoluteDay * 1440 + override.endMinuteOfDay > currentAbsoluteMinutes;
   })
 });

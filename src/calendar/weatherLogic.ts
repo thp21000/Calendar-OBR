@@ -114,6 +114,7 @@ export const getForecastWeatherForTime = (
 ): WeatherSnapshot | undefined => {
   const realWeather = generateWeatherForTime(project, absoluteDay, hour);
   if (!realWeather) return undefined;
+  const weatherOverride = getWeatherOverrideForTime(project, absoluteDay, hour);
 
   const mode = project.weatherSettings.forecastMode ?? "fine";
   const absOffset = Math.max(0, Math.floor(Math.abs(offsetHours)));
@@ -125,15 +126,15 @@ export const getForecastWeatherForTime = (
   const centered = (salt: string) => (seeded(seed, salt) - 0.5) * 2;
   const round = (value: number) => Math.round(value * 10) / 10;
 
-  const temperature = round(realWeather.temperature + centered("temp") * errorScale);
-  const windSpeed = Math.max(0, round(realWeather.windSpeed + centered("wind") * errorScale * 1.5));
-  const rain = Math.max(0, round(realWeather.rain + centered("rain") * errorScale * 0.8));
+  const temperature = typeof weatherOverride?.temperature === "number" ? realWeather.temperature : round(realWeather.temperature + centered("temp") * errorScale);
+  const windSpeed = typeof weatherOverride?.windSpeed === "number" ? realWeather.windSpeed : Math.max(0, round(realWeather.windSpeed + centered("wind") * errorScale * 1.5));
+  const rain = typeof weatherOverride?.rain === "number" ? realWeather.rain : Math.max(0, round(realWeather.rain + centered("rain") * errorScale * 0.8));
 
-const dailyTempErrorScale = mode === "wide" ? (0.9 + absOffset * 0.08) : (0.4 + absOffset * 0.03);
+  const dailyTempErrorScale = mode === "wide" ? (0.9 + absOffset * 0.08) : (0.4 + absOffset * 0.03);
   const dailyRainErrorScale = mode === "wide" ? (1.4 + absOffset * 0.14) : (0.6 + absOffset * 0.06);
   
   let windDirection = realWeather.windDirection;
-  if (mode === "wide") {
+  if (mode === "wide" && !weatherOverride?.windDirection) {
     const directionRoll = seeded(seed, "dir");
     if (directionRoll < 0.33) {
       windDirection = wrapDirection(windDirectionIndex(realWeather.windDirection) - 1);
@@ -143,10 +144,10 @@ const dailyTempErrorScale = mode === "wide" ? (0.9 + absOffset * 0.08) : (0.4 + 
   }
 
   const forecastDailyMin = realWeather.dailyMinTemperature !== undefined
-    ? round(realWeather.dailyMinTemperature + centered("daily:min") * dailyTempErrorScale)
+    ? (typeof weatherOverride?.dailyMinTemperature === "number" ? realWeather.dailyMinTemperature : round(realWeather.dailyMinTemperature + centered("daily:min") * dailyTempErrorScale))
     : undefined;
   const forecastDailyMax = realWeather.dailyMaxTemperature !== undefined
-    ? round(realWeather.dailyMaxTemperature + centered("daily:max") * dailyTempErrorScale)
+    ? (typeof weatherOverride?.dailyMaxTemperature === "number" ? realWeather.dailyMaxTemperature : round(realWeather.dailyMaxTemperature + centered("daily:max") * dailyTempErrorScale))
     : undefined;
 
   let dailyMinTemperature = forecastDailyMin;
@@ -159,7 +160,7 @@ const dailyTempErrorScale = mode === "wide" ? (0.9 + absOffset * 0.08) : (0.4 + 
   }
 
   const dailyRainTotal = realWeather.dailyRainTotal !== undefined
-    ? Math.max(0, round(realWeather.dailyRainTotal + centered("daily:rain") * dailyRainErrorScale))
+    ? (typeof weatherOverride?.dailyRainTotal === "number" ? realWeather.dailyRainTotal : Math.max(0, round(realWeather.dailyRainTotal + centered("daily:rain") * dailyRainErrorScale)))
     : undefined;
 
   return {
@@ -167,7 +168,7 @@ const dailyTempErrorScale = mode === "wide" ? (0.9 + absOffset * 0.08) : (0.4 + 
     windSpeed,
     windDirection,
     rain,
-    state: getWeatherState({ temperature, windSpeed, rain }),
+    state: weatherOverride?.state ?? getWeatherState({ temperature, windSpeed, rain }),
     dailyMinTemperature,
     dailyMaxTemperature,
     dailyRainTotal,

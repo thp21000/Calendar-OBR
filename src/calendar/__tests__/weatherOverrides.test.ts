@@ -33,6 +33,32 @@ describe("weatherOverrides", () => {
   });
 });
 
+it("considère une météo de scène sans fin horaire comme active et persistante", () => {
+  const project = createDefaultCalendarProject();
+  project.weatherOverrides = [{
+    id: "persistent-scene",
+    absoluteDay: 0,
+    source: "sceneWeather",
+    sourceId: "storm-scene",
+    sceneId: "scene-a",
+    temperature: 7,
+    state: "storm"
+  }];
+
+  expect(getWeatherOverrideForTime(project, 0, 8)?.id).toBe("persistent-scene");
+  expect(getWeatherOverrideForTime(project, 3, 18)?.id).toBe("persistent-scene");
+});
+
+it("conserve la priorité du plus récent entre météo de scène persistante et override manuel", () => {
+  const project = createDefaultCalendarProject();
+  project.weatherOverrides = [
+    { id: "scene", absoluteDay: 0, source: "sceneWeather", temperature: 7 },
+    { id: "manual", absoluteDay: 3, source: "manual", temperature: 99 }
+  ];
+
+  expect(getWeatherOverrideForTime(project, 3, 12)?.id).toBe("manual");
+  expect(getWeatherOverrideForTime(project, 4, 12)?.id).toBe("scene");
+});
 
 it("interpole les overrides de météo de scène pendant la transition", () => {
   const project = createDefaultCalendarProject();

@@ -48,19 +48,16 @@ export const getWeatherOverrideForTime = (
   const absoluteMinutes = absoluteMinutesFor(absoluteDay, hour, minute);
   const overrides = [...(project.weatherOverrides ?? [])].reverse();
 
-  const windowedOverride = overrides.find((override) => {
+  const activeOverride = overrides.find((override) => {
+    if (override.source === "sceneWeather" && typeof override.endMinuteOfDay !== "number") return true;
     if (override.absoluteDay !== absoluteDay) return false;
-    if (typeof override.startMinuteOfDay !== "number" || typeof override.endMinuteOfDay !== "number") return false;
-    return minuteOfDay >= override.startMinuteOfDay && minuteOfDay < override.endMinuteOfDay;
-  });
-
-  if (windowedOverride) return resolveWeatherOverrideTransition(windowedOverride, absoluteMinutes);
-
-  const dayOverride = overrides.find((override) => {
-    if (override.absoluteDay !== absoluteDay) return false;
+    if (typeof override.startMinuteOfDay === "number" && typeof override.endMinuteOfDay === "number") {
+      return minuteOfDay >= override.startMinuteOfDay && minuteOfDay < override.endMinuteOfDay;
+    }
     return typeof override.startMinuteOfDay !== "number" || typeof override.endMinuteOfDay !== "number";
   });
-  return dayOverride ? resolveWeatherOverrideTransition(dayOverride, absoluteMinutes) : undefined;
+
+  return activeOverride ? resolveWeatherOverrideTransition(activeOverride, absoluteMinutes) : undefined;
 };
 
 export const applyWeatherOverrideToDailySummary = (

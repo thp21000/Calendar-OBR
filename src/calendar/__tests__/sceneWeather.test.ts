@@ -32,25 +32,25 @@ describe("sceneWeather", () => {
       sourceId: "storm-scene",
       sceneId: "scene-a",
       sceneName: "Cave",
-      startMinuteOfDay: 480,
-      endMinuteOfDay: 570,
       transitionDurationMinutes: 10,
       temperature: 3,
       rain: 7,
       windSpeed: 42,
       state: "storm"
     });
+    expect(next.weatherOverrides?.[0].startMinuteOfDay).toBeUndefined();
+    expect(next.weatherOverrides?.[0].endMinuteOfDay).toBeUndefined();
     expect(next.weatherOverrides?.[0].transitionFrom?.temperature).toEqual(expect.any(Number));
   });
 
-  it("splits overrides when duration crosses midnight", () => {
+  it("keeps sceneWeather overrides persistent instead of expiring by duration", () => {
     const project = { ...createDefaultCalendarProject(), currentTime: { absoluteDay: 2, hour: 23, minute: 30 } };
     const next = applySceneWeatherProfile(project, profile({ durationMinutes: 120 }), { sceneId: "night" });
 
-    expect(next.weatherOverrides?.map((override) => [override.absoluteDay, override.startMinuteOfDay, override.endMinuteOfDay])).toEqual([
-      [2, 1410, 1440],
-      [3, 0, 90]
-    ]);
+    expect(next.weatherOverrides).toHaveLength(1);
+    expect(next.weatherOverrides?.[0]).toMatchObject({ absoluteDay: 2, source: "sceneWeather", sceneId: "night" });
+    expect(next.weatherOverrides?.[0].endMinuteOfDay).toBeUndefined();
+    expect(hasActiveSceneWeatherOverride(next, "storm-scene", 5 * 1440, "night")).toBe(true);
   });
 
   it("changes biome when a preset profile forces one", () => {
@@ -99,11 +99,12 @@ describe("sceneWeather", () => {
     project.weatherOverrides = [
       { id: "manual", absoluteDay: 0, source: "manual" },
       { id: "expired", absoluteDay: 0, source: "sceneWeather", endMinuteOfDay: 10 },
-      { id: "active", absoluteDay: 0, source: "sceneWeather", endMinuteOfDay: 30 }
+      { id: "active", absoluteDay: 0, source: "sceneWeather", endMinuteOfDay: 30 },
+      { id: "persistent", absoluteDay: 0, source: "sceneWeather" }
     ];
 
     const next = cleanupExpiredSceneWeatherOverrides(project, 20);
 
-    expect(next.weatherOverrides?.map((override) => override.id)).toEqual(["manual", "active"]);
+    expect(next.weatherOverrides?.map((override) => override.id)).toEqual(["manual", "active", "persistent"]);
   });
 });

@@ -69,7 +69,6 @@ export const SceneWeatherProfilesSettingsSection = ({ project, onProjectUpdate, 
       <CollapsibleSection title={t(project.locale, "sceneWeather.generalSection")}>
         <label style={{ display: "block" }}><FieldLabel label={t(project.locale, "seasons.name")} help={t(project.locale, "sceneWeather.help.name")} /><input value={profile.name} onChange={(event) => onProjectUpdate(patchProfile(project, profile.id, { name: event.target.value }))} style={inputStyle} /></label>
         <label style={{ display: "block" }}><FieldLabel label={t(project.locale, "seasons.icon")} help={t(project.locale, "sceneWeather.help.icon")} /><input value={profile.icon ?? ""} onChange={(event) => onProjectUpdate(patchProfile(project, profile.id, { icon: event.target.value || undefined }))} style={inputStyle} /></label>
-        <NumericInput label={t(project.locale, "sceneWeather.durationMinutes")} help={t(project.locale, "sceneWeather.help.durationMinutes")} value={profile.durationMinutes} onChange={(value) => onProjectUpdate(patchProfile(project, profile.id, { durationMinutes: value }))} inputStyle={inputStyle} />
         <NumericInput label={t(project.locale, "sceneWeather.transitionMinutes")} help={t(project.locale, "sceneWeather.help.transitionMinutes")} value={profile.transitionMinutes} onChange={(value) => onProjectUpdate(patchProfile(project, profile.id, { transitionMinutes: value }))} inputStyle={inputStyle} />
       </CollapsibleSection>
       <CollapsibleSection title={t(project.locale, "sceneWeather.biomeSection")}>
