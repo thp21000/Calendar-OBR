@@ -1283,3 +1283,9 @@ Règles appliquées :
 Le champ `dailyRainTotal` exposé dans le snapshot courant représente désormais le cumul déjà tombé depuis minuit pour l'affichage Aujourd'hui, et non le total prévisionnel complet de la journée. Le résumé journalier conserve `rainTotal24h` comme total généré/prévisionnel interne.
 
 Le cumul affiché est calculé avec le même plan de pluie et le même palier de 5 minutes que la pluie instantanée : chaque tranche ajoute `rainRate * 5 / 60`, puis le résultat est arrondi à 0,1 et remis à 0 à 00:00. La pluie instantanée reste un taux (`mm/h` ou `in/h`), tandis que le cumul utilise une unité de quantité (`mm` ou `in`).
+
+### Min/max comme limites rares, moyenne comme centre climatique
+
+Les bornes `min`/`max` des profils de biome et des modificateurs saisonniers représentent des limites possibles, pas des valeurs fréquentes. La génération journalière utilise donc des distributions déterministes pondérées : la température est centrée autour de la moyenne, tandis que le vent et la pluie sont asymétriques et favorisent les valeurs faibles à modérées.
+
+Les tendances et traits météo orientent ces distributions sans ajouter de nouveau paramètre visible : une tendance froide/chaude déplace la température, une tendance stable resserre les écarts, et les tendances `windy`, `wet`, `stormy` ou une forte probabilité d'orage augmentent seulement la probabilité interne de valeurs marquées. Les extrêmes restent possibles, mais ils passent par des tirages déterministes rares et restent bornés par les limites configurées.

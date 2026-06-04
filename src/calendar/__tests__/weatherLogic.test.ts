@@ -679,5 +679,83 @@ it("fait évoluer les métriques instantanées par paliers de 5 minutes avec int
     expect(forecast[0]?.weather).not.toEqual(getForecastWeatherForTime(project, 10, 7, 1, 0));
     expect(forecast[1]?.weather).toEqual(getForecastWeatherForTime(project, 10, 8, 2, 10));
   });
+it("pondère les températures autour de la moyenne même avec des limites très larges", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "weighted-temperature";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    project.weatherBiomeProfiles = {
+      temperate: {
+        temperature: { min: -25, average: 0, max: 15 },
+        windSpeed: { min: 0, average: 12, max: 35 },
+        rain: { min: 0, average: 1, max: 8 },
+        dailyRain: { min: 0, average: 2, max: 12 },
+        traits: { stability: 0.72, precipitationChance: 0.35, fogChance: 0.1, stormChance: 0.08, dayNightAmplitude: 8, windVariability: 0.25 },
+        stateWeights: {}
+      }
+    };
+
+    const summaries = Array.from({ length: 200 }, (_, day) => getDailyWeatherSummary(project, day)).filter(
+      (entry): entry is NonNullable<typeof entry> => Boolean(entry)
+    );
+    expect(summaries).toHaveLength(200);
+    expect(summaries.every((summary) => summary.averageTemperature >= -25 && summary.averageTemperature <= 15)).toBe(true);
+
+    const closeToAverage = summaries.filter((summary) => Math.abs(summary.averageTemperature) <= 8).length;
+    const extremeCold = summaries.filter((summary) => summary.averageTemperature <= -18).length;
+    expect(closeToAverage).toBeGreaterThan(140);
+    expect(extremeCold).toBeLessThan(12);
+  });
+
+  it("rend les vents extrêmes rares quand le maximum configuré est très haut", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "weighted-wind";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    project.weatherBiomeProfiles = {
+      temperate: {
+        temperature: { min: -5, average: 12, max: 28 },
+        windSpeed: { min: 0, average: 15, max: 210 },
+        rain: { min: 0, average: 1, max: 10 },
+        dailyRain: { min: 0, average: 3, max: 30 },
+        traits: { stability: 0.7, precipitationChance: 0.3, fogChance: 0.08, stormChance: 0.08, dayNightAmplitude: 9, windVariability: 0.25 },
+        stateWeights: {}
+      }
+    };
+
+    const summaries = Array.from({ length: 200 }, (_, day) => getDailyWeatherSummary(project, day)).filter(
+      (entry): entry is NonNullable<typeof entry> => Boolean(entry)
+    );
+    const over100 = summaries.filter((summary) => summary.maxWindSpeed > 100).length;
+    const commonRange = summaries.filter((summary) => summary.maxWindSpeed <= 55).length;
+
+    expect(summaries.every((summary) => summary.maxWindSpeed >= 0 && summary.maxWindSpeed <= 210)).toBe(true);
+    expect(commonRange).toBeGreaterThan(150);
+    expect(over100).toBeLessThan(8);
+  });
+
+  it("rend les pluies extrêmes rares quand le maximum 24 h est très haut", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "weighted-rain";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+    project.weatherBiomeProfiles = {
+      temperate: {
+        temperature: { min: 4, average: 14, max: 25 },
+        windSpeed: { min: 0, average: 12, max: 50 },
+        rain: { min: 0, average: 1.5, max: 18 },
+        dailyRain: { min: 0, average: 4, max: 80 },
+        traits: { stability: 0.65, precipitationChance: 0.45, fogChance: 0.1, stormChance: 0.1, dayNightAmplitude: 8, windVariability: 0.25 },
+        stateWeights: {}
+      }
+    };
+
+    const summaries = Array.from({ length: 200 }, (_, day) => getDailyWeatherSummary(project, day)).filter(
+      (entry): entry is NonNullable<typeof entry> => Boolean(entry)
+    );
+    const over50 = summaries.filter((summary) => summary.rainTotal24h > 50).length;
+    const dryOrModerate = summaries.filter((summary) => summary.rainTotal24h <= 15).length;
+
+    expect(summaries.every((summary) => summary.rainTotal24h >= 0 && summary.rainTotal24h <= 80)).toBe(true);
+    expect(dryOrModerate).toBeGreaterThan(160);
+    expect(over50).toBeLessThan(8);
+  });
 
 });

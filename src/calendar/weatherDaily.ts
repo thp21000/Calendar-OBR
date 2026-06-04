@@ -1,6 +1,7 @@
 import { absoluteDayToCalendarDate } from "./dateEngine";
 import { getSeasonForDate } from "./seasonsLogic";
 import { getWeatherTrendForDay } from "./weatherTrend";
+import { sampleCenteredMetric, sampleSkewedLowMetric } from "./weatherDistribution";
 import { applyWeatherOverrideToDailySummary, getWeatherOverrideForTime } from "./weatherOverrides";
 import { adjustStateForWeatherProfile } from "./weather/biomes";
 import { resolveEffectiveWeatherProfile } from "./weather/biomes/biomeProfileResolver";
@@ -91,29 +92,53 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
   const effectiveStormChance = clamp01(traits.stormChance + trend.stormChanceModifier);
 
   const temperatureSpan = Math.max(0, profile.temperature.max - profile.temperature.min);
+  const averageTemperature = sampleCenteredMetric({
+    range: profile.temperature,
+    rolls: [seeded(seed, "temp:avg:a"), seeded(seed, "temp:avg:b"), seeded(seed, "temp:avg:c")],
+    extremeRoll: seeded(seed, "temp:extreme"),
+    extremeDepthRoll: seeded(seed, "temp:extreme:depth"),
+    stability: effectiveStability,
+    trendKind: trend.kind,
+    trendOffset: trend.temperatureOffset
+  });
   const baseSwing = Math.min(temperatureSpan, traits.dayNightAmplitude);
   const swingNoise = (seeded(seed, "temp:swing") - 0.5) * 2;
-  const swingFactor = 1 + swingNoise * (1 - effectiveStability) * 0.5;
+  const swingFactor = 0.55 + (1 - effectiveStability) * 0.35 + Math.abs(swingNoise) * 0.25;
   const rawSwing = clamp(baseSwing * swingFactor, 0, temperatureSpan);
-
-  const avgNoise = (seeded(seed, "temp:avg") - 0.5) * 2;
-  const avgVariance = temperatureSpan * (0.05 + (1 - effectiveStability) * 0.2);
-  const averageTemperature = clamp(profile.temperature.average + trend.temperatureOffset + avgNoise * avgVariance, profile.temperature.min, profile.temperature.max);
   const minTemperature = clamp(averageTemperature - rawSwing / 2, profile.temperature.min, profile.temperature.max);
   const maxTemperature = clamp(averageTemperature + rawSwing / 2, profile.temperature.min, profile.temperature.max);
 
   const rainNoise = seeded(seed, "rain:roll");
   const rainHit = rainNoise < traits.precipitationChance;
-  const rainIntensity = seeded(seed, "rain:intensity");
-  const rainBase = rainHit ? profile.dailyRain.average * trend.rainMultiplier * (0.3 + rainIntensity * (0.7 + (1 - effectiveStability) * 0.6)) : profile.dailyRain.min;
-  const rainBoost = profile.dailyRain.max * effectiveStormChance * trend.rainMultiplier * seeded(seed, "rain:storm");
-  const rainTotal24h = Math.max(0, clamp(rainBase + rainBoost, profile.dailyRain.min, profile.dailyRain.max));
+  const rainIntensity = clamp01(traits.precipitationChance * 0.25 + effectiveStormChance * 0.45 + (trend.kind === "wet" ? 0.18 : 0) + (trend.kind === "stormy" ? 0.28 : 0) + (trend.kind === "dry" ? -0.2 : 0));
+  const rainTotal24h = rainHit
+    ? sampleSkewedLowMetric({
+        range: profile.dailyRain,
+        roll: seeded(seed, "rain:intensity"),
+        moderateRoll: seeded(seed, "rain:moderate"),
+        extremeRoll: seeded(seed, "rain:extreme"),
+        extremeDepthRoll: seeded(seed, "rain:extreme:depth"),
+        stability: effectiveStability,
+        intensity: rainIntensity,
+        trendKind: trend.kind,
+        multiplier: trend.rainMultiplier,
+        allowZero: true
+      })
+    : round1(Math.max(0, clamp(profile.dailyRain.min * trend.rainMultiplier, profile.dailyRain.min, profile.dailyRain.max)));
 
-  const windNoise = (seeded(seed, "wind:avg") - 0.5) * 2;
-  const windVariance = (profile.windSpeed.max - profile.windSpeed.min) * (0.15 + traits.windVariability * 0.85) * (1 + (1 - effectiveStability) * 0.25);
-  const windBase = clamp(profile.windSpeed.average * trend.windMultiplier + windNoise * windVariance, profile.windSpeed.min, profile.windSpeed.max);
-  const gustFactor = 1 + effectiveStormChance * seeded(seed, "wind:gust") * 0.8;
-  const maxWindSpeed = Math.max(0, clamp(windBase * gustFactor, profile.windSpeed.min, profile.windSpeed.max * 1.25));
+  const windIntensity = clamp01(traits.windVariability * 0.25 + effectiveStormChance * 0.35 + (trend.kind === "windy" ? 0.25 : 0) + (trend.kind === "stormy" ? 0.32 : 0) + (trend.kind === "calm" ? -0.22 : 0) + (trend.kind === "stable" ? -0.08 : 0));
+  const maxWindSpeed = Math.max(0, sampleSkewedLowMetric({
+    range: profile.windSpeed,
+    roll: seeded(seed, "wind:avg"),
+    moderateRoll: seeded(seed, "wind:moderate"),
+    extremeRoll: seeded(seed, "wind:extreme"),
+    extremeDepthRoll: seeded(seed, "wind:extreme:depth"),
+    stability: effectiveStability,
+    intensity: windIntensity,
+    trendKind: trend.kind,
+    multiplier: trend.windMultiplier,
+    allowZero: false
+  }));
 
   const dominantWindDirection = WIND_DIRECTIONS[Math.floor(seeded(seed, "wind:dir") * WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
   const dominantState = getDominantState({
