@@ -3,6 +3,7 @@ import { createDefaultMoonSystem, ensureDefaultMoonSystem } from "../calendar/mo
 import { sanitizeCalendarProject, validateImportedCalendarProject } from "../importExport/calendarImportExport";
 import { DEFAULT_WEATHER_BIOME_ID } from "../calendar/weather/biomes";
 import { DEFAULT_SCENE_WEATHER_PROFILES, ensureDefaultSceneWeatherProfiles } from "../calendar/sceneWeatherDefaults";
+import { notifyCalendarProjectUpdated } from "./projectSync";
 
 const STORAGE_KEY = "calendar-obr.project.local-dev";
 
@@ -65,6 +66,7 @@ export const loadCalendarProject = (storageKey = STORAGE_KEY): CalendarProject =
     const ensured = ensureDefaultSceneWeatherProfiles(ensureDefaultMoonSystem(sanitized.project));
     if (JSON.stringify(ensured) !== JSON.stringify(sanitized.project)) {
       storage.setItem(storageKey, JSON.stringify(ensured));
+      notifyCalendarProjectUpdated(storageKey);
     }
     return ensured;
   } catch {
@@ -81,6 +83,7 @@ export const saveCalendarProject = (project: CalendarProject, storageKey = STORA
 
   try {
     storage.setItem(storageKey, JSON.stringify(project));
+    notifyCalendarProjectUpdated(storageKey);
     return { ok: true };
   } catch {
     return { ok: false, error: "Failed to persist project." };
@@ -93,6 +96,7 @@ export const resetCalendarProject = (storageKey = STORAGE_KEY): CalendarProject 
   if (storage) {
     storage.removeItem(storageKey);
     storage.setItem(storageKey, JSON.stringify(project));
+    notifyCalendarProjectUpdated(storageKey);
   }
   return project;
 };

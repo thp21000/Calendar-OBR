@@ -42,9 +42,17 @@ export const subscribeToObrSceneChange = (callback: () => void): (() => void) =>
       if (ready) callback();
     });
     cleanupMetadata = OBR.scene.onMetadataChange(() => callback());
+    intervalId = setInterval(async () => {
+      try {
+        if (await OBR.scene.isReady()) callback();
+      } catch {
+        // Ignore transient OBR scene readiness errors.
+      }
+    }, 1500);
   });
   return () => {
     cleanupReady?.();
     cleanupMetadata?.();
+    if (intervalId) clearInterval(intervalId);
   };
 };

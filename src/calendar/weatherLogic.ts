@@ -46,7 +46,7 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
   const seed = `${seedBase}|${absoluteDay}|${hour}|${season.id}`;
 
   const dailySummary = getDailyWeatherSummary(scopedProject, absoluteDay);
-  const weatherOverride = getWeatherOverrideForTime(project, absoluteDay, hour, minute);
+  const weatherOverride = getWeatherOverrideForTime(scopedProject, absoluteDay, hour, minute);
   const temperature = dailySummary
     ? (() => {
         // Simple day/night curve: near min around 05:00, near max around 15:00.

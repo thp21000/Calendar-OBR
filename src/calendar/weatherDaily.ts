@@ -1,7 +1,7 @@
 import { absoluteDayToCalendarDate } from "./dateEngine";
 import { getSeasonForDate } from "./seasonsLogic";
 import { getWeatherTrendForDay } from "./weatherTrend";
-import { applyWeatherOverrideToDailySummary, getWeatherOverrideForDay } from "./weatherOverrides";
+import { applyWeatherOverrideToDailySummary, getWeatherOverrideForTime } from "./weatherOverrides";
 import { adjustStateForWeatherProfile } from "./weather/biomes";
 import { resolveEffectiveWeatherProfile } from "./weather/biomes/biomeProfileResolver";
 import type { CalendarProject, WeatherState, WindDirection } from "../domain/types";
@@ -146,5 +146,12 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
     dominantState: safeState,
     trendKind: trend.kind
   };
-  return applyWeatherOverrideToDailySummary(summary, getWeatherOverrideForDay(project, absoluteDay));
+  const overrideTime =
+    absoluteDay === project.currentTime.absoluteDay
+      ? project.currentTime
+      : { absoluteDay, hour: 12, minute: 0 };
+  return applyWeatherOverrideToDailySummary(
+    summary,
+    getWeatherOverrideForTime(project, overrideTime.absoluteDay, overrideTime.hour, overrideTime.minute)
+  );
 };

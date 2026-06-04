@@ -6,11 +6,12 @@ type Params = {
   minHeight?: number;
   maxHeight?: number;
   padding?: number;
+  disabled?: boolean;
 };
 
-export const useObrPopoverHeight = ({ containerRef, minHeight = 420, maxHeight = 900, padding = 20 }: Params) => {
+export const useObrPopoverHeight = ({ containerRef, minHeight = 220, maxHeight = 700, padding = 20, disabled = false }: Params) => {
   useEffect(() => {
-    if (!OBR.isAvailable) return;
+    if (disabled || !OBR.isAvailable) return;
     let resizeObserver: ResizeObserver | null = null;
     let mutationObserver: MutationObserver | null = null;
     let rafId: number | null = null;
@@ -65,5 +66,5 @@ export const useObrPopoverHeight = ({ containerRef, minHeight = 420, maxHeight =
       resizeObserver?.disconnect();
       mutationObserver?.disconnect();
     };
-  }, [containerRef, minHeight, maxHeight, padding]);
+  }, [containerRef, minHeight, maxHeight, padding, disabled]);
 };

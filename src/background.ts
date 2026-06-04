@@ -13,6 +13,7 @@ const SCENE_WEATHER_MODAL_ID = "calendar-obr/scene-weather-modal";
 const SCENE_WEATHER_CONFIRM_MODAL_ID = "calendar-obr/scene-weather-confirm-modal";
 const SCENE_WEATHER_MODAL_WIDTH = 520;
 const SCENE_WEATHER_MODAL_HEIGHT = 620;
+let lastSceneWeatherPromptKey: string | undefined;
 
 const backgroundBaseUrl = typeof window !== "undefined" ? window.location.href : "https://thp21000.github.io/Calendar-OBR/background.html";
 const sceneWeatherIconUrl = new URL("scene-weather.svg", backgroundBaseUrl).href;
@@ -22,6 +23,10 @@ const sceneWeatherModalUrl = (confirm = false): string => {
   return url.href;
 };
 
+const saveProjectIfChanged = (currentJson: string, nextProject: ReturnType<typeof loadCalendarProject>, storageKey: string) => {
+  if (JSON.stringify(nextProject) === currentJson) return;
+  saveCalendarProject(nextProject, storageKey);
+};
 
 const synchronizeSceneWeatherForScene = async () => {
   const role = await getViewerRole();
@@ -29,30 +34,34 @@ const synchronizeSceneWeatherForScene = async () => {
 
   const scope = await getStorageScope();
   const project = loadCalendarProject(scope.storageKey);
+  const projectJson = JSON.stringify(project);
   const [sceneInfo, state] = await Promise.all([getCurrentObrSceneInfo(), getSceneWeatherState()]);
   const sceneId = sceneInfo?.id ?? "current-obr-scene";
   const now = toAbsoluteMinutes(project.currentTime);
 
   if (!state?.profileId) {
-    saveCalendarProject(disableSceneWeatherForScene(project), scope.storageKey);
+    saveProjectIfChanged(projectJson, disableSceneWeatherForScene(project), scope.storageKey);
     return;
   }
 
   const profile = (project.sceneWeatherProfiles ?? []).find((item) => item.id === state.profileId && item.enabled);
   if (!profile) {
-    saveCalendarProject(disableSceneWeatherForScene(project, sceneId), scope.storageKey);
+    saveProjectIfChanged(projectJson, disableSceneWeatherForScene(project, sceneId), scope.storageKey);
     return;
   }
 
   if (state.isActive) {
     if (!hasActiveSceneWeatherOverride(project, profile.id, now, sceneId)) {
-      saveCalendarProject(applySceneWeatherProfile(project, profile, { sceneId, sceneName: sceneInfo?.name }), scope.storageKey);
+      saveProjectIfChanged(projectJson, applySceneWeatherProfile(project, profile, { sceneId, sceneName: sceneInfo?.name }), scope.storageKey);
     }
     return;
   }
 
-  saveCalendarProject(disableSceneWeatherForScene(project, sceneId), scope.storageKey);
+  saveProjectIfChanged(projectJson, disableSceneWeatherForScene(project, sceneId), scope.storageKey);
   if (state.lastPromptedAtMinutes === now) return;
+  const promptKey = `${sceneId}:${state.profileId}:${now}`;
+  if (lastSceneWeatherPromptKey === promptKey) return;
+  lastSceneWeatherPromptKey = promptKey;
   await setSceneWeatherState({ ...state, lastPromptedAtMinutes: now });
   await OBR.modal.open({
     id: SCENE_WEATHER_CONFIRM_MODAL_ID,

@@ -1242,3 +1242,9 @@ Les profils prédéfinis de météo de scène sont des aides de départ globales
 La section Paramètres > Profils météo de scène propose aussi “Ajouter les profils prédéfinis manquants”. Cette action ajoute uniquement les profils par défaut absents par `id`, sans écraser les profils personnalisés ou modifiés par le MJ. Les profils prédéfinis restent des profils normaux : ils peuvent être modifiés, supprimés ou dupliqués.
 
 Ces profils utilisent uniquement les états météo existants (`clear`, `cloudy`, `overcast`, `fog`, `lightRain`, `heavyRain`, `storm`, `snow`, `strongWind`, `tempest`). Les ambiances spécialisées comme tempête de neige, pluie tropicale ou cendres volcaniques sont représentées par ces états existants avec des valeurs météo et biomes adaptés.
+
+## Synchronisation et fenêtre OBR pour la météo de scène
+
+La météo de scène est pilotée depuis une modal OBR externe. Quand cette modal sauvegarde le calendrier, un signal local `BroadcastChannel("calendar-obr-project")` et un événement navigateur local préviennent les autres iframes ouvertes du même addon afin de recharger le calendrier depuis le stockage scopé. Cela permet à la popover principale de refléter immédiatement un profil météo de scène appliqué depuis la modal.
+
+La popover principale conserve son auto-ajustement de hauteur via `OBR.action.setHeight`, mais les vues modales dédiées (`view=scene-weather` et `view=scene-weather-confirm`) désactivent cette mesure pour ne pas polluer la taille de la fenêtre principale. Les contenus longs doivent scroller dans leur conteneur plutôt que forcer une hauteur OBR excessive.

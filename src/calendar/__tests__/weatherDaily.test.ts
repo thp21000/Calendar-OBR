@@ -245,4 +245,30 @@ describe("weatherDaily", () => {
     expect(s.dominantState).toBe("storm");
   });
 
+  it("applique les overrides horaires actifs maintenant au résumé du jour courant", () => {
+    const project = createDefaultCalendarProject();
+    project.currentTime = { absoluteDay: 4, hour: 1, minute: 30 };
+    project.seasons = [{ id:"s1", name:"S", start:{monthId:"month-1",dayOfMonth:1}, end:{monthId:"month-2",dayOfMonth:30} } as any];
+    project.weatherOverrides = [{
+      id:"scene-weather-now",
+      absoluteDay: 4,
+      startMinuteOfDay: 60,
+      endMinuteOfDay: 120,
+      source: "sceneWeather",
+      dailyRainTotal: 33,
+      dailyMinTemperature: 4,
+      dailyMaxTemperature: 9,
+      dominantState: "heavyRain",
+      trendKind: "wet"
+    } as any];
+
+    const summary = getDailyWeatherSummary(project, 4)!;
+
+    expect(summary.rainTotal24h).toBe(33);
+    expect(summary.minTemperature).toBe(4);
+    expect(summary.maxTemperature).toBe(9);
+    expect(summary.dominantState).toBe("heavyRain");
+    expect(summary.trendKind).toBe("wet");
+  });
+
 });

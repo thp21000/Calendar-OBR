@@ -12,6 +12,7 @@ import { appShellStyle, tabButtonStyle, tabsGridStyle } from "./components/ui/st
 import { getStorageScope, type StorageScope } from "./obr/roomScope";
 import { getViewerRole, type ViewerRole } from "./obr/playerRole";
 import { loadCalendarProject, resetCalendarProject, saveCalendarProject } from "./storage/calendarStorage";
+import { subscribeCalendarProjectUpdates } from "./storage/projectSync";
 import {
   buildPublicCalendarIndex,
   publishPublicIndex,
@@ -41,8 +42,10 @@ export const App = () => {
   const projectRef = useRef<CalendarProject | null>(null);
   const revisionRef = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
+  const modalView = new URLSearchParams(window.location.search).get("view");
+  const isModalView = modalView === "scene-weather" || modalView === "scene-weather-confirm";
 
-  useObrPopoverHeight({ containerRef: contentRef, minHeight: 420, maxHeight: 900, padding: 20 });
+  useObrPopoverHeight({ containerRef: contentRef, minHeight: 220, maxHeight: 700, padding: 20, disabled: isModalView });
   useObrTheme();
   
   useEffect(() => {
@@ -90,6 +93,20 @@ export const App = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!scope || !viewerRole) return;
+    return subscribeCalendarProjectUpdates((message) => {
+      if (message.storageKey !== scope.storageKey) return;
+      const loaded = loadCalendarProject(scope.storageKey);
+      const nextRev = revisionRef.current + 1;
+      revisionRef.current = nextRev;
+      projectRef.current = loaded;
+      setRevision(nextRev);
+      setProject(loaded);
+      setSaveError(null);
+      if (viewerRole === "gm") void publishPublicIndex(buildPublicCalendarIndex(loaded, nextRev));
+    });
+  }, [scope, viewerRole]);
 
   if (!scope || !project || !viewerRole) {
     return <main><div ref={contentRef} style={appShellStyle}>{t("fr", "common.loading")}</div></main>;
@@ -108,8 +125,7 @@ export const App = () => {
     } else setSaveError(result.error);
   };
 
-  const modalView = new URLSearchParams(window.location.search).get("view");
-  if (modalView === "scene-weather" || modalView === "scene-weather-confirm") {
+  if (isModalView) {
     if (viewerRole !== "gm") {
       return <main><div ref={contentRef} style={appShellStyle}><SectionCard><EmptyState text={t(project.locale, "sceneWeather.gmOnly")} /></SectionCard></div></main>;
     }
