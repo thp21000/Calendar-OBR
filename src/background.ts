@@ -46,7 +46,7 @@ const synchronizeSceneWeatherForScene = async () => {
 
   const profile = (project.sceneWeatherProfiles ?? []).find((item) => item.id === state.profileId && item.enabled);
   if (!profile) {
-    saveProjectIfChanged(projectJson, disableSceneWeatherForScene(project, sceneId), scope.storageKey);
+    saveProjectIfChanged(projectJson, disableSceneWeatherForScene(project), scope.storageKey);
     return;
   }
 
@@ -57,7 +57,7 @@ const synchronizeSceneWeatherForScene = async () => {
     return;
   }
 
-  saveProjectIfChanged(projectJson, disableSceneWeatherForScene(project, sceneId), scope.storageKey);
+  saveProjectIfChanged(projectJson, disableSceneWeatherForScene(project), scope.storageKey);
   if (state.lastPromptedAtMinutes === now) return;
   const promptKey = `${sceneId}:${state.profileId}:${now}`;
   if (lastSceneWeatherPromptKey === promptKey) return;
