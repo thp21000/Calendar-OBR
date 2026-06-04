@@ -1,6 +1,7 @@
 import { absoluteDayToCalendarDate } from "./dateEngine";
 import { getSeasonForDate } from "./seasonsLogic";
 import { resolveEffectiveWeatherProfile } from "./weather/biomes";
+import { getEnabledWeatherTrends, getWeatherTrendConfig } from "./weatherAdvancedSettings";
 import type { CalendarProject, WeatherTrendKind } from "../domain/types";
 
 export type WeatherTrendSummary = {
@@ -37,20 +38,15 @@ const chooseKind = (weights: Record<WeatherTrendKind, number>, roll: number): We
   return "stable";
 };
 
-const profileForKind = (kind: WeatherTrendKind): Omit<WeatherTrendSummary, "kind" | "startAbsoluteDay" | "endAbsoluteDay" | "durationDays"> => {
-  switch (kind) {
-    case "cold": return { temperatureOffset: -3, rainMultiplier: 1.05, windMultiplier: 1, stormChanceModifier: 0, stabilityModifier: 0 };
-    case "warm": return { temperatureOffset: 3, rainMultiplier: 0.95, windMultiplier: 1, stormChanceModifier: 0, stabilityModifier: 0 };
-    case "wet": return { temperatureOffset: 0, rainMultiplier: 1.25, windMultiplier: 1.05, stormChanceModifier: 0.05, stabilityModifier: -0.08 };
-    case "dry": return { temperatureOffset: 0.5, rainMultiplier: 0.65, windMultiplier: 0.95, stormChanceModifier: -0.05, stabilityModifier: 0.08 };
-    case "windy": return { temperatureOffset: 0, rainMultiplier: 1, windMultiplier: 1.25, stormChanceModifier: 0.05, stabilityModifier: -0.08 };
-    case "calm": return { temperatureOffset: 0, rainMultiplier: 0.95, windMultiplier: 0.75, stormChanceModifier: -0.03, stabilityModifier: 0.12 };
-    case "stormy": return { temperatureOffset: -0.5, rainMultiplier: 1.35, windMultiplier: 1.3, stormChanceModifier: 0.18, stabilityModifier: -0.18 };
-    case "unstable": return { temperatureOffset: 0, rainMultiplier: 1.1, windMultiplier: 1.1, stormChanceModifier: 0.08, stabilityModifier: -0.2 };
-    case "stable":
-    default:
-      return { temperatureOffset: 0, rainMultiplier: 0.95, windMultiplier: 0.9, stormChanceModifier: -0.02, stabilityModifier: 0.2 };
-  }
+const profileForKind = (project: CalendarProject, kind: WeatherTrendKind): Omit<WeatherTrendSummary, "kind" | "startAbsoluteDay" | "endAbsoluteDay" | "durationDays"> => {
+  const config = getWeatherTrendConfig(project, kind);
+  return {
+    temperatureOffset: config.temperatureOffset ?? 0,
+    rainMultiplier: config.rainMultiplier ?? 1,
+    windMultiplier: config.windMultiplier ?? 1,
+    stormChanceModifier: config.stormChanceModifier ?? 0,
+    stabilityModifier: config.stabilityModifier ?? 0
+  };
 };
 
 export const getWeatherTrendForDay = (project: CalendarProject, absoluteDay: number): WeatherTrendSummary => {
@@ -87,8 +83,12 @@ export const getWeatherTrendForDay = (project: CalendarProject, absoluteDay: num
         stable: 0.3 + traits.stability * 1.5,
         unstable: 0.3 + (1 - traits.stability) * 1.8
       };
-      const kind = chooseKind(weights, seeded(local, "kind"));
-      const modifiers = profileForKind(kind);
+      const enabledTrends = getEnabledWeatherTrends(project);
+      const weightedEnabled = Object.fromEntries(
+        (Object.entries(weights) as Array<[WeatherTrendKind, number]>).filter(([trend]) => enabledTrends.includes(trend))
+      ) as Record<WeatherTrendKind, number>;
+      const kind = chooseKind(Object.keys(weightedEnabled).length > 0 ? weightedEnabled : weights, seeded(local, "kind"));
+      const modifiers = profileForKind(project, kind);
       return { kind, startAbsoluteDay: start, endAbsoluteDay: end, durationDays: dur, ...modifiers };
     }
     start = end + 1;

@@ -102,6 +102,62 @@ export type WeatherTrendKind = "cold" | "warm" | "wet" | "dry" | "windy" | "calm
 
 export type WeatherState = "clear" | "cloudy" | "overcast" | "fog" | "lightRain" | "heavyRain" | "storm" | "snow" | "strongWind" | "tempest" | "blizzard" | "sandstorm" | "monsoon" | "seaFog" | "volcanicAsh";
 
+export type WeatherAdvancedThresholds = {
+  minTemperature?: number;
+  maxTemperature?: number;
+  minWindSpeed?: number;
+  maxWindSpeed?: number;
+  minRain?: number;
+  maxRain?: number;
+  minDailyRainTotal?: number;
+  maxDailyRainTotal?: number;
+  minPrecipitationChance?: number;
+  maxPrecipitationChance?: number;
+  minStormChance?: number;
+  maxStormChance?: number;
+  minFogChance?: number;
+  maxFogChance?: number;
+};
+
+export type WeatherStateConfig = {
+  id: string;
+  enabled: boolean;
+  custom?: boolean;
+  label?: Partial<Record<LocaleCode, string>>;
+  icon?: string;
+  description?: Partial<Record<LocaleCode, string>>;
+  priority?: number;
+  thresholds?: WeatherAdvancedThresholds;
+  biomeTags?: WeatherBiomeId[];
+};
+
+export type WeatherTrendConfig = {
+  id: WeatherTrendKind | string;
+  enabled: boolean;
+  label?: Partial<Record<LocaleCode, string>>;
+  icon?: string;
+  temperatureOffset?: number;
+  rainMultiplier?: number;
+  windMultiplier?: number;
+  stabilityModifier?: number;
+  stormChanceModifier?: number;
+};
+
+export type WeatherDominanceConfig = {
+  id: string;
+  enabled: boolean;
+  custom?: boolean;
+  stateId: string;
+  priority?: number;
+  thresholds?: WeatherAdvancedThresholds;
+};
+
+export type WeatherAdvancedSettings = {
+  stateConfigs?: Record<string, Partial<WeatherStateConfig>>;
+  trendConfigs?: Record<string, Partial<WeatherTrendConfig>>;
+  dominanceConfigs?: Record<string, Partial<WeatherDominanceConfig>>;
+};
+
 export type WeatherSnapshot = {
   temperature: number;
   windSpeed: number;
@@ -375,6 +431,7 @@ export type CalendarProject = {
   moonEvents?: MoonEvent[];
   dayNotes?: DayNote[];
   weatherSettings: WeatherSettings;
+  weatherAdvancedSettings?: WeatherAdvancedSettings;
   weatherEvents: WeatherEvent[];
   weatherOverrides?: WeatherOverride[];
   weatherBiome?: WeatherBiomeState;

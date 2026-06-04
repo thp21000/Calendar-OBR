@@ -10,7 +10,7 @@ import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getCurrentWeather } from "../calendar/weatherLogic";
 import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
-import { getWeatherStateIcon } from "../calendar/weatherState";
+import { getConfiguredWeatherStateIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../calendar/weatherAdvancedSettings";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
 import type { CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
@@ -27,7 +27,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
 
   if (snapshot) {
     const weatherLabel = snapshot.weather
-      ? `${getWeatherStateIcon(snapshot.weather.state ?? "clear")} ${t(snapshot.locale, `weather.state.${snapshot.weather.state ?? "clear"}`)} · ${snapshot.weather.temperature} ${snapshot.weather.units.temperature}`
+      ? `${getConfiguredWeatherStateIcon(project, snapshot.weather.state ?? "clear")} ${getWeatherStateLabel(project, snapshot.weather.state ?? "clear", snapshot.locale)} · ${snapshot.weather.temperature} ${snapshot.weather.units.temperature}`
       : t(snapshot.locale, "calendar.noWeather");
 
     const publicEvents: PublicEventDetails[] = snapshot.eventsToday.map((event) => ({ ...event }));
@@ -77,12 +77,12 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
         ) : null}
         {snapshot.weather?.trendKind ? (
           <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-            {t(snapshot.locale, "weather.trend")}: {t(snapshot.locale, `weather.trend.${snapshot.weather.trendKind}`)}
+            {t(snapshot.locale, "weather.trend")}: {getWeatherTrendLabel(project, snapshot.weather.trendKind, snapshot.locale)}
           </div>
         ) : null}
         {snapshot.weather?.dominantState ? (
           <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 6 }}>
-            {t(snapshot.locale, "weather.dominantState")}: {getWeatherStateIcon(snapshot.weather.dominantState)} {t(snapshot.locale, `weather.state.${snapshot.weather.dominantState}`)}
+            {t(snapshot.locale, "weather.dominantState")}: {getConfiguredWeatherStateIcon(project, snapshot.weather.dominantState)} {getWeatherStateLabel(project, snapshot.weather.dominantState, snapshot.locale)}
           </div>
         ) : null}
 
@@ -108,7 +108,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
   const weatherUnits = getWeatherUnitLabels(project.locale);
 
   const weatherLabel = currentWeather
-    ? `${getWeatherStateIcon(currentWeather.state ?? "clear")} ${t(project.locale, `weather.state.${currentWeather.state ?? "clear"}`)} · ${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
+    ? `${getConfiguredWeatherStateIcon(project, currentWeather.state ?? "clear")} ${getWeatherStateLabel(project, currentWeather.state ?? "clear")} · ${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
     : t(project.locale, "calendar.noWeather");
 
   const publicEvents: PublicEventDetails[] = visibleEvents.map((event) => ({
@@ -169,12 +169,12 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
       ) : null}
       {currentWeather?.trendKind ? (
         <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-          {t(project.locale, "weather.trend")}: {t(project.locale, `weather.trend.${currentWeather.trendKind}`)}
+          {t(project.locale, "weather.trend")}: {getWeatherTrendLabel(project, currentWeather.trendKind)}
         </div>
       ) : null}
       {currentWeather?.dominantState ? (
         <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 6 }}>
-          {t(project.locale, "weather.dominantState")}: {getWeatherStateIcon(currentWeather.dominantState)} {t(project.locale, `weather.state.${currentWeather.dominantState}`)}
+          {t(project.locale, "weather.dominantState")}: {getConfiguredWeatherStateIcon(project, currentWeather.dominantState)} {getWeatherStateLabel(project, currentWeather.dominantState)}
         </div>
       ) : null}
 

@@ -1,4 +1,5 @@
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
+import { getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { conditionSummary } from "./WeatherEventForm";
 import { getWeatherEventDiagnostics, getWeatherEventDurationHours, getWeatherEventUpcomingTriggerWindows, type WeatherEventUpcomingTriggerWindow } from "../../calendar/weatherEventsLogic";
 import { getCurrentWeather } from "../../calendar/weatherLogic";
@@ -47,8 +48,8 @@ const sendWeatherEventToPlayers = (project: CalendarProject, event: WeatherEvent
 const getEffectLines = (project: CalendarProject, effect: WeatherEventEffect | undefined): string[] => {
   if (!effect) return [];
   const lines: string[] = [];
-  if (effect.state) lines.push(`${t(project.locale, "weatherEvents.effectState")}: ${t(project.locale, `weather.state.${effect.state}`)}`);
-  if (effect.dominantState) lines.push(`${t(project.locale, "weatherEvents.effectDominantState")}: ${t(project.locale, `weather.state.${effect.dominantState}`)}`);
+  if (effect.state) lines.push(`${t(project.locale, "weatherEvents.effectState")}: ${getWeatherStateLabel(project, effect.state)}`);
+  if (effect.dominantState) lines.push(`${t(project.locale, "weatherEvents.effectDominantState")}: ${getWeatherStateLabel(project, effect.dominantState)}`);
   if (typeof effect.temperature === "number") lines.push(`${t(project.locale, "weatherEvents.effectTemperature")}: ${effect.temperature}`);
   if (typeof effect.dailyMinTemperature === "number") lines.push(`${t(project.locale, "weatherEvents.effectDailyMinTemperature")}: ${effect.dailyMinTemperature}`);
   if (typeof effect.dailyMaxTemperature === "number") lines.push(`${t(project.locale, "weatherEvents.effectDailyMaxTemperature")}: ${effect.dailyMaxTemperature}`);
@@ -56,7 +57,7 @@ const getEffectLines = (project: CalendarProject, effect: WeatherEventEffect | u
   if (typeof effect.dailyRainTotal === "number") lines.push(`${t(project.locale, "weatherEvents.effectDailyRainTotal")}: ${effect.dailyRainTotal}`);
   if (typeof effect.windSpeed === "number") lines.push(`${t(project.locale, "weatherEvents.effectWindSpeed")}: ${effect.windSpeed}`);
   if (effect.windDirection) lines.push(`${t(project.locale, "weatherEvents.effectWindDirection")}: ${effect.windDirection}`);
-  if (effect.trendKind) lines.push(`${t(project.locale, "weatherEvents.effectTrendKind")}: ${t(project.locale, `weather.trend.${effect.trendKind}`)}`);
+  if (effect.trendKind) lines.push(`${t(project.locale, "weatherEvents.effectTrendKind")}: ${getWeatherTrendLabel(project, effect.trendKind)}`);
   return lines;
 };
 
@@ -106,13 +107,13 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
   const upcomingWindows = getWeatherEventUpcomingTriggerWindows(project, event, project.currentTime, 48);
   const currentWeatherSummary = currentWeather
     ? [
-        currentWeather.state ? `${t(project.locale, "weatherEvents.state")}: ${t(project.locale, `weather.state.${currentWeather.state}`)}` : undefined,
+        currentWeather.state ? `${t(project.locale, "weatherEvents.state")}: ${getWeatherStateLabel(project, currentWeather.state)}` : undefined,
         `${t(project.locale, "weatherEvents.metricTemperature")}: ${currentWeather.temperature}`,
         `${t(project.locale, "weatherEvents.metricRain")}: ${currentWeather.rain}`,
         `${t(project.locale, "weatherEvents.metricWindSpeed")}: ${currentWeather.windSpeed}`,
         currentWeather.windDirection ? `${t(project.locale, "weatherEvents.windDirection")}: ${currentWeather.windDirection}` : undefined,
-        currentWeather.dominantState ? `${t(project.locale, "weatherEvents.dominantState")}: ${t(project.locale, `weather.state.${currentWeather.dominantState}`)}` : undefined,
-        currentWeather.trendKind ? `${t(project.locale, "weather.trend")}: ${t(project.locale, `weather.trend.${currentWeather.trendKind}`)}` : undefined
+        currentWeather.dominantState ? `${t(project.locale, "weatherEvents.dominantState")}: ${getWeatherStateLabel(project, currentWeather.dominantState)}` : undefined,
+        currentWeather.trendKind ? `${t(project.locale, "weather.trend")}: ${getWeatherTrendLabel(project, currentWeather.trendKind)}` : undefined
       ].filter(Boolean).join(" · ")
     : undefined;
 
@@ -207,7 +208,7 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
           ) : null}
 
           <CollapsibleDetailSection title={t(project.locale, "weatherEvents.history")} empty={history.length === 0} meta={formatCountMeta(project, "common.entriesCount", history.length, "common.empty")}>
-            {history.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noHistory")}</div> : <div style={{ display: "grid", gap: 4 }}>{history.map((entry) => <div key={entry.id} style={textStyle}>• {formatWeatherHistoryDate(project, entry.triggeredAtMinutes)}{entry.weatherState ? ` · ${t(project.locale, `weather.state.${entry.weatherState}`)}` : ""}{typeof entry.temperature === "number" ? ` · T:${entry.temperature}` : ""}{typeof entry.rain === "number" ? ` · R:${entry.rain}` : ""}{typeof entry.windSpeed === "number" ? ` · W:${entry.windSpeed}` : ""}</div>)}</div>}
+            {history.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noHistory")}</div> : <div style={{ display: "grid", gap: 4 }}>{history.map((entry) => <div key={entry.id} style={textStyle}>• {formatWeatherHistoryDate(project, entry.triggeredAtMinutes)}{entry.weatherState ? ` · ${getWeatherStateLabel(project, entry.weatherState)}` : ""}{typeof entry.temperature === "number" ? ` · T:${entry.temperature}` : ""}{typeof entry.rain === "number" ? ` · R:${entry.rain}` : ""}{typeof entry.windSpeed === "number" ? ` · W:${entry.windSpeed}` : ""}</div>)}</div>}
           </CollapsibleDetailSection>
         </div>
 

@@ -1,5 +1,6 @@
 import { getCurrentSeason } from "./seasonsLogic";
 import { getHourlyWeatherState, getWeatherState } from "./weatherState";
+import { resolveGeneratedWeatherState } from "./weatherAdvancedSettings";
 import { getDailyWeatherSummary } from "./weatherDaily";
 import { getAccumulatedRainForTime, getSmoothedRainRateForTime } from "./weatherRain";
 import { getHourlyWindForDay } from "./weatherWind";
@@ -102,7 +103,8 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
     dominantState: dailySummary?.dominantState,
     hour: metricTime.hour
   });
-  const overriddenState = weatherOverride?.state ?? computedState;
+  const generatedState = resolveGeneratedWeatherState(scopedProject, computedState);
+  const overriddenState = weatherOverride?.state ?? generatedState;
 
   return {
     temperature: overriddenTemperature,
@@ -185,11 +187,11 @@ export const getForecastWeatherForTime = (
     windSpeed,
     windDirection,
     rain,
-    state: weatherOverride?.state ?? getWeatherState({ temperature, windSpeed, rain }),
+    state: weatherOverride?.state ?? resolveGeneratedWeatherState(project, getWeatherState({ temperature, windSpeed, rain })),
     dailyMinTemperature,
     dailyMaxTemperature,
     dailyRainTotal,
-    dominantState: realWeather.dominantState,
+    dominantState: weatherOverride?.dominantState ?? realWeather.dominantState,
     trendKind: realWeather.trendKind
   };
 };

@@ -2,6 +2,7 @@ import { absoluteDayToCalendarDate } from "./dateEngine";
 import { getSeasonForDate } from "./seasonsLogic";
 import { getWeatherTrendForDay } from "./weatherTrend";
 import { sampleCenteredMetric, sampleSkewedLowMetric } from "./weatherDistribution";
+import { chooseDominantWeatherState, resolveGeneratedWeatherState } from "./weatherAdvancedSettings";
 import { WEATHER_STATES } from "./weatherStates";
 import { applyWeatherOverrideToDailySummary, getWeatherOverrideForTime } from "./weatherOverrides";
 import { adjustStateForWeatherProfile } from "./weather/biomes";
@@ -145,7 +146,7 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
   }));
 
   const dominantWindDirection = WIND_DIRECTIONS[Math.floor(seeded(seed, "wind:dir") * WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
-  const dominantState = getDominantState({
+  const dominanceMetrics = {
     minTemperature,
     maxTemperature,
     rainTotal24h,
@@ -154,7 +155,8 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
     fogChance: traits.fogChance,
     precipitationChance: traits.precipitationChance,
     rainAverage: profile.rain.average
-  });
+  };
+  const dominantState = chooseDominantWeatherState(project, dominanceMetrics) ?? getDominantState(dominanceMetrics);
 
   const weightedState = adjustStateForWeatherProfile(dominantState, {
     temperature: averageTemperature,
@@ -162,7 +164,7 @@ export const getDailyWeatherSummary = (project: CalendarProject, absoluteDay: nu
     windSpeed: maxWindSpeed,
     profile
   }) ?? dominantState;
-  const safeState = WEATHER_STATES.includes(weightedState) ? weightedState : "clear";
+  const safeState = WEATHER_STATES.includes(weightedState) ? resolveGeneratedWeatherState(project, weightedState) : "clear";
 
   const summary: DailyWeatherSummary = {
     absoluteDay,

@@ -685,6 +685,27 @@ describe("calendarImportExport phase17 integrity", () => {
     expect(imported.project.sceneWeatherProfiles?.[0].override.temperature).toBe(99);
   });
 
+  it("sanitizes optional advanced weather settings", () => {
+    const project = createDefaultCalendarProject();
+    const payload: any = {
+      ...project,
+      weatherAdvancedSettings: {
+        stateConfigs: { blizzard: { enabled: false, icon: "B", label: { fr: "Brouille" }, priority: Number.NaN } },
+        trendConfigs: { wet: { rainMultiplier: 2, windMultiplier: Number.NaN } },
+        dominanceConfigs: { monsoon: { enabled: false, thresholds: { minDailyRainTotal: 40 } } }
+      }
+    };
+
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.blizzard.enabled).toBe(false);
+    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.clear.enabled).toBe(true);
+    expect(imported.project.weatherAdvancedSettings?.trendConfigs?.wet.rainMultiplier).toBe(2);
+    expect(imported.project.weatherAdvancedSettings?.dominanceConfigs?.monsoon.enabled).toBe(false);
+  });
+
   it("keeps import stable with invalid month reference in events", () => {
     const project = createDefaultCalendarProject();
     const payload: any = {

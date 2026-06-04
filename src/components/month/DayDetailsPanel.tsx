@@ -1,11 +1,11 @@
 import { t } from "../../i18n/messages";
-import { getWeatherStateIcon } from "../../calendar/weatherState";
+import { getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { absoluteDayToCalendarDate, calendarDateToAbsoluteDay } from "../../calendar/dateEngine";
 import type { CalendarDate, CalendarProject, DayNote } from "../../domain/types";
 import type { DayDetails } from "../../calendar/dayDetails";
 import { EventIcon } from "../EventIcon";
 import { DayNotesEditor } from "./DayNotesEditor";
-import { getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIcon } from "../today/weatherIcons";
+import { getTemperatureIcon, getWindDirectionIcon, getWindSpeedIcon } from "../today/weatherIcons";
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
 import { formatEventTimeShort, formatEventVisibility } from "../../calendar/formatEvent";
 import { sendPopupNotification } from "../../obr/popupNotifications";
@@ -32,7 +32,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
     <div style={{ fontSize: 12, marginBottom: 4, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
       {dayDetails.dailyWeather ? (
         <>
-          <span>{getWeatherStateIcon(dayDetails.dailyWeather.dominantState)} {t(project.locale, `weather.state.${dayDetails.dailyWeather.dominantState}`)}</span>
+          <span>{getConfiguredWeatherStateIcon(project, dayDetails.dailyWeather.dominantState)} {getWeatherStateLabel(project, dayDetails.dailyWeather.dominantState)}</span>
           <span>{getTemperatureIcon(dayDetails.dailyWeather.averageTemperature)} {dayDetails.dailyWeather.averageTemperature} °C</span>
           <span>{getWindSpeedIcon(dayDetails.dailyWeather.averageWindSpeed)} {dayDetails.dailyWeather.averageWindSpeed} km/h <span title={dayDetails.dailyWeather.dominantWindDirection}>{getWindDirectionIcon(dayDetails.dailyWeather.dominantWindDirection)}</span></span>
           <span>24 h: {dayDetails.dailyWeather.rainTotal24h} {weatherUnits.rainTotal}</span>
@@ -41,9 +41,9 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
     </div>
     {dayDetails.dailyWeather?.trendKind || dayDetails.dailyWeather?.dominantState ? (
       <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6 }}>
-        {dayDetails.dailyWeather?.trendKind ? `${getTrendIcon(dayDetails.dailyWeather.trendKind)} ${t(project.locale, "weather.trend")}: ${t(project.locale, `weather.trend.${dayDetails.dailyWeather.trendKind}`)}` : ""}
+        {dayDetails.dailyWeather?.trendKind ? `${getConfiguredWeatherTrendIcon(project, dayDetails.dailyWeather.trendKind)} ${t(project.locale, "weather.trend")}: ${getWeatherTrendLabel(project, dayDetails.dailyWeather.trendKind)}` : ""}
         {dayDetails.dailyWeather?.trendKind && dayDetails.dailyWeather?.dominantState ? " · " : ""}
-        {dayDetails.dailyWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${t(project.locale, `weather.state.${dayDetails.dailyWeather.dominantState}`)}` : ""}
+        {dayDetails.dailyWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${getWeatherStateLabel(project, dayDetails.dailyWeather.dominantState)}` : ""}
       </div>
     ) : null}
     <SectionCard style={{ marginTop: 8 }}>

@@ -1303,3 +1303,15 @@ Le moteur inclut une première série d’états météo spécialisés en plus d
 - `volcanicAsh` : état narratif spécialisé, destiné principalement aux biomes/profils/overrides qui le favorisent explicitement.
 
 Les états spécialisés sont ajoutés à la liste partagée des états météo afin d’éviter les listes divergentes dans les sélecteurs UI et la validation d’import/export. Les anciens états restent compatibles et inchangés.
+
+## Configuration météo avancée
+
+La section Paramètres > Configuration météo avancée expose une première couche de réglages prudente autour des états météo, des tendances et des règles de dominance. Cette couche ne remplace pas les constantes historiques : les états et tendances prédéfinis restent les valeurs de secours, et les anciens calendriers fonctionnent même si `weatherAdvancedSettings` est absent.
+
+Les réglages avancés fusionnent les defaults internes avec les overrides du projet :
+
+- `stateConfigs` permet d'ajuster activation, icône, libellés FR/EN, priorité et seuils principaux d'un état météo ;
+- `trendConfigs` permet d'ajuster activation, icône, libellés FR/EN et modificateurs de génération des tendances ;
+- `dominanceConfigs` permet d'activer/désactiver ou d'ajuster les seuils de dominance automatique.
+
+Les overrides MJ, événements météo et météos de scène qui forcent explicitement un état continuent de l'afficher même si l'état est désactivé pour la génération automatique. En revanche, la génération automatique évite les états désactivés et utilise un fallback proche (`blizzard` vers `snow`, `monsoon` vers `heavyRain`, etc.).
