@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
 import type { SceneWeatherProfile } from "../../domain/types";
-import { applySceneWeatherProfile, cleanupExpiredSceneWeatherOverrides, disableSceneWeatherForScene, isSceneWeatherProfileEmpty } from "../sceneWeather";
+import { applySceneWeatherProfile, cleanupExpiredSceneWeatherOverrides, disableSceneWeatherForScene, hasActiveSceneWeatherOverride, isSceneWeatherProfileEmpty } from "../sceneWeather";
 
 const profile = (patch: Partial<SceneWeatherProfile> = {}): SceneWeatherProfile => ({
   id: "storm-scene",
@@ -66,6 +66,18 @@ describe("sceneWeather", () => {
     expect(next.weatherOverrides?.map((override) => override.id)).toEqual(["manual", "scene-b"]);
   });
 
+  it("detects active sceneWeather overrides for the current scene", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherOverrides = [
+      { id: "manual", absoluteDay: 0, source: "manual" },
+      { id: "scene-a", absoluteDay: 0, source: "sceneWeather", sourceId: "storm-scene", sceneId: "a", startMinuteOfDay: 60, endMinuteOfDay: 120 }
+    ];
+
+    expect(hasActiveSceneWeatherOverride(project, "storm-scene", 90, "a")).toBe(true);
+    expect(hasActiveSceneWeatherOverride(project, "storm-scene", 90, "b")).toBe(false);
+    expect(hasActiveSceneWeatherOverride(project, "storm-scene", 130, "a")).toBe(false);
+  });
+  
   it("cleans up expired sceneWeather overrides without touching manual overrides", () => {
     const project = createDefaultCalendarProject();
     project.weatherOverrides = [

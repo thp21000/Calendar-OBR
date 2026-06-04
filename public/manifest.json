@@ -1,6 +1,6 @@
 {
   "name": "Calendar OBR DEV",
-  "version": "0.3.83",
+  "version": "0.3.84",
   "manifest_version": 1,
   "action": {
     "title": "Calendar OBR DEV",
@@ -8,5 +8,6 @@
     "popover": "https://thp21000.github.io/Calendar-OBR/index.html",
     "height": 700,
     "width": 550
-  }
+  },
+  "background_url": "https://thp21000.github.io/Calendar-OBR/background.html"
 }

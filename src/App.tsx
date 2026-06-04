@@ -26,11 +26,7 @@ import {
 } from "./obr/publicSync";
 import { useObrPopoverHeight } from "./obr/useObrPopoverHeight";
 import { useObrTheme } from "./obr/useObrTheme";
-import { SceneWeatherApplyPrompt, SceneWeatherManagementPopup } from "./components/SceneWeatherManagementPopup";
-import { applySceneWeatherProfile, disableSceneWeatherForScene } from "./calendar/sceneWeather";
-import { toAbsoluteMinutes } from "./calendar/weatherEventsLogic";
-import { getCurrentObrSceneInfo, getSceneWeatherState, setSceneWeatherState, subscribeToObrSceneChange } from "./obr/sceneWeatherMetadata";
-import type { SceneWeatherSceneState } from "./domain/types";
+import { SceneWeatherModalView } from "./components/SceneWeatherManagementPopup";
 
 export const App = () => {
   const [scope, setScope] = useState<StorageScope | null>(null);
@@ -41,8 +37,6 @@ export const App = () => {
   const [publicSnapshot, setPublicSnapshot] = useState<PublicCalendarTodaySnapshot | null>(null);
   const [pendingCreateEventDate, setPendingCreateEventDate] = useState<CalendarDate | null>(null);
   const [pendingMonthSelectedDate, setPendingMonthSelectedDate] = useState<CalendarDate | null>(null);
-  const [sceneWeatherMenuOpen, setSceneWeatherMenuOpen] = useState(false);
-  const [sceneWeatherPrompt, setSceneWeatherPrompt] = useState<SceneWeatherSceneState | null>(null);
   const [pendingEditEventId, setPendingEditEventId] = useState<string | null>(null);
   const projectRef = useRef<CalendarProject | null>(null);
   const revisionRef = useRef(0);
@@ -96,60 +90,6 @@ export const App = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!scope || viewerRole !== "gm") return;
-    const promptedKeys = new Set<string>();
-
-    const persistProject = (nextProject: CalendarProject) => {
-      const result = saveCalendarProject(nextProject, scope.storageKey);
-      if (!result.ok) {
-        setSaveError(result.error);
-        return;
-      }
-      const nextRev = revisionRef.current + 1;
-      revisionRef.current = nextRev;
-      projectRef.current = nextProject;
-      setRevision(nextRev);
-      setProject(nextProject);
-      setSaveError(null);
-      void publishPublicIndex(buildPublicCalendarIndex(nextProject, nextRev));
-    };
-
-    const handleSceneChange = async () => {
-      const currentProject = projectRef.current;
-      if (!currentProject) return;
-      const [sceneInfo, state] = await Promise.all([getCurrentObrSceneInfo(), getSceneWeatherState()]);
-      const sceneId = sceneInfo?.id ?? "local-scene";
-      const sceneName = sceneInfo?.name;
-      if (!state?.profileId) {
-        persistProject(disableSceneWeatherForScene(currentProject));
-        setSceneWeatherPrompt(null);
-        return;
-      }
-      const profile = (currentProject.sceneWeatherProfiles ?? []).find((item) => item.id === state.profileId && item.enabled);
-      if (!profile) {
-        persistProject(disableSceneWeatherForScene(currentProject, sceneId));
-        setSceneWeatherPrompt(null);
-        return;
-      }
-      if (state.isActive) {
-        persistProject(applySceneWeatherProfile(currentProject, profile, { sceneId, sceneName }));
-        setSceneWeatherPrompt(null);
-        return;
-      }
-      persistProject(disableSceneWeatherForScene(currentProject, sceneId));
-      const now = toAbsoluteMinutes(currentProject.currentTime);
-      const key = `${sceneId}:${state.profileId}:${now}`;
-      if (promptedKeys.has(key) || state.lastPromptedAtMinutes === now) return;
-      promptedKeys.add(key);
-      const nextState = { ...state, lastPromptedAtMinutes: now };
-      await setSceneWeatherState(nextState);
-      setSceneWeatherPrompt(nextState);
-    };
-
-    void handleSceneChange();
-    return subscribeToObrSceneChange(() => { void handleSceneChange(); });
-  }, [scope, viewerRole]);
 
   if (!scope || !project || !viewerRole) {
     return <main><div ref={contentRef} style={appShellStyle}>{t("fr", "common.loading")}</div></main>;
@@ -168,6 +108,14 @@ export const App = () => {
     } else setSaveError(result.error);
   };
 
+  const modalView = new URLSearchParams(window.location.search).get("view");
+  if (modalView === "scene-weather" || modalView === "scene-weather-confirm") {
+    if (viewerRole !== "gm") {
+      return <main><div ref={contentRef} style={appShellStyle}><SectionCard><EmptyState text={t(project.locale, "sceneWeather.gmOnly")} /></SectionCard></div></main>;
+    }
+    return <SceneWeatherModalView project={project} onProjectUpdate={updateProject} mode={modalView === "scene-weather-confirm" ? "confirm" : "menu"} />;
+  }
+
   const setActiveTab = (activeTab: "today" | "month" | "events" | "settings" | "player") => updateProject({ ...project, uiSettings: { ...project.uiSettings, activeTab } });
 
   const handleOpenNotification = (notification: CalendarNotification) => {
@@ -183,23 +131,6 @@ export const App = () => {
     if (notification.type === "weather") {
       setActiveTab("today");
     }
-  };
-  
-  const handleApplySceneWeatherPrompt = async (accepted: boolean) => {
-    const state = sceneWeatherPrompt;
-    if (!state) return;
-    const sceneInfo = await getCurrentObrSceneInfo();
-    const sceneId = sceneInfo?.id ?? "local-scene";
-    const sceneName = sceneInfo?.name;
-    if (accepted) {
-      const profile = (project.sceneWeatherProfiles ?? []).find((item) => item.id === state.profileId && item.enabled);
-      if (profile) updateProject(applySceneWeatherProfile(project, profile, { sceneId, sceneName }));
-      await setSceneWeatherState({ ...state, isActive: true, lastAppliedAtMinutes: toAbsoluteMinutes(project.currentTime) });
-    } else {
-      updateProject(disableSceneWeatherForScene(project, sceneId));
-      await setSceneWeatherState({ ...state, isActive: false });
-    }
-    setSceneWeatherPrompt(null);
   };
 
   const handleReset = () => {
@@ -221,12 +152,9 @@ export const App = () => {
         <button type="button" onClick={() => setActiveTab("events")} style={tabButtonStyle(project.uiSettings.activeTab === "events")}>{t(project.locale, "nav.events")}</button>
         <button type="button" onClick={() => setActiveTab("settings")} style={tabButtonStyle(project.uiSettings.activeTab === "settings")}>{t(project.locale, "nav.settings")}</button>
         <button type="button" onClick={() => setActiveTab("player")} style={tabButtonStyle(project.uiSettings.activeTab === "player")}>{t(project.locale, "nav.player")}</button>
-        <button type="button" onClick={() => setSceneWeatherMenuOpen(true)} style={tabButtonStyle(false)}>🎬 {t(project.locale, "sceneWeather.open")}</button>
       </div>
       {project.uiSettings.activeTab === "month" ? <MonthView project={project} onProjectUpdate={updateProject} initialSelectedDate={pendingMonthSelectedDate} /> : project.uiSettings.activeTab === "events" ? <EventsView project={project} onProjectUpdate={updateProject} initialCreateDate={pendingCreateEventDate} initialEditEventId={pendingEditEventId} onInitialCreateDateConsumed={() => setPendingCreateEventDate(null)} onInitialEditEventIdConsumed={() => setPendingEditEventId(null)} /> : project.uiSettings.activeTab === "settings" ? <SettingsView project={project} onProjectUpdate={updateProject} saveError={saveError} scope={scope} onReset={handleReset} /> : project.uiSettings.activeTab === "player" ? <PlayerView project={project} /> : <TodayView project={project} onProjectUpdate={updateProject} onReset={handleReset} onOpenNotification={handleOpenNotification} />}
     </> : publicSnapshot ? <PlayerView project={project} snapshot={publicSnapshot} /> : <SectionCard><EmptyState text={t(project.locale, "player.waitingForGmData")} /></SectionCard>}
-      {sceneWeatherMenuOpen ? <SceneWeatherManagementPopup project={project} onProjectUpdate={updateProject} onClose={() => setSceneWeatherMenuOpen(false)} /> : null}
-      {sceneWeatherPrompt ? <SceneWeatherApplyPrompt project={project} state={sceneWeatherPrompt} onYes={() => void handleApplySceneWeatherPrompt(true)} onNo={() => void handleApplySceneWeatherPrompt(false)} /> : null}
     </div>
   </main>;
 };

@@ -1226,3 +1226,11 @@ Principes :
 - les transitions interpolent les champs numériques et basculent les champs non numériques à mi-transition.
 
 Hors contexte OBR, l’addon doit rester utilisable : les helpers de métadonnées ne plantent pas et la gestion manuelle du menu reste possible avec une scène locale implicite.
+
+### Intégration OBR
+
+L’entrée de gestion de la météo de scène n’est pas un bouton de navigation React dans le popover principal. Elle est enregistrée par la page de background de l’extension avec `OBR.contextMenu.create`, filtrée pour le rôle `GM`, puis ouvre `index.html?view=scene-weather` avec `OBR.modal.open`.
+
+La demande automatique d’application à l’ouverture d’une scène est également une modal OBR externe : le background surveille les changements de scène, lit les métadonnées de la scène courante et ouvre `index.html?view=scene-weather-confirm` seulement si un profil est enregistré mais inactif. Le garde `lastPromptedAtMinutes` empêche les boucles de confirmation pour le même instant de calendrier.
+
+Avec la version du SDK actuellement utilisée, l’API expose la disponibilité et les métadonnées de la scène active mais pas son nom public. L’interface affiche donc un libellé neutre quand le nom n’est pas fourni par l’API, et ne réutilise jamais le rôle ou le nom du MJ comme nom de scène.

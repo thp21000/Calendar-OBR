@@ -3,12 +3,6 @@ import type { SceneWeatherSceneState } from "../domain/types";
 
 export const SCENE_WEATHER_METADATA_KEY = "com.gmtools.calendar.sceneWeather";
 
-export type ObrSceneInfo = {
-  id?: string;
-  name?: string;
-  ready: boolean;
-};
-
 const onObrReady = async <T>(callback: () => Promise<T> | T, fallback: T): Promise<T> => {
   if (!OBR.isAvailable) return fallback;
   return new Promise((resolve) => {
@@ -33,13 +27,6 @@ const isSceneWeatherState = (value: unknown): value is SceneWeatherSceneState =>
     && (state.lastPromptedAtMinutes === undefined || typeof state.lastPromptedAtMinutes === "number");
 };
 
-export const getCurrentObrSceneInfo = async (): Promise<ObrSceneInfo | undefined> =>
-  onObrReady(async () => {
-    const ready = await OBR.scene.isReady();
-    if (!ready) return undefined;
-    return { id: "current-obr-scene", ready };
-  }, undefined);
-
 export const getSceneWeatherState = async (): Promise<SceneWeatherSceneState | undefined> =>
   onObrReady(async () => {
     const ready = await OBR.scene.isReady();
@@ -63,20 +50,4 @@ export const clearSceneWeatherState = async (): Promise<void> => {
     if (!ready) return;
     await OBR.scene.setMetadata({ [SCENE_WEATHER_METADATA_KEY]: undefined });
   }, undefined);
-};
-
-export const subscribeToObrSceneChange = (callback: () => void): (() => void) => {
-  if (!OBR.isAvailable) return () => undefined;
-  let cleanupReady: (() => void) | undefined;
-  let cleanupMetadata: (() => void) | undefined;
-  OBR.onReady(() => {
-    cleanupReady = OBR.scene.onReadyChange((ready) => {
-      if (ready) callback();
-    });
-    cleanupMetadata = OBR.scene.onMetadataChange(() => callback());
-  });
-  return () => {
-    cleanupReady?.();
-    cleanupMetadata?.();
-  };
 };
