@@ -3,8 +3,9 @@ import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { parseWeatherInput } from "../../calendar/seasonsLogic";
 import type { CalendarProject, MoonPhaseId, WeatherCondition, WeatherConditionMetric, WeatherConditionOperator, WeatherEvent, WeatherState, WeatherTrendKind, WindDirection } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { WEATHER_STATES } from "../../calendar/weatherStates";
 
-const weatherStates: WeatherState[] = ["clear", "cloudy", "overcast", "fog", "lightRain", "heavyRain", "storm", "snow", "strongWind", "tempest"];
+const weatherStates = WEATHER_STATES;
 const moonPhases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
 const windDirections: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 const weatherTrends = ["cold", "warm", "wet", "dry", "windy", "calm", "stormy", "stable", "unstable"] as const;

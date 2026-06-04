@@ -2,6 +2,7 @@ import { absoluteDayToCalendarDate } from "./dateEngine";
 import { getSeasonForDate } from "./seasonsLogic";
 import { getWeatherTrendForDay } from "./weatherTrend";
 import { sampleCenteredMetric, sampleSkewedLowMetric } from "./weatherDistribution";
+import { WEATHER_STATES } from "./weatherStates";
 import { applyWeatherOverrideToDailySummary, getWeatherOverrideForTime } from "./weatherOverrides";
 import { adjustStateForWeatherProfile } from "./weather/biomes";
 import { resolveEffectiveWeatherProfile } from "./weather/biomes/biomeProfileResolver";
@@ -20,7 +21,6 @@ export type DailyWeatherSummary = {
 };
 
 const WIND_DIRECTIONS: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-const WEATHER_STATES: WeatherState[] = ["clear", "cloudy", "overcast", "fog", "lightRain", "heavyRain", "storm", "snow", "strongWind", "tempest"];
 
 const hashSeed = (input: string): number => {
   let h = 2166136261;
@@ -61,6 +61,10 @@ const getDominantState = (input: {
     rainAverage
   } = input;
 
+  if ((maxTemperature <= 1 || minTemperature <= -5) && rainTotal24h > 1.5 && maxWindSpeed > 45 && (stormChance > 0.2 || precipitationChance > 0.45)) return "blizzard";
+  if (rainTotal24h > 26 && precipitationChance > 0.58 && (stormChance > 0.2 || rainAverage > 2)) return "monsoon";
+  if (rainTotal24h < 0.4 && maxWindSpeed > 70 && maxTemperature >= 28 && precipitationChance < 0.18) return "sandstorm";
+  if (fogChance > 0.72 && maxWindSpeed < 18 && rainTotal24h < 4 && (rainAverage > 0 || precipitationChance > 0.25)) return "seaFog";
   if (rainTotal24h > 12 && maxWindSpeed > 55 && stormChance > 0.65) return "tempest";
   if (rainTotal24h > 8 && maxWindSpeed > 40 && stormChance > 0.45) return "storm";
   if (maxTemperature <= 1 && rainTotal24h > 0.2) return "snow";

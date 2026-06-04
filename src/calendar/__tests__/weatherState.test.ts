@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { getHourlyWeatherState, getWeatherState } from "../weatherState";
+import { t } from "../../i18n/messages";
+import { WEATHER_STATES } from "../weatherStates";
+import { getHourlyWeatherState, getWeatherState, getWeatherStateIcon } from "../weatherState";
+
+const specializedStates = ["blizzard", "sandstorm", "monsoon", "seaFog", "volcanicAsh"] as const;
 
 describe("weatherState", () => {
   it("classifies light rain", () => {
@@ -20,6 +24,27 @@ describe("weatherState", () => {
   it("classifies clear/cloudy baseline", () => {
     expect(getWeatherState({ temperature: 18, windSpeed: 4, rain: 0 })).toBe("clear");
     expect(getWeatherState({ temperature: 18, windSpeed: 12, rain: 0 })).toBe("cloudy");
+  });
+
+  it("exposes icons and translations for specialized states", () => {
+    for (const state of specializedStates) {
+      expect(WEATHER_STATES).toContain(state);
+      expect(getWeatherStateIcon(state)).not.toBe("");
+      expect(t("fr", `weather.state.${state}`)).not.toBe(`weather.state.${state}`);
+      expect(t("en", `weather.state.${state}`)).not.toBe(`weather.state.${state}`);
+    }
+  });
+
+  it("classifies blizzard from cold precipitation and strong wind", () => {
+    expect(getWeatherState({ temperature: -8, windSpeed: 52, rain: 2 })).toBe("blizzard");
+  });
+
+  it("classifies monsoon from very heavy rain", () => {
+    expect(getWeatherState({ temperature: 24, windSpeed: 18, rain: 16 })).toBe("monsoon");
+  });
+
+  it("classifies sandstorm from hot dry extreme wind", () => {
+    expect(getWeatherState({ temperature: 32, windSpeed: 76, rain: 0 })).toBe("sandstorm");
   });
 
   it("pluie forte actuelle reste prioritaire même si dominant clear", () => {
@@ -47,6 +72,14 @@ describe("weatherState", () => {
 
   it("dominant fog avec vent faible le matin donne fog", () => {
     expect(getHourlyWeatherState({ temperature: 8, windSpeed: 7, rain: 0, dominantState: "fog", hour: 6 })).toBe("fog");
+  });
+
+  it("dominant specialized states keep coherent hourly states", () => {
+    expect(getHourlyWeatherState({ temperature: -8, windSpeed: 38, rain: 0.4, dominantState: "blizzard", hour: 8 })).toBe("blizzard");
+    expect(getHourlyWeatherState({ temperature: 23, windSpeed: 14, rain: 1, dailyRainTotal: 22, dominantState: "monsoon", hour: 13 })).toBe("monsoon");
+    expect(getHourlyWeatherState({ temperature: 31, windSpeed: 38, rain: 0, dominantState: "sandstorm", hour: 15 })).toBe("sandstorm");
+    expect(getHourlyWeatherState({ temperature: 12, windSpeed: 10, rain: 0, dominantState: "seaFog", hour: 6 })).toBe("seaFog");
+    expect(getHourlyWeatherState({ temperature: 18, windSpeed: 16, rain: 0, dominantState: "volcanicAsh", hour: 12 })).toBe("volcanicAsh");
   });
 
   it("dominant clear avec pluie 0 et vent faible donne clear", () => {

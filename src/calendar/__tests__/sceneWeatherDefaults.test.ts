@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
 import type { WeatherState } from "../../domain/types";
+import { WEATHER_STATES } from "../weatherStates";
 import { DEFAULT_SCENE_WEATHER_PROFILES, addMissingDefaultSceneWeatherProfiles, ensureDefaultSceneWeatherProfiles } from "../sceneWeatherDefaults";
 
-const allowedStates = new Set<WeatherState>(["clear", "cloudy", "overcast", "fog", "lightRain", "heavyRain", "storm", "snow", "strongWind", "tempest"]);
+const allowedStates = new Set<WeatherState>(WEATHER_STATES);
 
 describe("sceneWeatherDefaults", () => {
-  it("defines the requested preset scene weather profiles using existing states only", () => {
+  it("defines the requested preset scene weather profiles using shared weather states", () => {
     expect(DEFAULT_SCENE_WEATHER_PROFILES).toHaveLength(26);
     expect(DEFAULT_SCENE_WEATHER_PROFILES.map((profile) => profile.id)).toEqual([
       "clear-day", "cloudy-day", "overcast-day", "morning-fog", "damp-mist", "cold-drizzle", "steady-rain", "heavy-rain", "nearby-storm", "violent-tempest", "strong-wind", "dry-gusts", "dry-heatwave", "dry-cold", "light-snow", "heavy-snow", "snowstorm", "tropical-rain", "simple-monsoon", "rough-sea", "sea-fog", "volcanic-ash", "hellish-heat", "supernatural-calm", "damp-cave", "high-altitude"

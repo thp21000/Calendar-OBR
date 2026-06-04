@@ -6,6 +6,7 @@ import { normalizeMoon } from "../calendar/moonLogic";
 import { normalizeSeasonWeatherProfile } from "../calendar/seasonsLogic";
 import { DEFAULT_WEATHER_BIOME_ID, DEFAULT_WEATHER_BIOME_PROFILES, WEATHER_BIOME_DEFINITIONS, normalizeWeatherBiomeProfile } from "../calendar/weather/biomes";
 import { ensureDefaultSceneWeatherProfiles } from "../calendar/sceneWeatherDefaults";
+import { isWeatherState } from "../calendar/weatherStates";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -13,9 +14,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const weatherBiomeIds = new Set(WEATHER_BIOME_DEFINITIONS.map((definition) => definition.id));
 const isWeatherBiomeId = (value: unknown): value is WeatherBiomeId =>
   typeof value === "string" && weatherBiomeIds.has(value as WeatherBiomeId);
-
-const isWeatherState = (value: unknown): boolean =>
-  value === "clear" || value === "cloudy" || value === "overcast" || value === "fog" || value === "lightRain" || value === "heavyRain" || value === "storm" || value === "snow" || value === "strongWind" || value === "tempest";
 
 const isWindDirection = (value: unknown): boolean =>
   value === "N" || value === "NE" || value === "E" || value === "SE" || value === "S" || value === "SW" || value === "W" || value === "NW";
@@ -40,7 +38,7 @@ const sanitizeStateWeights = (value: unknown): WeatherBiomeProfile["stateWeights
   const out: WeatherBiomeProfile["stateWeights"] = {};
   for (const [state, weight] of Object.entries(value)) {
     if (typeof weight !== "number" || !Number.isFinite(weight) || weight < 0) continue;
-    if (state === "clear" || state === "cloudy" || state === "overcast" || state === "fog" || state === "lightRain" || state === "heavyRain" || state === "storm" || state === "snow" || state === "strongWind" || state === "tempest") {
+    if (isWeatherState(state)) {
       out[state] = weight;
     }
   }
@@ -337,28 +335,8 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
             .filter(isRecord)
             .filter(
               (condition) =>
-                ((condition.type === "state" &&
-                  (condition.state === "clear" ||
-                    condition.state === "cloudy" ||
-                    condition.state === "overcast" ||
-                    condition.state === "fog" ||
-                    condition.state === "lightRain" ||
-                    condition.state === "heavyRain" ||
-                    condition.state === "storm" ||
-                    condition.state === "snow" ||
-                    condition.state === "strongWind" ||
-                    condition.state === "tempest")) ||
-                (condition.type === "dominantState" &&
-                  (condition.state === "clear" ||
-                    condition.state === "cloudy" ||
-                    condition.state === "overcast" ||
-                    condition.state === "fog" ||
-                    condition.state === "lightRain" ||
-                    condition.state === "heavyRain" ||
-                    condition.state === "storm" ||
-                    condition.state === "snow" ||
-                    condition.state === "strongWind" ||
-                    condition.state === "tempest")) ||
+                ((condition.type === "state" && isWeatherState(condition.state)) ||
+                (condition.type === "dominantState" && isWeatherState(condition.state)) ||
                 (condition.type === "windDirection" &&
                   (condition.direction === "N" ||
                     condition.direction === "NE" ||
@@ -427,8 +405,8 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                 id: typeof entry.id === "string" && entry.id.trim().length > 0 ? entry.id : `weather-trigger-${Math.trunc(entry.triggeredAtMinutes as number)}`,
                 triggeredAtMinutes: Math.trunc(entry.triggeredAtMinutes as number)
               };
-              if (entry.weatherState === "clear" || entry.weatherState === "cloudy" || entry.weatherState === "overcast" || entry.weatherState === "fog" || entry.weatherState === "lightRain" || entry.weatherState === "heavyRain" || entry.weatherState === "storm" || entry.weatherState === "snow" || entry.weatherState === "strongWind" || entry.weatherState === "tempest") out.weatherState = entry.weatherState;
-              if (entry.dominantState === "clear" || entry.dominantState === "cloudy" || entry.dominantState === "overcast" || entry.dominantState === "fog" || entry.dominantState === "lightRain" || entry.dominantState === "heavyRain" || entry.dominantState === "storm" || entry.dominantState === "snow" || entry.dominantState === "strongWind" || entry.dominantState === "tempest") out.dominantState = entry.dominantState;
+              if (isWeatherState(entry.weatherState)) out.weatherState = entry.weatherState;
+              if (isWeatherState(entry.dominantState)) out.dominantState = entry.dominantState;
               if (typeof entry.temperature === "number" && Number.isFinite(entry.temperature)) out.temperature = entry.temperature;
               if (typeof entry.rain === "number" && Number.isFinite(entry.rain)) out.rain = entry.rain;
               if (typeof entry.windSpeed === "number" && Number.isFinite(entry.windSpeed)) out.windSpeed = entry.windSpeed;

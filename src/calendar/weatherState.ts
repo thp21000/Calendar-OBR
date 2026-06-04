@@ -1,18 +1,16 @@
 import type { WeatherSnapshot, WeatherState } from "../domain/types";
 
-// v1 thresholds (simple and documented):
-// - rain >= 12 and wind >= 70 => tempest
-// - rain >= 8 and wind >= 45 => storm
-// - temp <= 1 and rain >= 1 => snow
-// - rain >= 6 => heavyRain
-// - rain >= 1 => lightRain
-// - wind >= 45 => strongWind
-// - wind <= 6 and rain < 0.5 => clear/cloudy/overcast by wind bucket
+// Thresholds remain simple and deterministic. Specialized states are strict so
+// they stay rare unless metrics or dominant biome weights clearly support them.
 export const getWeatherState = (snapshot: Pick<WeatherSnapshot, "temperature" | "windSpeed" | "rain">): WeatherState => {
   const { temperature, windSpeed, rain } = snapshot;
 
+
+  if (temperature <= -5 && rain >= 1 && windSpeed >= 45) return "blizzard";
+  if (rain >= 15) return "monsoon";
   if (rain >= 12 && windSpeed >= 70) return "tempest";
   if (rain >= 8 && windSpeed >= 45) return "storm";
+  if (rain < 0.5 && temperature >= 18 && windSpeed >= 70) return "sandstorm";
   if (temperature <= 1 && rain >= 1) return "snow";
   if (rain >= 6) return "heavyRain";
   if (rain >= 1) return "lightRain";
@@ -36,6 +34,11 @@ export const getWeatherStateIcon = (state: WeatherState): string => {
     case "snow": return "❄️";
     case "strongWind": return "💨";
     case "tempest": return "🌩️";
+    case "blizzard": return "🌨️";
+    case "sandstorm": return "🏜️";
+    case "monsoon": return "🌧️";
+    case "seaFog": return "🌫️";
+    case "volcanicAsh": return "🌋";
   }
 };
 
@@ -50,12 +53,27 @@ export const getHourlyWeatherState = (input: HourlyWeatherStateInput): WeatherSt
 
   // Primary instantaneous weather remains priority.
   const instant = getWeatherState({ temperature, windSpeed, rain });
-  if (rain >= 1 || windSpeed >= 45 || (temperature <= 1 && rain > 0)) return instant;
+  if (instant === "blizzard" || instant === "monsoon" || instant === "sandstorm") return instant;
+  if (rain >= 6 || windSpeed >= 45) return instant;
 
   const safeHour = ((hour ?? 12) % 24 + 24) % 24;
   const rain24h = Math.max(0, dailyRainTotal ?? 0);
 
   switch (dominantState) {
+    case "blizzard":
+      if (temperature <= -5 && (rain >= 0.3 || windSpeed >= 35)) return "blizzard";
+      return temperature <= 1 ? "snow" : "overcast";
+    case "monsoon":
+      if (rain >= 4 || rain24h >= 18) return "monsoon";
+      return rain24h > 4 ? "heavyRain" : "overcast";
+    case "sandstorm":
+      if (rain < 0.5 && windSpeed >= 35) return "sandstorm";
+      return windSpeed >= 20 ? "strongWind" : "overcast";
+    case "seaFog":
+      if (rain < 2 && windSpeed <= 18) return "seaFog";
+      return windSpeed <= 24 ? "fog" : "overcast";
+    case "volcanicAsh":
+      return rain >= 6 ? instant : "volcanicAsh";
     case "tempest":
     case "storm":
       if (windSpeed >= 45) return "strongWind";

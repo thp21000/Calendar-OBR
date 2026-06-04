@@ -1289,3 +1289,17 @@ Le cumul affiché est calculé avec le même plan de pluie et le même palier de
 Les bornes `min`/`max` des profils de biome et des modificateurs saisonniers représentent des limites possibles, pas des valeurs fréquentes. La génération journalière utilise donc des distributions déterministes pondérées : la température est centrée autour de la moyenne, tandis que le vent et la pluie sont asymétriques et favorisent les valeurs faibles à modérées.
 
 Les tendances et traits météo orientent ces distributions sans ajouter de nouveau paramètre visible : une tendance froide/chaude déplace la température, une tendance stable resserre les écarts, et les tendances `windy`, `wet`, `stormy` ou une forte probabilité d'orage augmentent seulement la probabilité interne de valeurs marquées. Les extrêmes restent possibles, mais ils passent par des tirages déterministes rares et restent bornés par les limites configurées.
+
+## États météo spécialisés prédéfinis
+
+Le moteur inclut une première série d’états météo spécialisés en plus des états historiques. Ces états restent prédéfinis pour l’instant : ils sont utilisables par la génération météo, les poids de biomes, les événements météo, les overrides et les profils de météo de scène, mais ils ne disposent pas encore d’un écran de configuration libre dans les Paramètres.
+
+États ajoutés :
+
+- `blizzard` : froid marqué, précipitations et vent fort.
+- `sandstorm` : temps chaud/sec avec vent extrême, volontairement strict pour rester rare hors biomes adaptés.
+- `monsoon` : pluie instantanée ou cumul très fort, favorisée par les biomes humides.
+- `seaFog` : brume côtière/marine, surtout portée par les poids de biome et des conditions calmes.
+- `volcanicAsh` : état narratif spécialisé, destiné principalement aux biomes/profils/overrides qui le favorisent explicitement.
+
+Les états spécialisés sont ajoutés à la liste partagée des états météo afin d’éviter les listes divergentes dans les sélecteurs UI et la validation d’import/export. Les anciens états restent compatibles et inchangés.

@@ -100,7 +100,7 @@ export type WindDirection = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
 
 export type WeatherTrendKind = "cold" | "warm" | "wet" | "dry" | "windy" | "calm" | "stormy" | "stable" | "unstable";
 
-export type WeatherState = "clear" | "cloudy" | "overcast" | "fog" | "lightRain" | "heavyRain" | "storm" | "snow" | "strongWind" | "tempest";
+export type WeatherState = "clear" | "cloudy" | "overcast" | "fog" | "lightRain" | "heavyRain" | "storm" | "snow" | "strongWind" | "tempest" | "blizzard" | "sandstorm" | "monsoon" | "seaFog" | "volcanicAsh";
 
 export type WeatherSnapshot = {
   temperature: number;

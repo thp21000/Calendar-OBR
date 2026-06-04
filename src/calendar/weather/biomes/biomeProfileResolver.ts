@@ -1,14 +1,14 @@
 import { absoluteDayToCalendarDate } from "../../dateEngine";
 import { getSeasonForDate } from "../../seasonsLogic";
 import { applySeasonWeatherModifier } from "../seasonModifiers";
-import type { CalendarProject, InternalTime, WeatherState } from "../../../domain/types";
+import type { CalendarProject, InternalTime } from "../../../domain/types";
 import { DEFAULT_WEATHER_BIOME_PROFILES } from "./biomeProfileDefaults";
+import { WEATHER_STATES } from "../../weatherStates";
 import { DEFAULT_WEATHER_BIOME_ID, getWeatherBiomeDefinition } from "./biomeDefinitions";
 import { normalizeWeatherBiomeProfile } from "./biomeProfileUtils";
 import type { WeatherBiomeId, WeatherBiomeProfile, WeatherBiomeState, WeatherValueRange } from "./types";
 
 const TRANSITION_STEP_MINUTES = 5;
-const WEATHER_STATES: WeatherState[] = ["clear", "cloudy", "overcast", "fog", "lightRain", "heavyRain", "storm", "snow", "strongWind", "tempest"];
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 const lerp = (from: number, to: number, progress: number): number => from + (to - from) * progress;
 

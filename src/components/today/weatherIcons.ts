@@ -39,7 +39,7 @@ export const getWindDirectionIcon = (direction?: string): string => {
 };
 
 export const getRainIcon = (weather: WeatherSnapshot): string => {
-  if (weather.state === "storm" || weather.state === "heavyRain" || weather.state === "tempest") {
+  if (weather.state && ["storm", "heavyRain", "tempest", "monsoon", "blizzard"].includes(weather.state)) {
     return getWeatherStateIcon(weather.state);
   }
   if (weather.rain <= 0) return "☁️";

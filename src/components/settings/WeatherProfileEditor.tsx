@@ -4,9 +4,8 @@ import type { WeatherBiomeProfile, WeatherValueRange } from "../../calendar/weat
 import { normalizeWeatherBiomeProfile } from "../../calendar/weather/biomes";
 import type { SeasonWeatherModifier } from "../../calendar/weather/seasonModifiers";
 import { t } from "../../i18n/messages";
+import { WEATHER_STATES } from "../../calendar/weatherStates";
 import { CollapsibleSection } from "../CollapsibleSection";
-
-const WEATHER_STATES: WeatherState[] = ["clear", "cloudy", "overcast", "fog", "lightRain", "heavyRain", "storm", "snow", "strongWind", "tempest"];
 
 type Units = { temperature: string; windSpeed: string; rain: string };
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getDailyWeatherSummary } from "../weatherDaily";
+import { WEATHER_STATES } from "../weatherStates";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
 
 describe("weatherDaily", () => {
@@ -204,9 +205,35 @@ describe("weatherDaily", () => {
     const summary = getDailyWeatherSummary(project, 4);
     expect(summary).toBeDefined();
     if (!summary) return;
-    expect(["clear", "cloudy", "overcast", "fog", "lightRain", "heavyRain", "storm", "snow", "strongWind", "tempest"]).toContain(
+    expect(WEATHER_STATES).toContain(
       summary.dominantState
     );
+  });
+
+  it("accepts specialized states favored by biome state weights", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [
+      {
+        id: "s1",
+        name: "Season",
+        start: { monthId: "month-1", dayOfMonth: 1 },
+        end: { monthId: "month-2", dayOfMonth: 30 }
+      }
+    ];
+    project.weatherBiomeProfiles = {
+      temperate: {
+        temperature: { min: 5, average: 15, max: 25 },
+        rain: { min: 0, average: 1, max: 4 },
+        dailyRain: { min: 0, average: 2, max: 8 },
+        windSpeed: { min: 0, average: 8, max: 25 },
+        traits: { stability: 0.7, precipitationChance: 0.25, fogChance: 0.1, stormChance: 0.05, dayNightAmplitude: 8, windVariability: 0.25 },
+        stateWeights: Object.fromEntries(WEATHER_STATES.map((state) => [state, state === "volcanicAsh" ? 5 : 0])) as any
+      }
+    };
+
+    const summary = getDailyWeatherSummary(project, 4);
+    expect(summary).toBeDefined();
+    expect(summary?.dominantState).toBe("volcanicAsh");
   });
 
   it("la tendance influence température/pluie/vent et reste déterministe", () => {
