@@ -89,7 +89,6 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
     : typeof currentRain === "number"
       ? Math.max(0, currentRain)
       : Math.max(0, aroundAverage(profile.rain.min, profile.rain.max, profile.rain.average, seed, "r"));
-    : Math.max(0, aroundAverage(profile.rain.min, profile.rain.max, profile.rain.average, seed, "r"));
   const windDirection = hourlyWind
     ? hourlyWind.windDirection
     : WIND_DIRECTIONS[Math.floor(seeded(seed, "dir") * WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
