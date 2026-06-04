@@ -75,9 +75,11 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
       </div>
 
       <div style={biomeInlineStyle}>
-        <span>{biome.icon}</span>
-        <strong>{t(project.locale, "weatherBiome.label")} {t(project.locale, biome.nameKey)}</strong>
-        <span>: {t(project.locale, biome.descriptionKey)}</span>
+        <span style={biomeIconStyle}>{biome.icon}</span>
+        <div style={biomeTextStyle}>
+          <strong>{t(project.locale, "weatherBiome.label")} {t(project.locale, biome.nameKey)}</strong>
+          <span>{t(project.locale, biome.descriptionKey)}</span>
+        </div>
       </div>
 
       <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, rowGap: 6, fontSize: 13 }}>
@@ -162,12 +164,25 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
 
 const biomeInlineStyle: React.CSSProperties = {
   marginTop: 8,
-  fontSize: 12,
-  color: ui.colors.textSecondary,
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  gap: 4
+  fontSize: 13,
+  color: ui.colors.textPrimary,
+  display: "grid",
+  gridTemplateColumns: "18px minmax(0, 1fr)",
+  columnGap: 6,
+  alignItems: "start"
+};
+
+const biomeIconStyle: React.CSSProperties = {
+  width: 18,
+  fontSize: 16,
+  lineHeight: "18px",
+  textAlign: "center"
+};
+
+const biomeTextStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 2,
+  lineHeight: 1.25
 };
 
 const forecastHeaderButtonStyle: React.CSSProperties = {
