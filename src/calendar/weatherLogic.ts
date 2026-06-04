@@ -4,6 +4,7 @@ import { getDailyWeatherSummary } from "./weatherDaily";
 import { getHourlyRainForDay } from "./weatherRain";
 import { getHourlyWindForDay } from "./weatherWind";
 import { getWeatherOverrideForTime } from "./weatherOverrides";
+import { getNextWeatherMetricHour, getSmoothHourlyRatio, getWeatherMetricStepTime, lerp, normalizeWeatherTime, round1 } from "./weatherMetricSmoothing";
 import { resolveEffectiveWeatherProfile } from "./weather/biomes";
 import type { CalendarProject, WeatherSnapshot, WindDirection } from "../domain/types";
 
@@ -24,7 +25,6 @@ const seeded = (seed: string, salt: string): number => {
 };
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
-const round1 = (v: number) => Math.round(v * 10) / 10;
 
 const aroundAverage = (min: number, max: number, average: number, seed: string, salt: string): number => {
   const span = Math.max(0, max - min);
@@ -38,38 +38,57 @@ const windDirectionIndex = (direction: WindDirection): number => WIND_DIRECTIONS
 const wrapDirection = (index: number): WindDirection => WIND_DIRECTIONS[(index + WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
 
 export const generateWeatherForTime = (project: CalendarProject, absoluteDay: number, hour: number, minute = 0): WeatherSnapshot | undefined => {
-  const scopedProject = { ...project, currentTime: { ...project.currentTime, absoluteDay, hour, minute } };
+  const metricTime = getWeatherMetricStepTime(absoluteDay, hour, minute);
+  const scopedProject = { ...project, currentTime: { ...project.currentTime, ...metricTime } };
   const season = getCurrentSeason(scopedProject);
   if (!season) return undefined;
-  const profile = resolveEffectiveWeatherProfile(scopedProject, { absoluteDay, hour, minute });
+  const profile = resolveEffectiveWeatherProfile(scopedProject, metricTime);
   const seedBase = project.weatherSettings.seed || project.id;
-  const seed = `${seedBase}|${absoluteDay}|${hour}|${season.id}`;
+  const seed = `${seedBase}|${metricTime.absoluteDay}|${metricTime.hour}|${metricTime.minute}|${season.id}`;
 
-  const dailySummary = getDailyWeatherSummary(scopedProject, absoluteDay);
-  const weatherOverride = getWeatherOverrideForTime(scopedProject, absoluteDay, hour, minute);
+  const dailySummary = getDailyWeatherSummary(scopedProject, metricTime.absoluteDay);
+  const weatherOverride = getWeatherOverrideForTime(scopedProject, metricTime.absoluteDay, metricTime.hour, metricTime.minute);
+  const minuteOfDay = metricTime.hour * 60 + metricTime.minute;
+  const hourOfDay = minuteOfDay / 60;
   const temperature = dailySummary
     ? (() => {
-        // Simple day/night curve: near min around 05:00, near max around 15:00.
-        const h = ((hour % 24) + 24) % 24;
+        // Day/night curve in 5-minute steps: near min around 05:00, near max around 15:00.
         let normalized: number;
-        if (h >= 5 && h <= 15) {
-          normalized = (h - 5) / 10;
-        } else if (h > 15) {
-          normalized = 1 - (h - 15) / 14;
+        if (hourOfDay >= 5 && hourOfDay <= 15) {
+          normalized = (hourOfDay - 5) / 10;
+        } else if (hourOfDay > 15) {
+          normalized = 1 - (hourOfDay - 15) / 14;
         } else {
-          normalized = 1 - (h + 9) / 14;
+          normalized = 1 - (hourOfDay + 9) / 14;
         }
         normalized = clamp(normalized, 0, 1);
         return round1(dailySummary.minTemperature + (dailySummary.maxTemperature - dailySummary.minTemperature) * normalized);
       })()
     : aroundAverage(profile.temperature.min, profile.temperature.max, profile.temperature.average, seed, "t");
-  const hourlyIndex = ((hour % 24) + 24) % 24;
-  const hourlyWind = dailySummary ? getHourlyWindForDay(project, absoluteDay, dailySummary)[hourlyIndex] : undefined;
-  const windSpeed = hourlyWind
-    ? hourlyWind.windSpeed
-    : Math.max(0, aroundAverage(profile.windSpeed.min, profile.windSpeed.max, profile.windSpeed.average, seed, "w"));
-  const rain = dailySummary
-    ? getHourlyRainForDay(project, absoluteDay, dailySummary)[hourlyIndex]
+  const hourlyIndex = metricTime.hour;
+  const nextMetricHour = getNextWeatherMetricHour(metricTime);
+  const smoothRatio = getSmoothHourlyRatio(metricTime.minute);
+  const hourlyWindPlan = dailySummary ? getHourlyWindForDay(project, metricTime.absoluteDay, dailySummary) : undefined;
+  const nextDailySummary = nextMetricHour.absoluteDay === metricTime.absoluteDay
+    ? dailySummary
+    : getDailyWeatherSummary({ ...project, currentTime: { ...project.currentTime, ...nextMetricHour } }, nextMetricHour.absoluteDay);
+  const nextHourlyWindPlan = nextDailySummary ? getHourlyWindForDay(project, nextMetricHour.absoluteDay, nextDailySummary) : undefined;
+  const hourlyWind = hourlyWindPlan?.[hourlyIndex];
+  const nextHourlyWind = nextHourlyWindPlan?.[nextMetricHour.hour];
+  const windSpeed = hourlyWind && nextHourlyWind
+    ? round1(Math.max(0, lerp(hourlyWind.windSpeed, nextHourlyWind.windSpeed, smoothRatio)))
+    : hourlyWind
+      ? hourlyWind.windSpeed
+      : Math.max(0, aroundAverage(profile.windSpeed.min, profile.windSpeed.max, profile.windSpeed.average, seed, "w"));
+  const hourlyRainPlan = dailySummary ? getHourlyRainForDay(project, metricTime.absoluteDay, dailySummary) : undefined;
+  const nextHourlyRainPlan = nextDailySummary ? getHourlyRainForDay(project, nextMetricHour.absoluteDay, nextDailySummary) : undefined;
+  const currentRain = hourlyRainPlan?.[hourlyIndex];
+  const nextRain = nextHourlyRainPlan?.[nextMetricHour.hour];
+  const rain = typeof currentRain === "number" && typeof nextRain === "number"
+    ? round1(Math.max(0, lerp(currentRain, nextRain, smoothRatio)))
+    : typeof currentRain === "number"
+      ? Math.max(0, currentRain)
+      : Math.max(0, aroundAverage(profile.rain.min, profile.rain.max, profile.rain.average, seed, "r"));
     : Math.max(0, aroundAverage(profile.rain.min, profile.rain.max, profile.rain.average, seed, "r"));
   const windDirection = hourlyWind
     ? hourlyWind.windDirection
@@ -85,7 +104,7 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
     rain: overriddenRain,
     dailyRainTotal: dailySummary?.rainTotal24h,
     dominantState: dailySummary?.dominantState,
-    hour
+    hour: metricTime.hour
   });
   const overriddenState = weatherOverride?.state ?? computedState;
 
@@ -110,15 +129,17 @@ export const getForecastWeatherForTime = (
   project: CalendarProject,
   absoluteDay: number,
   hour: number,
-  offsetHours: number
+  offsetHours: number,
+  minute = 0
 ): WeatherSnapshot | undefined => {
-  const realWeather = generateWeatherForTime(project, absoluteDay, hour);
+  const metricTime = getWeatherMetricStepTime(absoluteDay, hour, minute);
+  const realWeather = generateWeatherForTime(project, metricTime.absoluteDay, metricTime.hour, metricTime.minute);
   if (!realWeather) return undefined;
-  const weatherOverride = getWeatherOverrideForTime(project, absoluteDay, hour);
+  const weatherOverride = getWeatherOverrideForTime(project, metricTime.absoluteDay, metricTime.hour, metricTime.minute);
 
   const mode = project.weatherSettings.forecastMode ?? "fine";
   const absOffset = Math.max(0, Math.floor(Math.abs(offsetHours)));
-  const seed = `${project.weatherSettings.seed || project.id}|forecast|${mode}|${absoluteDay}|${hour}|${absOffset}`;
+  const seed = `${project.weatherSettings.seed || project.id}|forecast|${mode}|${metricTime.absoluteDay}|${metricTime.hour}|${metricTime.minute}|${absOffset}`;
   const errorBase = mode === "wide" ? 3 : 1;
   const distanceFactor = mode === "wide" ? 0.35 : 0.12;
   const errorScale = errorBase + absOffset * distanceFactor;
@@ -183,15 +204,11 @@ export const getHourlyWeatherForecast = (
 ): Array<{ offsetHours: number; weather: WeatherSnapshot }> => {
   const entries: Array<{ offsetHours: number; weather: WeatherSnapshot }> = [];
   const safeCount = Math.max(0, Math.floor(count));
-  const startAbsoluteDay = project.currentTime.absoluteDay;
-  const startHour = project.currentTime.hour;
+  const startTime = normalizeWeatherTime(project.currentTime.absoluteDay, project.currentTime.hour, project.currentTime.minute);
 
   for (let offsetHours = 1; offsetHours <= safeCount; offsetHours++) {
-    const totalHours = startHour + offsetHours;
-    const dayOffset = Math.floor(totalHours / 24);
-    const hour = ((totalHours % 24) + 24) % 24;
-    const absoluteDay = startAbsoluteDay + dayOffset;
-    const weather = getForecastWeatherForTime(project, absoluteDay, hour, offsetHours);
+    const forecastTime = normalizeWeatherTime(startTime.absoluteDay, startTime.hour + offsetHours, startTime.minute);
+    const weather = getForecastWeatherForTime(project, forecastTime.absoluteDay, forecastTime.hour, offsetHours, forecastTime.minute);
 
     if (!weather) continue;
     entries.push({ offsetHours, weather });

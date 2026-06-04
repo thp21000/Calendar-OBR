@@ -571,4 +571,77 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
     if (dryHours.length === 0) return;
     expect(dryHours.some((entry) => entry.state !== "clear")).toBe(true);
   });
+it("fait évoluer les métriques instantanées par paliers de 5 minutes avec interpolation douce", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "smooth-5-minutes";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const at0600 = generateWeatherForTime(project, 6, 6, 0)!;
+    const at0610 = generateWeatherForTime(project, 6, 6, 10)!;
+    const at0630 = generateWeatherForTime(project, 6, 6, 30)!;
+    const at0655 = generateWeatherForTime(project, 6, 6, 55)!;
+    const at0700 = generateWeatherForTime(project, 6, 7, 0)!;
+
+    for (const weather of [at0600, at0610, at0630, at0655, at0700]) {
+      expect(weather.temperature).toBeDefined();
+      expect(weather.windSpeed).toBeDefined();
+      expect(weather.rain).toBeDefined();
+      expect(weather.dailyRainTotal).toBeDefined();
+      expect(weather.dailyMinTemperature).toBeDefined();
+      expect(weather.dailyMaxTemperature).toBeDefined();
+      expect(weather.windSpeed).toBeGreaterThanOrEqual(0);
+      expect(weather.rain).toBeGreaterThanOrEqual(0);
+      expect(weather.dailyMinTemperature ?? 0).toBeLessThanOrEqual(weather.dailyMaxTemperature ?? 0);
+      expect(weather.temperature).toBeGreaterThanOrEqual(weather.dailyMinTemperature ?? -Infinity);
+      expect(weather.temperature).toBeLessThanOrEqual(weather.dailyMaxTemperature ?? Infinity);
+    }
+
+    expect(`${at0600.temperature}|${at0600.windSpeed}|${at0600.rain}`).not.toBe(`${at0630.temperature}|${at0630.windSpeed}|${at0630.rain}`);
+    expect(Math.abs(at0700.temperature - at0655.temperature)).toBeLessThan(2);
+    expect(Math.abs(at0700.windSpeed - at0655.windSpeed)).toBeLessThan(12);
+    expect(Math.abs(at0700.rain - at0655.rain)).toBeLessThan(8);
+  });
+
+  it("utilise le même palier météo de 5 minutes entre 06:10 et 06:14", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "bucket-5-minutes";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const at0610 = generateWeatherForTime(project, 8, 6, 10)!;
+    const at0614 = generateWeatherForTime(project, 8, 6, 14)!;
+    const at0615 = generateWeatherForTime(project, 8, 6, 15)!;
+
+    expect(at0614).toEqual(at0610);
+    expect(at0615.temperature).not.toBe(at0610.temperature);
+  });
+
+  it("gère le passage de jour avec une interpolation 23:55 -> 00:00", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "smooth-midnight";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const beforeMidnight = generateWeatherForTime(project, 10, 23, 55)!;
+    const atMidnight = generateWeatherForTime(project, 11, 0, 0)!;
+
+    expect(beforeMidnight).toBeDefined();
+    expect(atMidnight).toBeDefined();
+    expect(beforeMidnight.windSpeed).toBeGreaterThanOrEqual(0);
+    expect(beforeMidnight.rain).toBeGreaterThanOrEqual(0);
+    expect(beforeMidnight.temperature).toBeGreaterThanOrEqual(beforeMidnight.dailyMinTemperature ?? -Infinity);
+    expect(beforeMidnight.temperature).toBeLessThanOrEqual(beforeMidnight.dailyMaxTemperature ?? Infinity);
+    expect(Math.abs(atMidnight.windSpeed - beforeMidnight.windSpeed)).toBeLessThan(15);
+  });
+
+  it("les prévisions horaires conservent la minute courante", () => {
+    const project = buildProject();
+    project.currentTime = { absoluteDay: 10, hour: 6, minute: 10 };
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const forecast = getHourlyWeatherForecast(project, 3);
+
+    expect(forecast[0]?.weather).toEqual(getForecastWeatherForTime(project, 10, 7, 1, 10));
+    expect(forecast[0]?.weather).not.toEqual(getForecastWeatherForTime(project, 10, 7, 1, 0));
+    expect(forecast[1]?.weather).toEqual(getForecastWeatherForTime(project, 10, 8, 2, 10));
+  });
+
 });

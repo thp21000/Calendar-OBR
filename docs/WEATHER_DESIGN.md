@@ -1264,3 +1264,16 @@ La demande automatique d'application d'un profil enregistré mais inactif est r�
 ### Profils météo de scène repliables
 
 Dans Paramètres > Profils météo de scène, chaque profil est lui-même présenté comme une carte repliable fermée par défaut. L'en-tête montre l'icône, le nom et l'état activé/inactif ; l'ouverture du profil révèle les sections internes existantes (Général, Biome, État du ciel, Température, Pluie, Vent, Note MJ). La création et la duplication ouvrent automatiquement le nouveau profil pour faciliter son édition.
+
+### Lissage des métriques visibles toutes les 5 minutes
+
+La météo automatique conserve ses plans horaires comme points de contrôle, mais les métriques instantanées visibles ne restent plus figées pendant une heure. Le moteur ramène la minute courante au palier inférieur de 5 minutes (`WEATHER_METRIC_STEP_MINUTES`), normalise les dépassements d'heure/jour, puis interpole très doucement les valeurs entre l'heure courante et l'heure suivante avec `smoothstep(ratio)`.
+
+Règles appliquées :
+
+- la température utilise l'heure décimale du palier de 5 minutes pour conserver une courbe jour/nuit continue, bornée par les min/max journaliers ;
+- la vitesse du vent et la pluie instantanée interpolent les plans horaires et restent toujours positives ou nulles ;
+- la direction du vent reste stable sur l'heure courante pour éviter une agitation visuelle toutes les 5 minutes ;
+- `dailyRainTotal`, `dailyMinTemperature` et `dailyMaxTemperature` restent des résumés journaliers stables pour la météo automatique ;
+- quand ces champs sont forcés par une météo de scène, la variation déterministe de scène continue de s'appliquer par palier de 5 minutes ;
+- les prévisions horaires restent des cartes `+1 h`, `+2 h`, etc., mais conservent la minute courante (par exemple 06:10 -> 07:10), afin d'utiliser le même lissage que la météo actuelle.
