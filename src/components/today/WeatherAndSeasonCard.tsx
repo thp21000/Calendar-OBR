@@ -78,7 +78,7 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
         <span style={biomeIconStyle}>{biome.icon}</span>
         <div style={biomeTextStyle}>
           <strong>{t(project.locale, "weatherBiome.label")} {t(project.locale, biome.nameKey)}</strong>
-          <span>{t(project.locale, biome.descriptionKey)}</span>
+          <span style={biomeDescriptionStyle}>{t(project.locale, biome.descriptionKey)}</span>
         </div>
       </div>
 
@@ -167,21 +167,28 @@ const biomeInlineStyle: React.CSSProperties = {
   fontSize: 13,
   color: ui.colors.textPrimary,
   display: "grid",
-  gridTemplateColumns: "18px minmax(0, 1fr)",
-  columnGap: 6,
-  alignItems: "start"
+  gridTemplateColumns: "30px minmax(0, 1fr)",
+  columnGap: 8,
+  alignItems: "center"
 };
 
 const biomeIconStyle: React.CSSProperties = {
-  width: 18,
-  fontSize: 16,
-  lineHeight: "18px",
-  textAlign: "center"
+  width: 30,
+  fontSize: 28,
+  lineHeight: "30px",
+  textAlign: "center",
+  alignSelf: "center"
 };
 
 const biomeTextStyle: React.CSSProperties = {
   display: "grid",
   gap: 2,
+  lineHeight: 1.25
+};
+
+const biomeDescriptionStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: ui.colors.textSecondary,
   lineHeight: 1.25
 };
 
