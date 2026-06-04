@@ -10,7 +10,7 @@ import { Badge, Panel, SectionCard } from "../ui";
 import { ui } from "../ui/styles";
 import { getRainIcon, getTemperatureIcon, getTrendIcon, getWindDirectionIcon, getWindSpeedIcon } from "./weatherIcons";
 
-type WeatherUnits = { temperature: string; windSpeed: string; rain: string };
+type WeatherUnits = { temperature: string; windSpeed: string; rain: string; rainTotal: string };
 
 const formatMinuteOfDay = (minutes: number): string => {
   const safeMinutes = Math.max(0, Math.min(1440, Math.trunc(minutes)));
@@ -28,7 +28,7 @@ const getForcedOverrideValues = (project: CalendarProject, override: WeatherOver
   if (override.dominantState) values.push(`${t(project.locale, "weatherOverride.dominantState")} = ${t(project.locale, `weather.state.${override.dominantState}`)}`);
   if (typeof override.temperature === "number") values.push(`${t(project.locale, "weatherOverride.temperature")} = ${override.temperature} ${weatherUnits.temperature}`);
   if (typeof override.rain === "number") values.push(`${t(project.locale, "weatherOverride.rain")} = ${override.rain} ${weatherUnits.rain}`);
-  if (typeof override.dailyRainTotal === "number") values.push(`24 h = ${override.dailyRainTotal} ${weatherUnits.rain}`);
+  if (typeof override.dailyRainTotal === "number") values.push(`${t(project.locale, "weather.rainAccumulation")} = ${override.dailyRainTotal} ${weatherUnits.rainTotal}`);
   if (typeof override.windSpeed === "number") values.push(`${t(project.locale, "weatherOverride.wind")} = ${override.windSpeed} ${weatherUnits.windSpeed}`);
   if (override.windDirection) values.push(`${t(project.locale, "weatherOverride.windDirection")} = ${override.windDirection}`);
   if (override.trendKind) values.push(`${t(project.locale, "weather.trend")} = ${t(project.locale, `weather.trend.${override.trendKind}`)}`);
@@ -100,7 +100,7 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
               ) : null}
             </span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getRainIcon(currentWeather)} {currentWeather.rain} {weatherUnits.rain}</span>
-            {currentWeather.dailyRainTotal !== undefined ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>24 h: {currentWeather.dailyRainTotal} {weatherUnits.rain}</span> : null}
+            {currentWeather.dailyRainTotal !== undefined ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{t(project.locale, "weather.rainAccumulation")}: {currentWeather.dailyRainTotal} {weatherUnits.rainTotal}</span> : null}
           </>
         ) : <span style={{ fontSize: 12, color: "#94a3b8" }}>{t(project.locale, "calendar.noWeather")}</span>}
       </div>

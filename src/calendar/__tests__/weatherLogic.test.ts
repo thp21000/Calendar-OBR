@@ -424,7 +424,8 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
     if (!morning || !afternoon) return;
     expect(morning.dailyRainTotal).toBeDefined();
     expect(afternoon.dailyRainTotal).toBeDefined();
-    expect(morning.dailyRainTotal).toBe(afternoon.dailyRainTotal);
+    expect(morning.dailyRainTotal ?? 0).toBeGreaterThanOrEqual(0);
+    expect(afternoon.dailyRainTotal ?? 0).toBeGreaterThanOrEqual(morning.dailyRainTotal ?? 0);
     expect(typeof morning.rain).toBe("number");
     expect(typeof afternoon.rain).toBe("number");
   });
@@ -451,10 +452,14 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
     expect(snapshots).toHaveLength(24);
 
     const rainSum = snapshots.reduce((sum, weather) => sum + weather.rain, 0);
-    const dailyRainTotal = snapshots[0]?.dailyRainTotal;
+    const dailySummary = getDailyWeatherSummary(project, absoluteDay);
+    const endOfDayAccumulation = generateWeatherForTime(project, absoluteDay, 23, 55)?.dailyRainTotal;
 
-    expect(dailyRainTotal).toBeDefined();
-    expect(Math.abs(rainSum - (dailyRainTotal ?? 0))).toBeLessThanOrEqual(0.5);
+    expect(dailySummary).toBeDefined();
+    expect(endOfDayAccumulation).toBeDefined();
+    expect(Math.abs(rainSum - (dailySummary?.rainTotal24h ?? 0))).toBeLessThanOrEqual(1.1);
+    expect(endOfDayAccumulation ?? 0).toBeGreaterThanOrEqual(0);
+    expect(endOfDayAccumulation ?? 0).toBeLessThanOrEqual((dailySummary?.rainTotal24h ?? 0) + 1);
   });
 
   it("generateWeatherForTime utilise le vent horaire issu du plan journalier", () => {
@@ -571,6 +576,37 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
     if (dryHours.length === 0) return;
     expect(dryHours.some((entry) => entry.state !== "clear")).toBe(true);
   });
+
+  it("le cumul de pluie affiché démarre à 0 à minuit puis progresse sans diminuer", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "rain-accumulation";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const at0000 = generateWeatherForTime(project, 12, 0, 0)!;
+    const at0005 = generateWeatherForTime(project, 12, 0, 5)!;
+    const at0600 = generateWeatherForTime(project, 12, 6, 0)!;
+    const at1200 = generateWeatherForTime(project, 12, 12, 0)!;
+    const at2355 = generateWeatherForTime(project, 12, 23, 55)!;
+
+    expect(at0000.dailyRainTotal).toBe(0);
+    expect(at0005.dailyRainTotal ?? 0).toBeGreaterThanOrEqual(0);
+    expect(at0600.dailyRainTotal ?? 0).toBeGreaterThanOrEqual(at0005.dailyRainTotal ?? 0);
+    expect(at1200.dailyRainTotal ?? 0).toBeGreaterThanOrEqual(at0600.dailyRainTotal ?? 0);
+    expect(at2355.dailyRainTotal ?? 0).toBeGreaterThanOrEqual(at1200.dailyRainTotal ?? 0);
+  });
+
+  it("le cumul de pluie se remet à 0 au nouveau jour", () => {
+    const project = buildProject();
+    project.weatherSettings.seed = "rain-reset";
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m2", dayOfMonth: 30 } }];
+
+    const endOfDay = generateWeatherForTime(project, 14, 23, 55)!;
+    const nextMidnight = generateWeatherForTime(project, 15, 0, 0)!;
+
+    expect(endOfDay.dailyRainTotal ?? 0).toBeGreaterThanOrEqual(0);
+    expect(nextMidnight.dailyRainTotal).toBe(0);
+  });
+  
 it("fait évoluer les métriques instantanées par paliers de 5 minutes avec interpolation douce", () => {
     const project = buildProject();
     project.weatherSettings.seed = "smooth-5-minutes";

@@ -1,7 +1,7 @@
 import { getCurrentSeason } from "./seasonsLogic";
 import { getHourlyWeatherState, getWeatherState } from "./weatherState";
 import { getDailyWeatherSummary } from "./weatherDaily";
-import { getHourlyRainForDay } from "./weatherRain";
+import { getAccumulatedRainForTime, getSmoothedRainRateForTime } from "./weatherRain";
 import { getHourlyWindForDay } from "./weatherWind";
 import { getWeatherOverrideForTime } from "./weatherOverrides";
 import { getNextWeatherMetricHour, getSmoothHourlyRatio, getWeatherMetricStepTime, lerp, normalizeWeatherTime, round1 } from "./weatherMetricSmoothing";
@@ -80,15 +80,12 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
     : hourlyWind
       ? hourlyWind.windSpeed
       : Math.max(0, aroundAverage(profile.windSpeed.min, profile.windSpeed.max, profile.windSpeed.average, seed, "w"));
-  const hourlyRainPlan = dailySummary ? getHourlyRainForDay(project, metricTime.absoluteDay, dailySummary) : undefined;
-  const nextHourlyRainPlan = nextDailySummary ? getHourlyRainForDay(project, nextMetricHour.absoluteDay, nextDailySummary) : undefined;
-  const currentRain = hourlyRainPlan?.[hourlyIndex];
-  const nextRain = nextHourlyRainPlan?.[nextMetricHour.hour];
-  const rain = typeof currentRain === "number" && typeof nextRain === "number"
-    ? round1(Math.max(0, lerp(currentRain, nextRain, smoothRatio)))
-    : typeof currentRain === "number"
-      ? Math.max(0, currentRain)
-      : Math.max(0, aroundAverage(profile.rain.min, profile.rain.max, profile.rain.average, seed, "r"));
+  const rain = dailySummary
+    ? getSmoothedRainRateForTime(project, metricTime.absoluteDay, metricTime.hour, metricTime.minute, dailySummary, nextDailySummary)
+    : Math.max(0, aroundAverage(profile.rain.min, profile.rain.max, profile.rain.average, seed, "r"));
+  const accumulatedRain = dailySummary
+    ? getAccumulatedRainForTime(project, metricTime.absoluteDay, metricTime.hour, metricTime.minute, dailySummary, nextDailySummary)
+    : undefined;
   const windDirection = hourlyWind
     ? hourlyWind.windDirection
     : WIND_DIRECTIONS[Math.floor(seeded(seed, "dir") * WIND_DIRECTIONS.length) % WIND_DIRECTIONS.length];
@@ -115,7 +112,7 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
     state: overriddenState,
     dailyMinTemperature: dailySummary?.minTemperature,
     dailyMaxTemperature: dailySummary?.maxTemperature,
-    dailyRainTotal: dailySummary?.rainTotal24h,
+    dailyRainTotal: typeof weatherOverride?.dailyRainTotal === "number" ? Math.max(0, weatherOverride.dailyRainTotal) : accumulatedRain,
     dominantState: weatherOverride?.dominantState ?? dailySummary?.dominantState,
     trendKind: weatherOverride?.trendKind ?? dailySummary?.trendKind
   };

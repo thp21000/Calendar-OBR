@@ -1,4 +1,5 @@
 import type { CalendarProject, WeatherState } from "../domain/types";
+import { getNextWeatherMetricHour, getSmoothHourlyRatio, getWeatherMetricStepTime, lerp, round1 as roundMetric1, WEATHER_METRIC_STEP_MINUTES } from "./weatherMetricSmoothing";
 import type { DailyWeatherSummary } from "./weatherDaily";
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
@@ -117,4 +118,45 @@ export const getHourlyRainForDay = (
   }
 
   return hours.map((value) => round1(Math.max(0, value)));
+};
+
+export const getSmoothedRainRateForTime = (
+  project: CalendarProject,
+  absoluteDay: number,
+  hour: number,
+  minute: number,
+  dailySummary: DailyWeatherSummary,
+  nextDailySummary?: DailyWeatherSummary
+): number => {
+  const metricTime = getWeatherMetricStepTime(absoluteDay, hour, minute);
+  const nextMetricHour = getNextWeatherMetricHour(metricTime);
+  const currentPlan = getHourlyRainForDay(project, metricTime.absoluteDay, dailySummary);
+  const nextSummary = nextMetricHour.absoluteDay === metricTime.absoluteDay ? dailySummary : nextDailySummary;
+  const nextPlan = nextSummary ? getHourlyRainForDay(project, nextMetricHour.absoluteDay, nextSummary) : currentPlan;
+  const currentRain = currentPlan[metricTime.hour] ?? 0;
+  const nextRain = nextPlan[nextMetricHour.hour] ?? currentRain;
+  return roundMetric1(Math.max(0, lerp(currentRain, nextRain, getSmoothHourlyRatio(metricTime.minute))));
+};
+
+export const getAccumulatedRainForTime = (
+  project: CalendarProject,
+  absoluteDay: number,
+  hour: number,
+  minute: number,
+  dailySummary: DailyWeatherSummary,
+  nextDailySummary?: DailyWeatherSummary
+): number => {
+  const metricTime = getWeatherMetricStepTime(absoluteDay, hour, minute);
+  const minuteOfDay = metricTime.hour * 60 + metricTime.minute;
+  if (minuteOfDay <= 0) return 0;
+
+  let total = 0;
+  for (let elapsedMinute = 0; elapsedMinute < minuteOfDay; elapsedMinute += WEATHER_METRIC_STEP_MINUTES) {
+    const stepHour = Math.floor(elapsedMinute / 60);
+    const stepMinute = elapsedMinute % 60;
+    const rainRate = getSmoothedRainRateForTime(project, metricTime.absoluteDay, stepHour, stepMinute, dailySummary, nextDailySummary);
+    total += Math.max(0, rainRate) * (WEATHER_METRIC_STEP_MINUTES / 60);
+  }
+
+  return roundMetric1(Math.max(0, total));
 };

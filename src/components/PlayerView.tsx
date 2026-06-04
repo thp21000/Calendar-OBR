@@ -72,7 +72,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
         ) : null}
         {snapshot.weather?.dailyRainTotal !== undefined ? (
           <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-            {t(snapshot.locale, "weather.dailyRainTotal")}: {snapshot.weather.dailyRainTotal} {snapshot.weather.units.rain}
+            {t(snapshot.locale, "weather.rainAccumulation")}: {snapshot.weather.dailyRainTotal} {snapshot.weather.units.rainTotal}
           </div>
         ) : null}
         {snapshot.weather?.trendKind ? (
@@ -164,7 +164,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
       ) : null}
       {currentWeather?.dailyRainTotal !== undefined ? (
         <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-          {t(project.locale, "weather.dailyRainTotal")}: {currentWeather.dailyRainTotal} {weatherUnits.rain}
+          {t(project.locale, "weather.rainAccumulation")}: {currentWeather.dailyRainTotal} {weatherUnits.rainTotal}
         </div>
       ) : null}
       {currentWeather?.trendKind ? (

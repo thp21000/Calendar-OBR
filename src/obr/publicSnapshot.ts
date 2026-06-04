@@ -47,6 +47,7 @@ export type PublicCalendarWeatherSnapshot = WeatherSnapshot & {
     temperature: string;
     windSpeed: string;
     rain: string;
+    rainTotal: string;
   };
 };
 

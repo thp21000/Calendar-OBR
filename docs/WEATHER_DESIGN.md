@@ -1277,3 +1277,9 @@ Règles appliquées :
 - `dailyRainTotal`, `dailyMinTemperature` et `dailyMaxTemperature` restent des résumés journaliers stables pour la météo automatique ;
 - quand ces champs sont forcés par une météo de scène, la variation déterministe de scène continue de s'appliquer par palier de 5 minutes ;
 - les prévisions horaires restent des cartes `+1 h`, `+2 h`, etc., mais conservent la minute courante (par exemple 06:10 -> 07:10), afin d'utiliser le même lissage que la météo actuelle.
+
+### Cumul de pluie affiché
+
+Le champ `dailyRainTotal` exposé dans le snapshot courant représente désormais le cumul déjà tombé depuis minuit pour l'affichage Aujourd'hui, et non le total prévisionnel complet de la journée. Le résumé journalier conserve `rainTotal24h` comme total généré/prévisionnel interne.
+
+Le cumul affiché est calculé avec le même plan de pluie et le même palier de 5 minutes que la pluie instantanée : chaque tranche ajoute `rainRate * 5 / 60`, puis le résultat est arrondi à 0,1 et remis à 0 à 00:00. La pluie instantanée reste un taux (`mm/h` ou `in/h`), tandis que le cumul utilise une unité de quantité (`mm` ou `in`).
