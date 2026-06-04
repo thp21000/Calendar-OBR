@@ -5,6 +5,7 @@ import { assertCalendarSystem } from "../calendar/dateEngine";
 import { normalizeMoon } from "../calendar/moonLogic";
 import { normalizeSeasonWeatherProfile } from "../calendar/seasonsLogic";
 import { DEFAULT_WEATHER_BIOME_ID, DEFAULT_WEATHER_BIOME_PROFILES, WEATHER_BIOME_DEFINITIONS, normalizeWeatherBiomeProfile } from "../calendar/weather/biomes";
+import { ensureDefaultSceneWeatherProfiles } from "../calendar/sceneWeatherDefaults";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -490,7 +491,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
       });
   }
 
-  const validation = validateImportedCalendarProject(maybeCompat);
+  const validation = validateImportedCalendarProject(ensureDefaultSceneWeatherProfiles(maybeCompat as CalendarProject));
   if (!validation.valid) return { ok: false, error: validation.error };
   return { ok: true, project: validation.project };
 };

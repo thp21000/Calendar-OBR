@@ -53,6 +53,22 @@ describe("sceneWeather", () => {
     ]);
   });
 
+  it("changes biome when a preset profile forces one", () => {
+    const project = createDefaultCalendarProject();
+    const desertProfile = {
+      id: "dry-heatwave",
+      name: "Canicule sèche",
+      enabled: true,
+      forceBiomeId: "desert" as const,
+      override: { state: "clear" as const, temperature: 38 }
+    };
+
+    const next = applySceneWeatherProfile(project, desertProfile, { sceneId: "scene-a" });
+
+    expect(next.weatherBiome?.currentBiomeId).toBe("desert");
+    expect(next.weatherOverrides?.[0].source).toBe("sceneWeather");
+  });
+
   it("disables only sceneWeather overrides for the requested scene", () => {
     const project = createDefaultCalendarProject();
     project.weatherOverrides = [

@@ -660,6 +660,31 @@ describe("calendarImportExport phase17 integrity", () => {
     vi.unstubAllGlobals();
   });
 
+  it("adds scene weather presets to imported old projects without scene weather profiles", () => {
+    const project = createDefaultCalendarProject();
+    const payload: any = { ...project };
+    delete payload.sceneWeatherProfiles;
+
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.sceneWeatherProfiles?.length).toBe(26);
+  });
+
+  it("does not overwrite imported custom scene weather profiles", () => {
+    const project = createDefaultCalendarProject();
+    const payload: any = { ...project, sceneWeatherProfiles: [{ id: "clear-day", name: "Custom", enabled: true, override: { temperature: 99 } }] };
+
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.sceneWeatherProfiles).toHaveLength(1);
+    expect(imported.project.sceneWeatherProfiles?.[0].name).toBe("Custom");
+    expect(imported.project.sceneWeatherProfiles?.[0].override.temperature).toBe(99);
+  });
+
   it("keeps import stable with invalid month reference in events", () => {
     const project = createDefaultCalendarProject();
     const payload: any = {

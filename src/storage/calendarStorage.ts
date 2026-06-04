@@ -2,6 +2,7 @@ import type { CalendarProject } from "../domain/types";
 import { createDefaultMoonSystem, ensureDefaultMoonSystem } from "../calendar/moonLogic";
 import { sanitizeCalendarProject, validateImportedCalendarProject } from "../importExport/calendarImportExport";
 import { DEFAULT_WEATHER_BIOME_ID } from "../calendar/weather/biomes";
+import { DEFAULT_SCENE_WEATHER_PROFILES, ensureDefaultSceneWeatherProfiles } from "../calendar/sceneWeatherDefaults";
 
 const STORAGE_KEY = "calendar-obr.project.local-dev";
 
@@ -40,7 +41,7 @@ const defaultProject: CalendarProject = {
   weatherEvents: [],
   weatherOverrides: [],
   weatherBiome: { currentBiomeId: DEFAULT_WEATHER_BIOME_ID },
-  sceneWeatherProfiles: [],
+  sceneWeatherProfiles: structuredClone(DEFAULT_SCENE_WEATHER_PROFILES),
   uiSettings: { activeTab: "today", compactMode: true, defaultMoonSystemInitialized: true }
 };
 
@@ -61,7 +62,7 @@ export const loadCalendarProject = (storageKey = STORAGE_KEY): CalendarProject =
     const parsed = JSON.parse(raw) as unknown;
     const sanitized = sanitizeCalendarProject(parsed);
     if (!sanitized.ok) return createDefaultCalendarProject();
-    const ensured = ensureDefaultMoonSystem(sanitized.project);
+    const ensured = ensureDefaultSceneWeatherProfiles(ensureDefaultMoonSystem(sanitized.project));
     if (JSON.stringify(ensured) !== JSON.stringify(sanitized.project)) {
       storage.setItem(storageKey, JSON.stringify(ensured));
     }

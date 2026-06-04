@@ -1,6 +1,7 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import type { CalendarProject, SceneWeatherProfile, WeatherState, WeatherTrendKind, WindDirection } from "../../domain/types";
 import { isSceneWeatherProfileEmpty, createDefaultSceneWeatherProfile } from "../../calendar/sceneWeather";
+import { addMissingDefaultSceneWeatherProfiles, getMissingDefaultSceneWeatherProfiles } from "../../calendar/sceneWeatherDefaults";
 import { WEATHER_BIOME_DEFINITIONS } from "../../calendar/weather/biomes";
 import { t } from "../../i18n/messages";
 import { CollapsibleSection } from "../CollapsibleSection";
@@ -36,14 +37,28 @@ const patchOverride = (project: CalendarProject, profile: SceneWeatherProfile, p
 
 export const SceneWeatherProfilesSettingsSection = ({ project, onProjectUpdate, inputStyle }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; inputStyle: CSSProperties }) => {
   const profiles = project.sceneWeatherProfiles ?? [];
+  const [defaultProfilesMessage, setDefaultProfilesMessage] = useState<string | null>(null);
   const addProfile = () => onProjectUpdate({ ...project, sceneWeatherProfiles: [...profiles, createDefaultSceneWeatherProfile(project)] });
+  const addMissingDefaults = () => {
+    const missingCount = getMissingDefaultSceneWeatherProfiles(profiles).length;
+    if (missingCount === 0) {
+      setDefaultProfilesMessage(t(project.locale, "sceneWeather.defaultProfilesAlreadyPresent"));
+      return;
+    }
+    onProjectUpdate(addMissingDefaultSceneWeatherProfiles(project));
+    setDefaultProfilesMessage(t(project.locale, "sceneWeather.defaultProfilesAdded"));
+  };
   const duplicateProfile = (profile: SceneWeatherProfile) => onProjectUpdate({
     ...project,
     sceneWeatherProfiles: [...profiles, { ...profile, id: `scene-weather-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: `${profile.name} ${project.locale === "fr" ? "(copie)" : "(copy)"}` }]
   });
 
   return <div style={{ display: "grid", gap: 8 }}>
-    <button type="button" onClick={addProfile} style={buttonStyle}>{t(project.locale, "sceneWeather.addProfile")}</button>
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      <button type="button" onClick={addProfile} style={buttonStyle}>{t(project.locale, "sceneWeather.addProfile")}</button>
+      <button type="button" onClick={addMissingDefaults} style={buttonStyle}>{t(project.locale, "sceneWeather.addMissingDefaults")}</button>
+    </div>
+    {defaultProfilesMessage ? <div style={{ fontSize: 12, color: "#a7f3d0" }}>{defaultProfilesMessage}</div> : null}
     {profiles.length === 0 ? <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "common.empty")}</div> : null}
     {profiles.map((profile) => <div key={profile.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", marginBottom: 6 }}>

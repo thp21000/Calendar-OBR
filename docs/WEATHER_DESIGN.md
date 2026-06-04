@@ -1234,3 +1234,11 @@ L’entrée de gestion de la météo de scène n’est pas un bouton de navigati
 La demande automatique d’application à l’ouverture d’une scène est également une modal OBR externe : le background surveille les changements de scène, lit les métadonnées de la scène courante et ouvre `index.html?view=scene-weather-confirm` seulement si un profil est enregistré mais inactif. Le garde `lastPromptedAtMinutes` empêche les boucles de confirmation pour le même instant de calendrier.
 
 Avec la version du SDK actuellement utilisée, l’API expose la disponibilité et les métadonnées de la scène active mais pas son nom public. L’interface affiche donc le libellé neutre « Scène OBR active » quand le nom n’est pas fourni par l’API, et ne réutilise jamais le rôle ou le nom du MJ comme nom de scène.
+
+### Profils prédéfinis
+
+Les profils prédéfinis de météo de scène sont des aides de départ globales au calendrier. Un nouveau projet, ou un ancien projet sans aucun `sceneWeatherProfiles`, reçoit la liste par défaut. Si le MJ a déjà au moins un profil, la liste n’est pas remplacée automatiquement.
+
+La section Paramètres > Profils météo de scène propose aussi “Ajouter les profils prédéfinis manquants”. Cette action ajoute uniquement les profils par défaut absents par `id`, sans écraser les profils personnalisés ou modifiés par le MJ. Les profils prédéfinis restent des profils normaux : ils peuvent être modifiés, supprimés ou dupliqués.
+
+Ces profils utilisent uniquement les états météo existants (`clear`, `cloudy`, `overcast`, `fog`, `lightRain`, `heavyRain`, `storm`, `snow`, `strongWind`, `tempest`). Les ambiances spécialisées comme tempête de neige, pluie tropicale ou cendres volcaniques sont représentées par ces états existants avec des valeurs météo et biomes adaptés.
