@@ -7,15 +7,17 @@ import { getCurrentObrSceneInfo, subscribeToObrSceneChange } from "./obr/sceneIn
 import { getSceneWeatherState, setSceneWeatherState } from "./obr/sceneWeatherMetadata";
 import { loadCalendarProject, saveCalendarProject } from "./storage/calendarStorage";
 
-const CONTEXT_MENU_ID = "calendar-obr/scene-weather-menu";
+const SCENE_WEATHER_TOOL_ID = "calendar-obr/scene-weather-tool";
+const SCENE_WEATHER_ACTION_ID = "calendar-obr/scene-weather-action";
 const SCENE_WEATHER_MODAL_ID = "calendar-obr/scene-weather-modal";
 const SCENE_WEATHER_CONFIRM_MODAL_ID = "calendar-obr/scene-weather-confirm-modal";
 const SCENE_WEATHER_MODAL_WIDTH = 520;
 const SCENE_WEATHER_MODAL_HEIGHT = 620;
 
-const sceneWeatherIconUrl = new URL("scene-weather.svg", window.location.href).href;
+const backgroundBaseUrl = typeof window !== "undefined" ? window.location.href : "https://thp21000.github.io/Calendar-OBR/background.html";
+const sceneWeatherIconUrl = new URL("scene-weather.svg", backgroundBaseUrl).href;
 const sceneWeatherModalUrl = (confirm = false): string => {
-  const url = new URL("index.html", window.location.href);
+  const url = new URL("index.html", backgroundBaseUrl);
   url.searchParams.set("view", confirm ? "scene-weather-confirm" : "scene-weather");
   return url.href;
 };
@@ -60,30 +62,45 @@ const synchronizeSceneWeatherForScene = async () => {
   });
 };
 
-const registerSceneWeatherContextMenu = async () => {
-  await OBR.contextMenu.create({
-    id: CONTEXT_MENU_ID,
+const openSceneWeatherModal = async () => {
+  await OBR.modal.open({
+    id: SCENE_WEATHER_MODAL_ID,
+    url: sceneWeatherModalUrl(false),
+    width: SCENE_WEATHER_MODAL_WIDTH,
+    height: SCENE_WEATHER_MODAL_HEIGHT
+  });
+};
+
+const registerSceneWeatherTool = async () => {
+  await OBR.tool.create({
+    id: SCENE_WEATHER_TOOL_ID,
     icons: [
       {
         icon: sceneWeatherIconUrl,
         label: "Météo de scène",
-        filter: { roles: ["GM"], min: 0, max: 0 }
+        filter: { roles: ["GM"] }
       }
     ],
-    onClick: async () => {
-      await OBR.modal.open({
-        id: SCENE_WEATHER_MODAL_ID,
-        url: sceneWeatherModalUrl(false),
-        width: SCENE_WEATHER_MODAL_WIDTH,
-        height: SCENE_WEATHER_MODAL_HEIGHT
-      });
-    }
+    // Activate the tool only; it has no drawing mode and does not create scene items.
+    onClick: () => true
+  });
+
+  await OBR.tool.createAction({
+    id: SCENE_WEATHER_ACTION_ID,
+    icons: [
+      {
+        icon: sceneWeatherIconUrl,
+        label: "Gérer la météo de scène",
+        filter: { activeTools: [SCENE_WEATHER_TOOL_ID], roles: ["GM"] }
+      }
+    ],
+    onClick: openSceneWeatherModal
   });
 };
 
 if (OBR.isAvailable) {
   OBR.onReady(() => {
-    void registerSceneWeatherContextMenu();
+    void registerSceneWeatherTool();
     void synchronizeSceneWeatherForScene();
     subscribeToObrSceneChange(() => {
       void synchronizeSceneWeatherForScene();

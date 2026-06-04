@@ -19,7 +19,7 @@ const closeObrModal = async (id: string) => {
   }
 };
 
-const getSceneLabel = (project: CalendarProject, sceneInfo: ObrSceneInfo | undefined): string => {
+const getSceneDisplayName = (project: CalendarProject, sceneInfo: ObrSceneInfo | undefined): string => {
   if (!sceneInfo) return t(project.locale, "sceneWeather.noSceneDetected");
   return sceneInfo.name ?? t(project.locale, "sceneWeather.sceneDetected");
 };
@@ -87,7 +87,7 @@ export const SceneWeatherManagementPopup = ({ project, onProjectUpdate, onClose,
       <h2 style={{ margin: 0, fontSize: 16 }}>{t(project.locale, "sceneWeather.title")}</h2>
       <button type="button" onClick={onClose} style={ghostButtonStyle}>{t(project.locale, "common.close")}</button>
     </div>
-    <div style={statusStyle}><strong>{t(project.locale, "sceneWeather.currentScene")}:</strong> {getSceneLabel(project, sceneInfo)}</div>
+    <div style={statusStyle}><strong>{t(project.locale, "sceneWeather.currentScene")}:</strong> {getSceneDisplayName(project, sceneInfo)}</div>
     <div style={statusStyle}><strong>{t(project.locale, "sceneWeather.sceneProfile")}:</strong> {sceneState?.profileId ? `${sceneState.profileIcon ?? "🎬"} ${sceneState.profileName ?? sceneState.profileId}` : t(project.locale, "sceneWeather.noSceneProfile")}</div>
     <div style={statusStyle}><strong>{t(project.locale, "weatherOverride.state")}:</strong> {sceneState?.isActive ? t(project.locale, "sceneWeather.activeForScene") : sceneState?.profileId ? t(project.locale, "sceneWeather.inactiveForScene") : t(project.locale, "sceneWeather.automaticWeather")}</div>
     <label style={{ display: "block", marginTop: 10 }}>
