@@ -86,12 +86,14 @@ describe("sceneWeather", () => {
     const project = createDefaultCalendarProject();
     project.weatherOverrides = [
       { id: "manual", absoluteDay: 0, source: "manual" },
-      { id: "scene-a", absoluteDay: 0, source: "sceneWeather", sourceId: "storm-scene", sceneId: "a", startMinuteOfDay: 60, endMinuteOfDay: 120 }
+      { id: "scene-a", absoluteDay: 0, source: "sceneWeather", sourceId: "storm-scene", sceneId: "a", startMinuteOfDay: 60, endMinuteOfDay: 120 },
+      { id: "persistent-scene-a", absoluteDay: 0, source: "sceneWeather", sourceId: "storm-scene", sceneId: "a" }
     ];
 
     expect(hasActiveSceneWeatherOverride(project, "storm-scene", 90, "a")).toBe(true);
     expect(hasActiveSceneWeatherOverride(project, "storm-scene", 90, "b")).toBe(false);
-    expect(hasActiveSceneWeatherOverride(project, "storm-scene", 130, "a")).toBe(false);
+    expect(hasActiveSceneWeatherOverride(project, "other-profile", 90, "a")).toBe(false);
+    expect(hasActiveSceneWeatherOverride(project, "storm-scene", 130, "a")).toBe(true);
   });
   
   it("cleans up expired sceneWeather overrides without touching manual overrides", () => {
