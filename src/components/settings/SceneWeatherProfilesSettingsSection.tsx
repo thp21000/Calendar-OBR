@@ -38,7 +38,14 @@ const patchOverride = (project: CalendarProject, profile: SceneWeatherProfile, p
 export const SceneWeatherProfilesSettingsSection = ({ project, onProjectUpdate, inputStyle }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; inputStyle: CSSProperties }) => {
   const profiles = project.sceneWeatherProfiles ?? [];
   const [defaultProfilesMessage, setDefaultProfilesMessage] = useState<string | null>(null);
-  const addProfile = () => onProjectUpdate({ ...project, sceneWeatherProfiles: [...profiles, createDefaultSceneWeatherProfile(project)] });
+  const [expandedProfileIds, setExpandedProfileIds] = useState<Record<string, boolean>>({});
+  const setProfileOpen = (profileId: string, open: boolean) => setExpandedProfileIds((current) => ({ ...current, [profileId]: open }));
+  const toggleProfile = (profileId: string) => setExpandedProfileIds((current) => ({ ...current, [profileId]: !current[profileId] }));
+  const addProfile = () => {
+    const nextProfile = createDefaultSceneWeatherProfile(project);
+    onProjectUpdate({ ...project, sceneWeatherProfiles: [...profiles, nextProfile] });
+    setProfileOpen(nextProfile.id, true);
+  };
   const addMissingDefaults = () => {
     const missingCount = getMissingDefaultSceneWeatherProfiles(profiles).length;
     if (missingCount === 0) {
@@ -48,10 +55,14 @@ export const SceneWeatherProfilesSettingsSection = ({ project, onProjectUpdate, 
     onProjectUpdate(addMissingDefaultSceneWeatherProfiles(project));
     setDefaultProfilesMessage(t(project.locale, "sceneWeather.defaultProfilesAdded"));
   };
-  const duplicateProfile = (profile: SceneWeatherProfile) => onProjectUpdate({
-    ...project,
-    sceneWeatherProfiles: [...profiles, { ...profile, id: `scene-weather-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: `${profile.name} ${project.locale === "fr" ? "(copie)" : "(copy)"}` }]
-  });
+  const duplicateProfile = (profile: SceneWeatherProfile) => {
+    const duplicatedProfile = { ...profile, id: `scene-weather-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: `${profile.name} ${project.locale === "fr" ? "(copie)" : "(copy)"}` };
+    onProjectUpdate({
+      ...project,
+      sceneWeatherProfiles: [...profiles, duplicatedProfile]
+    });
+    setProfileOpen(duplicatedProfile.id, true);
+  };
 
   return <div style={{ display: "grid", gap: 8 }}>
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -60,11 +71,23 @@ export const SceneWeatherProfilesSettingsSection = ({ project, onProjectUpdate, 
     </div>
     {defaultProfilesMessage ? <div style={{ fontSize: 12, color: "#a7f3d0" }}>{defaultProfilesMessage}</div> : null}
     {profiles.length === 0 ? <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "common.empty")}</div> : null}
-    {profiles.map((profile) => <div key={profile.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", marginBottom: 6 }}>
-        <strong>{profile.icon ?? "🎬"} {profile.name}</strong>
-        <label style={{ display: "flex", gap: 4, alignItems: "center", fontSize: 12 }} title={t(project.locale, "sceneWeather.help.enabled")}><input type="checkbox" checked={profile.enabled} onChange={(event) => onProjectUpdate(patchProfile(project, profile.id, { enabled: event.target.checked }))} />{t(project.locale, "sceneWeather.enabled")}</label>
-      </div>
+    {profiles.map((profile) => {
+      const isProfileOpen = expandedProfileIds[profile.id] === true;
+      return <div key={profile.id} style={profileCardStyle}>
+        <div style={profileHeaderStyle}>
+          <button type="button" onClick={() => toggleProfile(profile.id)} style={profileHeaderButtonStyle}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+              <span aria-hidden="true">{profile.icon ?? "🎬"}</span>
+              <strong style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{profile.name}</strong>
+            </span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+              <span style={profileStatusStyle(profile.enabled)}>{profile.enabled ? t(project.locale, "sceneWeather.enabled") : t(project.locale, "sceneWeather.disabled")}</span>
+              <span aria-hidden="true">{isProfileOpen ? "▾" : "▸"}</span>
+            </span>
+          </button>
+          <label style={profileEnabledLabelStyle} title={t(project.locale, "sceneWeather.help.enabled")}><input type="checkbox" checked={profile.enabled} onChange={(event) => onProjectUpdate(patchProfile(project, profile.id, { enabled: event.target.checked }))} />{t(project.locale, "sceneWeather.enabled")}</label>
+        </div>
+        {isProfileOpen ? <div style={profileContentStyle}>
       {isSceneWeatherProfileEmpty(profile) ? <div style={{ color: "#fbbf24", fontSize: 12, marginBottom: 6 }}>{t(project.locale, "sceneWeather.emptyProfileWarning")}</div> : null}
       <CollapsibleSection title={t(project.locale, "sceneWeather.generalSection")}>
         <label style={{ display: "block" }}><FieldLabel label={t(project.locale, "seasons.name")} help={t(project.locale, "sceneWeather.help.name")} /><input value={profile.name} onChange={(event) => onProjectUpdate(patchProfile(project, profile.id, { name: event.target.value }))} style={inputStyle} /></label>
@@ -104,9 +127,17 @@ export const SceneWeatherProfilesSettingsSection = ({ project, onProjectUpdate, 
         <button type="button" onClick={() => duplicateProfile(profile)} style={buttonStyle}>{t(project.locale, "sceneWeather.duplicateProfile")}</button>
         <button type="button" onClick={() => { if (confirm(t(project.locale, "sceneWeather.confirmDelete"))) onProjectUpdate({ ...project, sceneWeatherProfiles: profiles.filter((item) => item.id !== profile.id) }); }} style={dangerButtonStyle}>{t(project.locale, "sceneWeather.deleteProfile")}</button>
       </div>
-    </div>)}
+        </div> : null}
+      </div>;
+    })}
   </div>;
 };
 
+const profileCardStyle: CSSProperties = { border: "1px solid #374151", borderRadius: 8, overflow: "hidden", background: "#111827" };
+const profileHeaderStyle: CSSProperties = { display: "flex", alignItems: "stretch", gap: 0, background: "#161b2b" };
+const profileHeaderButtonStyle: CSSProperties = { flex: 1, minWidth: 0, border: 0, background: "transparent", color: "#e5e7eb", padding: "8px 10px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, textAlign: "left" };
+const profileEnabledLabelStyle: CSSProperties = { display: "flex", gap: 4, alignItems: "center", fontSize: 12, padding: "0 10px", borderLeft: "1px solid #374151", color: "#d1d5db", flexShrink: 0 };
+const profileContentStyle: CSSProperties = { padding: 8, background: "#10131a" };
+const profileStatusStyle = (enabled: boolean): CSSProperties => ({ border: `1px solid ${enabled ? "#14532d" : "#4b5563"}`, borderRadius: 999, color: enabled ? "#bbf7d0" : "#d1d5db", background: enabled ? "#052e16" : "#1f2937", padding: "2px 6px", fontSize: 11, fontWeight: 700 });
 const buttonStyle: CSSProperties = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "6px 10px", cursor: "pointer" };
 const dangerButtonStyle: CSSProperties = { ...buttonStyle, borderColor: "#7f1d1d", color: "#fecaca" };

@@ -1260,3 +1260,7 @@ Dans la vue Aujourd'hui, la météo de scène active est affichée dans la même
 Quand une météo de scène force des valeurs numériques, ces valeurs restent centrées sur le profil mais reçoivent une variation déterministe par palier de 5 minutes. La seed combine le projet, le profil, la scène et le palier de temps ; elle ne dépend jamais de `Math.random`. Les états forcés (`state`, `dominantState`, `trendKind`) et la direction du vent forcée restent stables, tandis que température, pluie, cumul 24 h et vent bougent légèrement dans les bornes prévues.
 
 La demande automatique d'application d'un profil enregistré mais inactif est réservée à l'ouverture/activation de scène signalée par OBR (`ready`) ou au premier démarrage du background. Les changements de métadonnées et le polling de sécurité peuvent nettoyer/réappliquer les overrides, mais ne doivent pas ouvrir de modal de confirmation : enregistrer un profil, avancer le calendrier de 5 minutes, 1 heure ou lancer une sauvegarde ne redéclenche donc pas la popup.
+
+### Profils météo de scène repliables
+
+Dans Paramètres > Profils météo de scène, chaque profil est lui-même présenté comme une carte repliable fermée par défaut. L'en-tête montre l'icône, le nom et l'état activé/inactif ; l'ouverture du profil révèle les sections internes existantes (Général, Biome, État du ciel, Température, Pluie, Vent, Note MJ). La création et la duplication ouvrent automatiquement le nouveau profil pour faciliter son édition.
