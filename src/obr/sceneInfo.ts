@@ -37,6 +37,7 @@ export const subscribeToObrSceneChange = (callback: () => void): (() => void) =>
   if (!OBR.isAvailable) return () => undefined;
   let cleanupReady: (() => void) | undefined;
   let cleanupMetadata: (() => void) | undefined;
+  let intervalId: ReturnType<typeof setInterval> | undefined;
   OBR.onReady(() => {
     cleanupReady = OBR.scene.onReadyChange((ready) => {
       if (ready) callback();
