@@ -13,7 +13,7 @@ const SCENE_WEATHER_MODAL_ID = "calendar-obr/scene-weather-modal";
 const SCENE_WEATHER_CONFIRM_MODAL_ID = "calendar-obr/scene-weather-confirm-modal";
 const SCENE_WEATHER_MODAL_WIDTH = 520;
 const SCENE_WEATHER_MODAL_HEIGHT = 620;
-let lastSceneWeatherPromptKey: string | undefined;
+let lastPromptedSceneProfileKey: string | undefined;
 
 const backgroundBaseUrl = typeof window !== "undefined" ? window.location.href : "https://thp21000.github.io/Calendar-OBR/background.html";
 const sceneWeatherIconUrl = new URL("scene-weather.svg", backgroundBaseUrl).href;
@@ -28,7 +28,7 @@ const saveProjectIfChanged = (currentJson: string, nextProject: ReturnType<typeo
   saveCalendarProject(nextProject, storageKey);
 };
 
-const synchronizeSceneWeatherForScene = async () => {
+const synchronizeSceneWeatherForScene = async (options: { allowPrompt: boolean } = { allowPrompt: true }) => {
   const role = await getViewerRole();
   if (role !== "gm") return;
 
@@ -40,12 +40,14 @@ const synchronizeSceneWeatherForScene = async () => {
   const now = toAbsoluteMinutes(project.currentTime);
 
   if (!state?.profileId) {
+    lastPromptedSceneProfileKey = undefined;
     saveProjectIfChanged(projectJson, disableSceneWeatherForScene(project), scope.storageKey);
     return;
   }
 
   const profile = (project.sceneWeatherProfiles ?? []).find((item) => item.id === state.profileId && item.enabled);
   if (!profile) {
+    lastPromptedSceneProfileKey = undefined;
     saveProjectIfChanged(projectJson, disableSceneWeatherForScene(project), scope.storageKey);
     return;
   }
@@ -58,10 +60,10 @@ const synchronizeSceneWeatherForScene = async () => {
   }
 
   saveProjectIfChanged(projectJson, disableSceneWeatherForScene(project), scope.storageKey);
-  if (state.lastPromptedAtMinutes === now) return;
-  const promptKey = `${sceneId}:${state.profileId}:${now}`;
-  if (lastSceneWeatherPromptKey === promptKey) return;
-  lastSceneWeatherPromptKey = promptKey;
+  if (!options.allowPrompt) return;
+  const promptKey = `${sceneId}|${state.profileId}`;
+  if (lastPromptedSceneProfileKey === promptKey) return;
+  lastPromptedSceneProfileKey = promptKey;
   await setSceneWeatherState({ ...state, lastPromptedAtMinutes: now });
   await OBR.modal.open({
     id: SCENE_WEATHER_CONFIRM_MODAL_ID,
@@ -110,9 +112,9 @@ const registerSceneWeatherTool = async () => {
 if (OBR.isAvailable) {
   OBR.onReady(() => {
     void registerSceneWeatherTool();
-    void synchronizeSceneWeatherForScene();
-    subscribeToObrSceneChange(() => {
-      void synchronizeSceneWeatherForScene();
+    void synchronizeSceneWeatherForScene({ allowPrompt: true });
+    subscribeToObrSceneChange((reason) => {
+      void synchronizeSceneWeatherForScene({ allowPrompt: reason === "ready" });
     });
   });
 }

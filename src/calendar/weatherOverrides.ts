@@ -1,4 +1,5 @@
 import type { CalendarProject, WeatherOverride } from "../domain/types";
+import { applySceneWeatherMetricVariation } from "./sceneWeatherVariation";
 import type { DailyWeatherSummary } from "./weatherDaily";
 
 const round1 = (v: number) => Math.round(v * 10) / 10;
@@ -57,7 +58,9 @@ export const getWeatherOverrideForTime = (
     return typeof override.startMinuteOfDay !== "number" || typeof override.endMinuteOfDay !== "number";
   });
 
-  return activeOverride ? resolveWeatherOverrideTransition(activeOverride, absoluteMinutes) : undefined;
+  if (!activeOverride) return undefined;
+  const transitionedOverride = resolveWeatherOverrideTransition(activeOverride, absoluteMinutes);
+  return applySceneWeatherMetricVariation(project, transitionedOverride, absoluteDay, hour, minute);
 };
 
 export const applyWeatherOverrideToDailySummary = (

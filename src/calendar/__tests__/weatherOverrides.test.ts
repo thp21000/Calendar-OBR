@@ -60,6 +60,44 @@ it("conserve la priorité du plus récent entre météo de scène persistante et
   expect(getWeatherOverrideForTime(project, 4, 12)?.id).toBe("scene");
 });
 
+it("varie les métriques de scène par palier déterministe de 5 minutes", () => {
+  const project = createDefaultCalendarProject();
+  project.weatherOverrides = [{
+    id: "scene-variation",
+    absoluteDay: 0,
+    source: "sceneWeather",
+    sourceId: "storm-scene",
+    sceneId: "a",
+    temperature: 10,
+    rain: 5,
+    dailyRainTotal: 30,
+    windSpeed: 40,
+    state: "storm",
+    dominantState: "storm",
+    trendKind: "stormy"
+  }];
+
+  const atStart = getWeatherOverrideForTime(project, 0, 8, 0)!;
+  const sameStep = getWeatherOverrideForTime(project, 0, 8, 4)!;
+  const nextStep = getWeatherOverrideForTime(project, 0, 8, 5)!;
+
+  expect(sameStep.temperature).toBe(atStart.temperature);
+  expect(sameStep.rain).toBe(atStart.rain);
+  expect(sameStep.windSpeed).toBe(atStart.windSpeed);
+  expect(nextStep.state).toBe("storm");
+  expect(nextStep.dominantState).toBe("storm");
+  expect(nextStep.trendKind).toBe("stormy");
+  expect(nextStep.temperature).toBeGreaterThanOrEqual(8.5);
+  expect(nextStep.temperature).toBeLessThanOrEqual(11.5);
+  expect(nextStep.rain).toBeGreaterThanOrEqual(4);
+  expect(nextStep.rain).toBeLessThanOrEqual(6);
+  expect(nextStep.dailyRainTotal).toBeGreaterThanOrEqual(25.5);
+  expect(nextStep.dailyRainTotal).toBeLessThanOrEqual(34.5);
+  expect(nextStep.windSpeed).toBeGreaterThanOrEqual(34);
+  expect(nextStep.windSpeed).toBeLessThanOrEqual(46);
+  expect(`${nextStep.temperature}|${nextStep.rain}|${nextStep.windSpeed}`).not.toBe(`${atStart.temperature}|${atStart.rain}|${atStart.windSpeed}`);
+});
+
 it("interpole les overrides de météo de scène pendant la transition", () => {
   const project = createDefaultCalendarProject();
   project.weatherOverrides = [{
@@ -78,12 +116,16 @@ it("interpole les overrides de météo de scène pendant la transition", () => {
   }];
 
   const early = getWeatherOverrideForTime(project, 0, 1, 15);
-  expect(early?.temperature).toBe(12.5);
-  expect(early?.rain).toBe(2.5);
-  expect(early?.windSpeed).toBe(15);
+  expect(early?.temperature).toBeGreaterThanOrEqual(12.1);
+  expect(early?.temperature).toBeLessThanOrEqual(12.9);
+  expect(early?.rain).toBeGreaterThanOrEqual(2.3);
+  expect(early?.rain).toBeLessThanOrEqual(2.7);
+  expect(early?.windSpeed).toBeGreaterThanOrEqual(14.4);
+  expect(early?.windSpeed).toBeLessThanOrEqual(15.6);
   expect(early?.state).toBeUndefined();
 
   const late = getWeatherOverrideForTime(project, 0, 1, 45);
-  expect(late?.temperature).toBe(17.5);
+  expect(late?.temperature).toBeGreaterThanOrEqual(16.4);
+  expect(late?.temperature).toBeLessThanOrEqual(18.6);
   expect(late?.state).toBe("storm");
 });

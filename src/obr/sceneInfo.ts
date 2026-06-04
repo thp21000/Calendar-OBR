@@ -33,19 +33,21 @@ export const getCurrentObrSceneInfo = async (): Promise<ObrSceneInfo | undefined
     return { id: CURRENT_SCENE_FALLBACK_ID };
   }, undefined);
 
-export const subscribeToObrSceneChange = (callback: () => void): (() => void) => {
+export type ObrSceneChangeReason = "ready" | "metadata" | "poll";
+
+export const subscribeToObrSceneChange = (callback: (reason: ObrSceneChangeReason) => void): (() => void) => {
   if (!OBR.isAvailable) return () => undefined;
   let cleanupReady: (() => void) | undefined;
   let cleanupMetadata: (() => void) | undefined;
   let intervalId: ReturnType<typeof setInterval> | undefined;
   OBR.onReady(() => {
     cleanupReady = OBR.scene.onReadyChange((ready) => {
-      if (ready) callback();
+      if (ready) callback("ready");
     });
-    cleanupMetadata = OBR.scene.onMetadataChange(() => callback());
+    cleanupMetadata = OBR.scene.onMetadataChange(() => callback("metadata"));
     intervalId = setInterval(async () => {
       try {
-        if (await OBR.scene.isReady()) callback();
+        if (await OBR.scene.isReady()) callback("poll");
       } catch {
         // Ignore transient OBR scene readiness errors.
       }

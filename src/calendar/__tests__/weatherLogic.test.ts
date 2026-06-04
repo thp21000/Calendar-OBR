@@ -223,16 +223,23 @@ it("retourne un résultat potentiellement différent pour une autre heure", () =
     const forecast = getHourlyWeatherForecast(project, 5);
 
     expect(forecast).toHaveLength(5);
+    const metricSignatures = new Set<string>();
     for (const entry of forecast) {
-      expect(entry.weather.temperature).toBe(3);
-      expect(entry.weather.rain).toBe(7);
-      expect(entry.weather.dailyRainTotal).toBe(40);
-      expect(entry.weather.windSpeed).toBe(42);
+      expect(entry.weather.temperature).toBeGreaterThanOrEqual(1.5);
+      expect(entry.weather.temperature).toBeLessThanOrEqual(4.5);
+      expect(entry.weather.rain).toBeGreaterThanOrEqual(5.6);
+      expect(entry.weather.rain).toBeLessThanOrEqual(8.4);
+      expect(entry.weather.dailyRainTotal).toBeGreaterThanOrEqual(34);
+      expect(entry.weather.dailyRainTotal).toBeLessThanOrEqual(46);
+      expect(entry.weather.windSpeed).toBeGreaterThanOrEqual(35.7);
+      expect(entry.weather.windSpeed).toBeLessThanOrEqual(48.3);
       expect(entry.weather.windDirection).toBe("NE");
       expect(entry.weather.state).toBe("storm");
       expect(entry.weather.dominantState).toBe("storm");
       expect(entry.weather.trendKind).toBe("stormy");
+      metricSignatures.add(`${entry.weather.temperature}|${entry.weather.rain}|${entry.weather.windSpeed}`);
     }
+    expect(metricSignatures.size).toBeGreaterThan(1);
   });
 
   it("la première entrée de forecast correspond à +1 h", () => {

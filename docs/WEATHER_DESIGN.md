@@ -1254,3 +1254,9 @@ La popover principale conserve son auto-ajustement de hauteur via `OBR.action.se
 Une météo de scène appliquée n'est pas un effet temporaire borné par `durationMinutes` : elle représente l'état forcé de la scène OBR active. L'override `source: "sceneWeather"` créé pour une scène n'a donc pas de `endMinuteOfDay` et reste pris en compte tant qu'il existe dans le projet, jusqu'au retour en météo automatique, au retrait du profil de scène ou à la synchronisation d'une autre scène sans profil actif.
 
 Dans la vue Aujourd'hui, la météo de scène active est affichée dans la même liste visuelle que les alertes météo actives, avec le nom du profil et le sous-texte « Météo de scène active ». Elle ne doit pas afficher de plage horaire ni le libellé d'override manuel « Météo forcée MJ ».
+
+### Variations 5 minutes et demande d'application
+
+Quand une météo de scène force des valeurs numériques, ces valeurs restent centrées sur le profil mais reçoivent une variation déterministe par palier de 5 minutes. La seed combine le projet, le profil, la scène et le palier de temps ; elle ne dépend jamais de `Math.random`. Les états forcés (`state`, `dominantState`, `trendKind`) et la direction du vent forcée restent stables, tandis que température, pluie, cumul 24 h et vent bougent légèrement dans les bornes prévues.
+
+La demande automatique d'application d'un profil enregistré mais inactif est réservée à l'ouverture/activation de scène signalée par OBR (`ready`) ou au premier démarrage du background. Les changements de métadonnées et le polling de sécurité peuvent nettoyer/réappliquer les overrides, mais ne doivent pas ouvrir de modal de confirmation : enregistrer un profil, avancer le calendrier de 5 minutes, 1 heure ou lancer une sauvegarde ne redéclenche donc pas la popup.

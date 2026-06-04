@@ -91,4 +91,62 @@ describe("OBR scene weather background", () => {
       url: expect.stringContaining("view=scene-weather-confirm")
     }));
   });
+  
+it("does not reopen the confirmation modal from polling when only calendar time changes", async () => {
+    vi.resetModules();
+    vi.useFakeTimers();
+    const store = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn((key: string) => store.get(key) ?? null),
+      setItem: vi.fn((key: string, value: string) => { store.set(key, value); }),
+      removeItem: vi.fn((key: string) => { store.delete(key); })
+    });
+
+    const metadataKey = "com.gmtools.calendar.sceneWeather";
+    let metadataCallback: (() => void) | undefined;
+    const modalOpen = vi.fn(async () => undefined);
+    vi.doMock("@owlbear-rodeo/sdk", () => ({
+      default: {
+        isAvailable: true,
+        onReady: (callback: () => void) => callback(),
+        tool: { create: vi.fn(async () => undefined), createAction: vi.fn(async () => undefined) },
+        modal: { open: modalOpen },
+        player: { getRole: async () => "GM" },
+        room: { id: "room-a" },
+        scene: {
+          isReady: async () => true,
+          getMetadata: async () => ({ [metadataKey]: { profileId: "clear-day", isActive: false } }),
+          setMetadata: vi.fn(async () => undefined),
+          onReadyChange: () => () => undefined,
+          onMetadataChange: (callback: () => void) => { metadataCallback = callback; return () => undefined; }
+        }
+      }
+    }));
+
+    const { createDefaultCalendarProject } = await import("../../storage/calendarStorage");
+    const project = createDefaultCalendarProject();
+    project.currentTime = { absoluteDay: 0, hour: 8, minute: 0 };
+    store.set("calendar-obr.project.room-a", JSON.stringify(project));
+
+    await import("../../background");
+    for (let i = 0; i < 10 && modalOpen.mock.calls.length === 0; i += 1) {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(0);
+    }
+    expect(modalOpen).toHaveBeenCalledTimes(1);
+
+    const saved = JSON.parse(store.get("calendar-obr.project.room-a") ?? "{}");
+    saved.currentTime = { absoluteDay: 0, hour: 8, minute: 5 };
+    store.set("calendar-obr.project.room-a", JSON.stringify(saved));
+    modalOpen.mockClear();
+
+    await vi.advanceTimersByTimeAsync(1500);
+    await Promise.resolve();
+    metadataCallback?.();
+    await Promise.resolve();
+
+    expect(modalOpen).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
 });
