@@ -11,6 +11,7 @@ import {
   getActiveWeatherEventsWithDuration,
   getPlayerVisibleWeatherEvents,
   getWeatherEventUpcomingTriggerWindows,
+  getWeatherEventDiagnostics,
   applyWeatherEventTriggerActions,
   isWeatherConditionMet,
   isWeatherEventTriggered,
@@ -155,6 +156,43 @@ describe("weatherEventsLogic", () => {
   it("condition state vérifie état horaire et non dominant", () => {
     expect(isWeatherConditionMet({ ...weather, state: "clear", dominantState: "storm" }, { type: "state", state: "storm" })).toBe(false);
   });
+
+  it("événement sans filtre biome reste déclenchable", () => {
+    const project = buildProject([]);
+    project.weatherBiome = { currentBiomeId: "arctic" };
+    const event: WeatherEvent = { id: "no-biome", name: "No biome", conditions: [{ type: "metric", metric: "temperature", operator: "gte", value: 35 }], requireAllConditions: true, enabled: true };
+    expect(isWeatherEventTriggered(weather, event, { project, time: project.currentTime })).toBe(true);
+  });
+
+  it("condition biome compatible", () => {
+    const project = buildProject([]);
+    project.weatherBiome = { currentBiomeId: "desert" };
+    expect(isWeatherConditionMet(weather, { type: "biome", biomeIds: ["desert"] }, { project, time: project.currentTime })).toBe(true);
+  });
+
+  it("condition biome incompatible bloque le diagnostic", () => {
+    const project = buildProject([]);
+    project.weatherBiome = { currentBiomeId: "arctic" };
+    const event: WeatherEvent = { id: "sandstorm", name: "Sandstorm", conditions: [{ type: "biome", biomeIds: ["desert"] }], requireAllConditions: true, enabled: true };
+    const diagnostics = getWeatherEventDiagnostics(project, event, project.currentTime, weather);
+    expect(diagnostics.conditionsMet).toBe(false);
+    expect(diagnostics.isCurrentlyTriggerable).toBe(false);
+    expect(diagnostics.blockedReasons).toContain("biomeMismatch");
+  });
+
+  it("condition biome accepte plusieurs biomes", () => {
+    const project = buildProject([]);
+    project.weatherBiome = { currentBiomeId: "mountain" };
+    expect(isWeatherConditionMet(weather, { type: "biome", biomeIds: ["arctic", "mountain"] }, { project, time: project.currentTime })).toBe(true);
+  });
+
+  it("condition biome utilise currentBiomeId pendant une transition", () => {
+    const project = buildProject([]);
+    project.weatherBiome = { currentBiomeId: "desert", previousBiomeId: "temperate", biomeChangedAtMinutes: 10, transitionDurationMinutes: 120 };
+    expect(isWeatherConditionMet(weather, { type: "biome", biomeIds: ["desert"] }, { project, time: project.currentTime })).toBe(true);
+    expect(isWeatherConditionMet(weather, { type: "biome", biomeIds: ["temperate"] }, { project, time: project.currentTime })).toBe(false);
+  });
+  
 it("événement désactivé non déclenché", () => {
     const event: WeatherEvent = {
       id: "e1", name: "Tempête", conditions: [{ metric: "windSpeed", operator: "gte", value: 80 }], requireAllConditions: true, enabled: false

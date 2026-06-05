@@ -2,6 +2,7 @@ import { generateWeatherForTime } from "./weatherLogic";
 import { absoluteDayToCalendarDate, addHours } from "./dateEngine";
 import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
+import { getWeatherBiomeState } from "./weather/biomes";
 import type { CalendarProject, InternalTime, WeatherCondition, WeatherConditionMetric, WeatherEvent, WeatherEventTriggerHistoryEntry, WeatherSnapshot, WeatherState, WeatherOverride } from "../domain/types";
 
 export type PlayerVisibleWeatherEvent = {
@@ -47,6 +48,13 @@ export const isWeatherConditionMet = (weather: WeatherSnapshot, condition: Weath
     const moon = context.project.moons.find((m) => m.id === condition.moonId);
     if (!moon) return false;
     return getMoonPhaseForDate(moon, context.time.absoluteDay).id === condition.phaseId;
+  }
+
+  if (condition.type === "biome") {
+    const biomeIds = condition.biomeIds ?? [];
+    if (biomeIds.length === 0) return true;
+    if (!context?.project) return false;
+    return biomeIds.includes(getWeatherBiomeState(context.project).currentBiomeId);
   }
 
   const metricValue = weather[condition.metric];
@@ -183,6 +191,9 @@ export const getWeatherEventDiagnostics = (
     condition,
     met: isWeatherConditionMet(weather, condition, { project, time })
   }));
+  const blockedReasons = conditionDiagnostics
+    .filter((diagnostic) => !diagnostic.met && diagnostic.condition.type === "biome" && (diagnostic.condition.biomeIds?.length ?? 0) > 0)
+    .map(() => "biomeMismatch" as const);
   const requireAll = event.requireAllConditions ?? true;
   const conditionsMet = conditionDiagnostics.length > 0
     ? requireAll
@@ -211,6 +222,7 @@ export const getWeatherEventDiagnostics = (
     durationHours,
     lastTriggeredAtMinutes,
     cooldownHours: event.cooldownHours,
+    blockedReasons,
     isCurrentlyTriggerable: enabled && !blockedByStatus && !blockedByCooldown && !alreadyActive && conditionsMet
   };
 };
@@ -495,6 +507,18 @@ export const addWeatherMoonPhaseCondition = (project: CalendarProject, eventId: 
   )
 });
 
+export const addWeatherBiomeCondition = (project: CalendarProject, eventId: string): CalendarProject => ({
+  ...project,
+  weatherEvents: project.weatherEvents.map((event) =>
+    event.id === eventId
+      ? {
+          ...event,
+          conditions: [...(event.conditions ?? []), { type: "biome", biomeIds: [getWeatherBiomeState(project).currentBiomeId] }]
+        }
+      : event
+  )
+});
+
 export const updateWeatherCondition = (
   project: CalendarProject,
   eventId: string,
@@ -527,6 +551,10 @@ export const updateWeatherCondition = (
       startHour: patch.type === "timeOfDay" && typeof patch.startHour === "number" ? patch.startHour : fallbackStartHour,
       endHour: patch.type === "timeOfDay" && typeof patch.endHour === "number" ? patch.endHour : fallbackEndHour
     });
+    const asBiome = (fallbackBiomeIds = [getWeatherBiomeState(project).currentBiomeId]) => ({
+      type: "biome" as const,
+      biomeIds: patch.type === "biome" && Array.isArray(patch.biomeIds) ? patch.biomeIds : fallbackBiomeIds
+    });
 
     if (patch.type === "state") conditions[conditionIndex] = asState(target.type === "state" ? target.state : "storm");
     else if (patch.type === "season") conditions[conditionIndex] = asSeason(target.type === "season" ? target.seasonId : "");
@@ -534,6 +562,7 @@ export const updateWeatherCondition = (
     else if (patch.type === "dominantState") conditions[conditionIndex] = asDominantState(target.type === "dominantState" ? target.state : "heavyRain");
     else if (patch.type === "windDirection") conditions[conditionIndex] = asWindDirection(target.type === "windDirection" ? target.direction : "N");
     else if (patch.type === "moonPhase") conditions[conditionIndex] = asMoonPhase(target.type === "moonPhase" ? target.moonId : "", target.type === "moonPhase" ? target.phaseId : "full");
+    else if (patch.type === "biome") conditions[conditionIndex] = asBiome(target.type === "biome" ? target.biomeIds ?? [] : [getWeatherBiomeState(project).currentBiomeId]);
     else {
       conditions[conditionIndex] =
         target.type === "metric" || target.type === undefined

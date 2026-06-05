@@ -1,5 +1,6 @@
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
+import { getWeatherBiomeDefinition, getWeatherBiomeState } from "../../calendar/weather/biomes";
 import { conditionSummary } from "./WeatherEventForm";
 import { getWeatherEventDiagnostics, getWeatherEventDurationHours, getWeatherEventUpcomingTriggerWindows, type WeatherEventUpcomingTriggerWindow } from "../../calendar/weatherEventsLogic";
 import { getCurrentWeather } from "../../calendar/weatherLogic";
@@ -105,6 +106,7 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
   const currentWeather = getCurrentWeather(project);
   const diagnostics = currentWeather ? getWeatherEventDiagnostics(project, event, project.currentTime, currentWeather) : undefined;
   const upcomingWindows = getWeatherEventUpcomingTriggerWindows(project, event, project.currentTime, 48);
+  const currentBiomeDefinition = getWeatherBiomeDefinition(getWeatherBiomeState(project).currentBiomeId);
   const currentWeatherSummary = currentWeather
     ? [
         currentWeather.state ? `${t(project.locale, "weatherEvents.state")}: ${getWeatherStateLabel(project, currentWeather.state)}` : undefined,
@@ -112,6 +114,7 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
         `${t(project.locale, "weatherEvents.metricRain")}: ${currentWeather.rain}`,
         `${t(project.locale, "weatherEvents.metricWindSpeed")}: ${currentWeather.windSpeed}`,
         currentWeather.windDirection ? `${t(project.locale, "weatherEvents.windDirection")}: ${currentWeather.windDirection}` : undefined,
+        `${t(project.locale, "weatherEvents.biomes")}: ${currentBiomeDefinition.icon} ${t(project.locale, currentBiomeDefinition.nameKey)}`,
         currentWeather.dominantState ? `${t(project.locale, "weatherEvents.dominantState")}: ${getWeatherStateLabel(project, currentWeather.dominantState)}` : undefined,
         currentWeather.trendKind ? `${t(project.locale, "weather.trend")}: ${getWeatherTrendLabel(project, currentWeather.trendKind)}` : undefined
       ].filter(Boolean).join(" · ")
@@ -168,6 +171,7 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
                 <div style={textStyle}>{t(project.locale, "weatherEvents.effectiveDuration")}: {typeof diagnostics.durationHours === "number" ? t(project.locale, "weatherEvents.durationShort").replace("{count}", String(diagnostics.durationHours)) : t(project.locale, "weatherEvents.activeNow")}</div>
                 <div style={textStyle}>{t(project.locale, "weatherEvents.lastTriggeredAtMinutes")}: {typeof diagnostics.lastTriggeredAtMinutes === "number" ? formatWeatherHistoryDate(project, diagnostics.lastTriggeredAtMinutes) : t(project.locale, "weatherEvents.neverTriggered")}</div>
                 {typeof diagnostics.cooldownHours === "number" ? <div style={textStyle}>{t(project.locale, "weatherEvents.cooldownHours")}: {t(project.locale, "weatherEvents.durationShort").replace("{count}", String(diagnostics.cooldownHours))}</div> : null}
+                {diagnostics.blockedReasons.includes("biomeMismatch") ? <div style={{ ...textStyle, color: "#fca5a5" }}>{t(project.locale, "weatherEvents.biomeMismatch")}</div> : null}
                 <div style={{ display: "grid", gap: 4 }}>
                   {diagnostics.conditions.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noConditions")}</div> : diagnostics.conditions.map(({ condition, met }, index) => (
                     <div key={`${condition.type ?? "metric"}-diagnostic-${index}`} style={textStyle}>

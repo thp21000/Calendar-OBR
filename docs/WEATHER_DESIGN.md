@@ -1333,3 +1333,9 @@ L'écran affiche d'abord le biome courant avec son icône, son nom, sa descripti
 Chaque biome prédéfini reste une carte repliable. Le MJ peut y ajuster les profils de température, pluie instantanée, pluie journalière, vent, traits météo et poids d'états météo. Les poids utilisent la liste partagée `WEATHER_STATES` et les libellés/icônes configurés dans la configuration météo avancée, afin que les états renommés ou ré-icônés restent cohérents entre les sections.
 
 Les profils de biomes personnalisés complets ne sont pas encore créés par l'UI. Les actions de réinitialisation retirent seulement les overrides de profils pour retrouver les defaults runtime et éviter de remplir inutilement les sauvegardes. Une disponibilité par biome peut masquer un biome du sélecteur courant sans empêcher les anciennes sauvegardes ou météos forcées de continuer à fonctionner.
+
+### Conditions de biomes pour les événements météo
+
+Les événements météo peuvent désormais inclure une condition `biome` avec une liste optionnelle de `biomeIds`. Une liste absente ou vide ne limite pas l'événement ; dès qu'au moins un biome est sélectionné, la logique de déclenchement compare uniquement `getWeatherBiomeState(project).currentBiomeId` à cette liste.
+
+Pendant une transition de biome, la condition utilise le biome courant et ignore volontairement `previousBiomeId`, car les transitions représentent un lissage climatique visuel/génératif et non une double appartenance de l'environnement. Les imports nettoient cette liste pour conserver seulement les IDs de biomes connus, supprimer les doublons et préserver les anciens événements sans restriction.

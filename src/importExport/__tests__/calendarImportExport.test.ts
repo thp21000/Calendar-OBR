@@ -775,6 +775,43 @@ describe("calendarImportExport phase17 integrity", () => {
     expect(imported.project.weatherAdvancedSettings).toEqual(project.weatherAdvancedSettings);
   });
 
+  it("sanitizes weather event biome condition ids", () => {
+    const project = createDefaultCalendarProject();
+    const payload: any = {
+      ...project,
+      weatherEvents: [{
+        id: "biome-event",
+        name: "Biome event",
+        enabled: true,
+        requireAllConditions: true,
+        conditions: [{ type: "biome", biomeIds: ["desert", "missing", "desert"] }]
+      }]
+    };
+
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherEvents[0].conditions).toEqual([{ type: "biome", biomeIds: ["desert"] }]);
+  });
+
+  it("preserves weather event biome conditions through export import", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherEvents = [{
+      id: "biome-cycle",
+      name: "Biome cycle",
+      enabled: true,
+      requireAllConditions: true,
+      conditions: [{ type: "biome", biomeIds: ["arctic", "mountain"] }]
+    }];
+
+    const imported = importCalendarProject(exportCalendarProject(project), createDefaultCalendarProject());
+
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherEvents[0].conditions).toEqual(project.weatherEvents[0].conditions);
+  });
+
   it("sanitizes weather biome availability while preserving valid disabled biomes", () => {
     const project = createDefaultCalendarProject();
     const payload: any = {

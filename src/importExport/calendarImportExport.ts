@@ -357,6 +357,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                     condition.direction === "W" ||
                     condition.direction === "NW")) ||
                 (condition.type === "season" && typeof condition.seasonId === "string" && condition.seasonId.trim().length > 0) ||
+                  (condition.type === "biome" && (condition.biomeIds === undefined || Array.isArray(condition.biomeIds))) ||
                   (condition.type === "timeOfDay" &&
                     typeof condition.startHour === "number" &&
                     Number.isFinite(condition.startHour) &&
@@ -387,6 +388,10 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                 startHour: Math.max(0, Math.min(23, Math.trunc(condition.startHour as number))),
                 endHour: Math.max(0, Math.min(23, Math.trunc(condition.endHour as number)))
               };
+            }
+            if (condition.type === "biome") {
+              const biomeIds = Array.isArray(condition.biomeIds) ? Array.from(new Set(condition.biomeIds.filter(isWeatherBiomeId))) : [];
+              return biomeIds.length > 0 ? { ...condition, biomeIds } : { type: "biome" };
             }
             return condition;
           });

@@ -5,13 +5,14 @@ import type { CalendarProject, MoonPhaseId, WeatherCondition, WeatherConditionMe
 import { t } from "../../i18n/messages";
 import { WEATHER_STATES } from "../../calendar/weatherStates";
 import { getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
+import { WEATHER_BIOME_DEFINITIONS, getWeatherBiomeDefinition, type WeatherBiomeId } from "../../calendar/weather/biomes";
 
 const weatherStates = WEATHER_STATES;
 const moonPhases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
 const windDirections: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 const weatherTrends = ["cold", "warm", "wet", "dry", "windy", "calm", "stormy", "stable", "unstable"] as const;
 
-type ConditionTypeToAdd = "metric" | "state" | "dominantState" | "windDirection" | "season" | "timeOfDay" | "moonPhase";
+type ConditionTypeToAdd = "metric" | "state" | "dominantState" | "windDirection" | "season" | "timeOfDay" | "moonPhase" | "biome";
 
 type WeatherEventFormSectionProps = { title: string; children: ReactNode };
 const WeatherEventFormSection = ({ title, children }: WeatherEventFormSectionProps) => {
@@ -59,6 +60,12 @@ export const conditionSummary = (project: CalendarProject, condition: WeatherCon
   if (condition.type === "season") return `${t(locale, "weatherEvents.season")} = ${project.seasons.find((s) => s.id === condition.seasonId)?.name ?? condition.seasonId}`;
   if (condition.type === "timeOfDay") return `${t(locale, "weatherEvents.timeOfDay")} ${condition.startHour}→${condition.endHour}`;
   if (condition.type === "moonPhase") return `${t(locale, "weatherEvents.moon")}=${project.moons.find((m) => m.id === condition.moonId)?.name ?? condition.moonId} · ${t(locale, `moon.phase.${condition.phaseId}`)}`;
+  if (condition.type === "biome") {
+    const biomeIds = condition.biomeIds ?? [];
+    if (biomeIds.length === 0) return `${t(locale, "weatherEvents.biomes")} = ${t(locale, "weatherEvents.allBiomes")}`;
+    const labels = biomeIds.map((id) => t(locale, getWeatherBiomeDefinition(id).nameKey));
+    return `${t(locale, "weatherEvents.biomes")} = ${labels.length > 3 ? String(labels.length) : labels.join(", ")}`;
+  }
   return `${metricLabel(locale, condition.metric)} ${condition.operator === "gte" ? ">=" : "<="} ${condition.value}`;
 };
 
@@ -80,6 +87,7 @@ const getDefaultCondition = (project: CalendarProject, type: ConditionTypeToAdd)
   if (type === "season") return { type: "season", seasonId: project.seasons[0]?.id ?? "" };
   if (type === "timeOfDay") return { type: "timeOfDay", startHour: 22, endHour: 6 };
   if (type === "moonPhase") return { type: "moonPhase", moonId: project.moons[0]?.id ?? "", phaseId: "full" };
+  if (type === "biome") return { type: "biome", biomeIds: [project.weatherBiome?.currentBiomeId ?? "temperate"] };
   return { type: "metric", metric: "temperature", operator: "gte", value: 35 };
 };
 
@@ -101,7 +109,8 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
     { id: "windDirection", label: t(project.locale, "weatherEvents.conditionWindDirection") },
     { id: "season", label: t(project.locale, "weatherEvents.conditionTypeSeason") },
     { id: "timeOfDay", label: t(project.locale, "weatherEvents.conditionTypeTimeOfDay") },
-    { id: "moonPhase", label: t(project.locale, "weatherEvents.conditionTypeMoonPhase") }
+    { id: "moonPhase", label: t(project.locale, "weatherEvents.conditionTypeMoonPhase") },
+    { id: "biome", label: t(project.locale, "weatherEvents.conditionTypeBiome") }
   ];
 
   const getWeatherEventAutoSummary = (): string => {
@@ -157,6 +166,28 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
         {condition.type === "season" ? (project.seasons.length === 0 ? <div style={{ ...hint, color: "#fca5a5" }}>{t(project.locale, "weatherEvents.noSeasonAvailable")}</div> : <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.season")} help={t(project.locale, "weatherEvents.help.season")} /><select value={condition.seasonId} onChange={(e) => updateDraftCondition(index, { ...condition, seasonId: e.target.value })} style={mergedInputStyle}>{project.seasons.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>) : null}
         {condition.type === "timeOfDay" ? <><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.startHour")} help={t(project.locale, "weatherEvents.help.timeOfDay")} /><input type="number" min={0} max={23} value={condition.startHour} onChange={(e) => updateDraftCondition(index, { ...condition, startHour: Math.max(0, Math.min(23, Math.trunc(Number(e.target.value) || 0))) })} style={mergedInputStyle} /></label><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.endHour")} help={t(project.locale, "weatherEvents.help.timeOfDay")} /><input type="number" min={0} max={23} value={condition.endHour} onChange={(e) => updateDraftCondition(index, { ...condition, endHour: Math.max(0, Math.min(23, Math.trunc(Number(e.target.value) || 0))) })} style={mergedInputStyle} /></label></> : null}
         {condition.type === "moonPhase" ? (project.moons.length === 0 ? <div style={{ ...hint, color: "#fca5a5" }}>{t(project.locale, "weatherEvents.noMoonAvailable")}</div> : <><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.moon")} help={t(project.locale, "weatherEvents.help.moonPhase")} /><select value={condition.moonId} onChange={(e) => updateDraftCondition(index, { ...condition, moonId: e.target.value })} style={mergedInputStyle}>{project.moons.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.moonPhase")} help={t(project.locale, "weatherEvents.help.moonPhase")} /><select value={condition.phaseId} onChange={(e) => updateDraftCondition(index, { ...condition, phaseId: e.target.value as MoonPhaseId })} style={mergedInputStyle}>{moonPhases.map((p) => <option key={p} value={p}>{t(project.locale, `moon.phase.${p}`)}</option>)}</select></label></>) : null}
+        {condition.type === "biome" ? <div style={condCard}>
+          <FieldLabel label={t(project.locale, "weatherEvents.biomes")} help={t(project.locale, "weatherEvents.help.biomes")} />
+          <div style={hint}>{t(project.locale, "weatherEvents.help.biomes")}</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button type="button" onClick={() => updateDraftCondition(index, { ...condition, biomeIds: WEATHER_BIOME_DEFINITIONS.map((definition) => definition.id) })} style={smallButtonStyle}>{t(project.locale, "weatherEvents.allBiomes")}</button>
+            <button type="button" onClick={() => updateDraftCondition(index, { ...condition, biomeIds: [] })} style={smallButtonStyle}>{t(project.locale, "weatherEvents.noBiomes")}</button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 4 }}>
+            {WEATHER_BIOME_DEFINITIONS.map((definition) => {
+              const checked = (condition.biomeIds ?? []).includes(definition.id);
+              return <label key={definition.id} style={{ ...checkLabel, marginBottom: 0, fontSize: 12 }}>
+                <input type="checkbox" checked={checked} onChange={(event) => {
+                  const current = new Set(condition.biomeIds ?? []);
+                  if (event.target.checked) current.add(definition.id);
+                  else current.delete(definition.id);
+                  updateDraftCondition(index, { ...condition, biomeIds: Array.from(current) as WeatherBiomeId[] });
+                }} />
+                <span>{definition.icon} {t(project.locale, definition.nameKey)}</span>
+              </label>;
+            })}
+          </div>
+        </div> : null}
         <button type="button" onClick={() => deleteDraftCondition(index)} style={dangerButtonStyle}>{t(project.locale, "weatherEvents.deleteCondition")}</button>
       </CollapsibleEditorBlock>)}
 

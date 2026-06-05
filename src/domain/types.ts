@@ -330,7 +330,12 @@ export type WeatherWindDirectionCondition = {
   direction: WindDirection;
 };
 
-export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition | WeatherDominantStateCondition | WeatherWindDirectionCondition | WeatherSeasonCondition | WeatherTimeOfDayCondition | WeatherMoonPhaseCondition;
+export type WeatherBiomeCondition = {
+  type: "biome";
+  biomeIds?: WeatherBiomeId[];
+};
+
+export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition | WeatherDominantStateCondition | WeatherWindDirectionCondition | WeatherSeasonCondition | WeatherTimeOfDayCondition | WeatherMoonPhaseCondition | WeatherBiomeCondition;
 
 export type WeatherEventTriggerHistoryEntry = {
   id: string;
