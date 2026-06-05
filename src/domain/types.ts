@@ -50,6 +50,7 @@ export type CalendarDate = {
 
 export type DisplayDate = CalendarDate & {
   monthName: string;
+  monthNumber?: number;
   weekdayId?: string;
   weekdayName?: string;
 };

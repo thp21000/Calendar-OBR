@@ -67,6 +67,11 @@ describe("dateEngine", () => {
     expect(getMonthById(system, "m2")?.days).toBe(20);
   });
 
+  it("adds stable month numbers from sorted month order", () => {
+    expect(absoluteDayToCalendarDate({ absoluteDay: 0, hour: 12, minute: 0 }, system).monthNumber).toBe(1);
+    expect(absoluteDayToCalendarDate({ absoluteDay: 20, hour: 12, minute: 0 }, system).monthNumber).toBe(2);
+  });
+
   it("uses firstWeekdayOffset", () => {
     const display = absoluteDayToCalendarDate({ absoluteDay: 0, hour: 12, minute: 0 }, system);
     expect(display.weekdayId).toBe("d3");

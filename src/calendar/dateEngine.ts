@@ -60,8 +60,12 @@ export const absoluteDayToCalendarDate = (internal: InternalTime, system: Calend
   const dayOfYear = ((internal.absoluteDay % totalDaysInYear) + totalDaysInYear) % totalDaysInYear;
 
   let running = dayOfYear;
-  const month = months.find((item) => {
-    if (running < item.days) return true;
+  let monthIndex = -1;
+  const month = months.find((item, index) => {
+    if (running < item.days) {
+      monthIndex = index;
+      return true;
+    }
     running -= item.days;
     return false;
   });
@@ -76,6 +80,7 @@ export const absoluteDayToCalendarDate = (internal: InternalTime, system: Calend
     year: system.startYear + yearOffset,
     monthId: month.id,
     monthName: month.name,
+    monthNumber: monthIndex + 1,
     dayOfMonth: running + 1,
     weekdayId: weekday.id,
     weekdayName: weekday.name,

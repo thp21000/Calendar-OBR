@@ -14,8 +14,7 @@ const formatTime = (hour: number, minute: number, format: TimeFormatPreference =
 const formatDateOnly = (displayDate: DisplayDate, locale: LocaleCode, format: DateFormatPreference = "weekdayDayMonthYear"): string => {
   const dayName = displayDate.weekdayName ?? (locale === "fr" ? "Jour" : "Day");
   const monthName = displayDate.monthName;
-  const monthNumber = Number(displayDate.monthId.match(/\d+/)?.[0] ?? 0);
-  const numericMonth = monthNumber > 0 ? pad2(monthNumber) : monthName;
+  const numericMonth = displayDate.monthNumber && displayDate.monthNumber > 0 ? pad2(displayDate.monthNumber) : monthName;
   if (format === "dayMonthYear") return `${displayDate.dayOfMonth} ${monthName} ${displayDate.year}`;
   if (format === "dayMonthYearNumeric") return `${pad2(displayDate.dayOfMonth)}/${numericMonth}/${displayDate.year}`;
   if (format === "yearMonthDay") return `${displayDate.year}-${numericMonth}-${pad2(displayDate.dayOfMonth)}`;
