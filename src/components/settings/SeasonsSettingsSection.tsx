@@ -8,7 +8,7 @@ import { SeasonWeatherModifierEditor } from "./WeatherProfileEditor";
 export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; inputStyle: React.CSSProperties }) => {
   const seasons = sortSeasonsByStartDate(project, project.seasons);
   const sortedMonths = [...project.calendarSystem.months].sort((a, b) => a.order - b.order);
-  const units = getWeatherUnitLabels(project.locale);
+  const units = getWeatherUnitLabels(project.units);
 
   const patchSeason = (season: Season, patch: Partial<Season>) => onProjectUpdate(updateSeason(project, season.id, patch));
   const resetWeatherModifier = (season: Season) => {
@@ -41,6 +41,7 @@ export const SeasonsSettingsSection = ({ project, onProjectUpdate, inputStyle }:
             <SeasonWeatherModifierEditor
               locale={project.locale}
               units={units}
+              unitSettings={project.units}
               inputStyle={inputStyle}
               modifier={season.weatherModifier}
               onChange={(weatherModifier) => patchSeason(season, { weatherModifier })}

@@ -1,6 +1,7 @@
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { getWeatherBiomeDefinition, getWeatherBiomeState } from "../../calendar/weather/biomes";
+import { formatRain, formatRainTotal, formatTemperature, formatWindSpeed } from "../../calendar/weatherUnits";
 import { conditionSummary } from "./WeatherEventForm";
 import { getWeatherEventDiagnostics, getWeatherEventDurationHours, getWeatherEventUpcomingTriggerWindows, type WeatherEventUpcomingTriggerWindow } from "../../calendar/weatherEventsLogic";
 import { getCurrentWeather } from "../../calendar/weatherLogic";
@@ -51,12 +52,12 @@ const getEffectLines = (project: CalendarProject, effect: WeatherEventEffect | u
   const lines: string[] = [];
   if (effect.state) lines.push(`${t(project.locale, "weatherEvents.effectState")}: ${getWeatherStateLabel(project, effect.state)}`);
   if (effect.dominantState) lines.push(`${t(project.locale, "weatherEvents.effectDominantState")}: ${getWeatherStateLabel(project, effect.dominantState)}`);
-  if (typeof effect.temperature === "number") lines.push(`${t(project.locale, "weatherEvents.effectTemperature")}: ${effect.temperature}`);
-  if (typeof effect.dailyMinTemperature === "number") lines.push(`${t(project.locale, "weatherEvents.effectDailyMinTemperature")}: ${effect.dailyMinTemperature}`);
-  if (typeof effect.dailyMaxTemperature === "number") lines.push(`${t(project.locale, "weatherEvents.effectDailyMaxTemperature")}: ${effect.dailyMaxTemperature}`);
-  if (typeof effect.rain === "number") lines.push(`${t(project.locale, "weatherEvents.effectRain")}: ${effect.rain}`);
-  if (typeof effect.dailyRainTotal === "number") lines.push(`${t(project.locale, "weatherEvents.effectDailyRainTotal")}: ${effect.dailyRainTotal}`);
-  if (typeof effect.windSpeed === "number") lines.push(`${t(project.locale, "weatherEvents.effectWindSpeed")}: ${effect.windSpeed}`);
+  if (typeof effect.temperature === "number") lines.push(`${t(project.locale, "weatherEvents.effectTemperature")}: ${formatTemperature(effect.temperature, project.units, project.locale)}`);
+  if (typeof effect.dailyMinTemperature === "number") lines.push(`${t(project.locale, "weatherEvents.effectDailyMinTemperature")}: ${formatTemperature(effect.dailyMinTemperature, project.units, project.locale)}`);
+  if (typeof effect.dailyMaxTemperature === "number") lines.push(`${t(project.locale, "weatherEvents.effectDailyMaxTemperature")}: ${formatTemperature(effect.dailyMaxTemperature, project.units, project.locale)}`);
+  if (typeof effect.rain === "number") lines.push(`${t(project.locale, "weatherEvents.effectRain")}: ${formatRain(effect.rain, project.units, project.locale)}`);
+  if (typeof effect.dailyRainTotal === "number") lines.push(`${t(project.locale, "weatherEvents.effectDailyRainTotal")}: ${formatRainTotal(effect.dailyRainTotal, project.units, project.locale)}`);
+  if (typeof effect.windSpeed === "number") lines.push(`${t(project.locale, "weatherEvents.effectWindSpeed")}: ${formatWindSpeed(effect.windSpeed, project.units, project.locale)}`);
   if (effect.windDirection) lines.push(`${t(project.locale, "weatherEvents.effectWindDirection")}: ${effect.windDirection}`);
   if (effect.trendKind) lines.push(`${t(project.locale, "weatherEvents.effectTrendKind")}: ${getWeatherTrendLabel(project, effect.trendKind)}`);
   return lines;
@@ -212,7 +213,7 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
           ) : null}
 
           <CollapsibleDetailSection title={t(project.locale, "weatherEvents.history")} empty={history.length === 0} meta={formatCountMeta(project, "common.entriesCount", history.length, "common.empty")}>
-            {history.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noHistory")}</div> : <div style={{ display: "grid", gap: 4 }}>{history.map((entry) => <div key={entry.id} style={textStyle}>• {formatWeatherHistoryDate(project, entry.triggeredAtMinutes)}{entry.weatherState ? ` · ${getWeatherStateLabel(project, entry.weatherState)}` : ""}{typeof entry.temperature === "number" ? ` · T:${entry.temperature}` : ""}{typeof entry.rain === "number" ? ` · R:${entry.rain}` : ""}{typeof entry.windSpeed === "number" ? ` · W:${entry.windSpeed}` : ""}</div>)}</div>}
+            {history.length === 0 ? <div style={textStyle}>{t(project.locale, "weatherEvents.noHistory")}</div> : <div style={{ display: "grid", gap: 4 }}>{history.map((entry) => <div key={entry.id} style={textStyle}>• {formatWeatherHistoryDate(project, entry.triggeredAtMinutes)}{entry.weatherState ? ` · ${getWeatherStateLabel(project, entry.weatherState)}` : ""}{typeof entry.temperature === "number" ? ` · T:${formatTemperature(entry.temperature, project.units, project.locale)}` : ""}{typeof entry.rain === "number" ? ` · R:${formatRain(entry.rain, project.units, project.locale)}` : ""}{typeof entry.windSpeed === "number" ? ` · W:${formatWindSpeed(entry.windSpeed, project.units, project.locale)}` : ""}</div>)}</div>}
           </CollapsibleDetailSection>
         </div>
 

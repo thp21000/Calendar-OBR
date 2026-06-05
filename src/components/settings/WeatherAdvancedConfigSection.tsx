@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { DEFAULT_WEATHER_DOMINANCE_CONFIGS, WEATHER_TRENDS, getWeatherAdvancedSettings, getWeatherStateLabel, getWeatherTrendLabel, sanitizeWeatherAdvancedSettings } from "../../calendar/weatherAdvancedSettings";
+import { fromDisplayRain, fromDisplayTemperature, fromDisplayTemperatureDelta, fromDisplayWindSpeed, toDisplayRain, toDisplayTemperature, toDisplayTemperatureDelta, toDisplayWindSpeed } from "../../calendar/weatherUnits";
 import { WEATHER_STATES } from "../../calendar/weatherStates";
 import type { CalendarProject, LocaleCode, WeatherAdvancedSettings, WeatherAdvancedThresholds, WeatherDominanceConfig, WeatherState, WeatherStateConfig, WeatherTrendConfig, WeatherTrendKind } from "../../domain/types";
 import { t } from "../../i18n/messages";
@@ -44,21 +45,28 @@ const resetBuiltinEntries = (project: CalendarProject, section: keyof WeatherAdv
 const textPatch = (label: Partial<Record<LocaleCode, string>> | undefined, locale: LocaleCode, value: string) => ({ ...(label ?? {}), [locale]: value });
 const numberOrUndefined = (value: string) => value === "" ? undefined : Number(value);
 
-const ThresholdInput = ({ label, value, onChange, inputStyle }: { label: string; value: number | undefined; onChange: (value: number | undefined) => void; inputStyle: CSSProperties }) => (
+const ThresholdInput = ({ label, value, onChange, inputStyle, toDisplay = (next: number) => next, fromDisplay = (next: number) => next }: { label: string; value: number | undefined; onChange: (value: number | undefined) => void; inputStyle: CSSProperties; toDisplay?: (value: number) => number; fromDisplay?: (value: number) => number }) => (
   <label style={{ display: "block" }}>
     <div style={{ fontSize: 11 }}>{label}</div>
-    <input type="number" value={value ?? ""} onChange={(event) => onChange(numberOrUndefined(event.target.value))} style={inputStyle} />
+    <input type="number" value={value === undefined ? "" : Math.round(toDisplay(value) * 100) / 100} onChange={(event) => { const next = numberOrUndefined(event.target.value); onChange(next === undefined ? undefined : fromDisplay(next)); }} style={inputStyle} />
   </label>
 );
 
-const ThresholdGrid = ({ project, thresholds, onChange, inputStyle, includeChances = false }: { project: CalendarProject; thresholds: WeatherAdvancedThresholds; onChange: (thresholds: WeatherAdvancedThresholds) => void; inputStyle: CSSProperties; includeChances?: boolean }) => (
+const ThresholdGrid = ({ project, thresholds, onChange, inputStyle, includeChances = false }: { project: CalendarProject; thresholds: WeatherAdvancedThresholds; onChange: (thresholds: WeatherAdvancedThresholds) => void; inputStyle: CSSProperties; includeChances?: boolean }) => {
+  const displayTemperature = (value: number) => toDisplayTemperature(value, project.units.temperature);
+  const storeTemperature = (value: number) => fromDisplayTemperature(value, project.units.temperature);
+  const displayWind = (value: number) => toDisplayWindSpeed(value, project.units.windSpeed);
+  const storeWind = (value: number) => fromDisplayWindSpeed(value, project.units.windSpeed);
+  const displayRain = (value: number) => toDisplayRain(value, project.units.rain);
+  const storeRain = (value: number) => fromDisplayRain(value, project.units.rain);
+  return (
   <div style={rowStyle}>
-    <ThresholdInput label={t(project.locale, "weatherAdvanced.minTemperature")} value={thresholds.minTemperature} onChange={(value) => onChange({ ...thresholds, minTemperature: value })} inputStyle={inputStyle} />
-    <ThresholdInput label={t(project.locale, "weatherAdvanced.maxTemperature")} value={thresholds.maxTemperature} onChange={(value) => onChange({ ...thresholds, maxTemperature: value })} inputStyle={inputStyle} />
-    <ThresholdInput label={t(project.locale, "weatherAdvanced.minWindSpeed")} value={thresholds.minWindSpeed} onChange={(value) => onChange({ ...thresholds, minWindSpeed: value })} inputStyle={inputStyle} />
-    <ThresholdInput label={t(project.locale, "weatherAdvanced.maxWindSpeed")} value={thresholds.maxWindSpeed} onChange={(value) => onChange({ ...thresholds, maxWindSpeed: value })} inputStyle={inputStyle} />
-    <ThresholdInput label={t(project.locale, includeChances ? "weatherAdvanced.minDailyRainTotal" : "weatherAdvanced.minRain")} value={thresholds.minRain ?? thresholds.minDailyRainTotal} onChange={(value) => onChange({ ...thresholds, minRain: includeChances ? thresholds.minRain : value, minDailyRainTotal: includeChances ? value : thresholds.minDailyRainTotal })} inputStyle={inputStyle} />
-    <ThresholdInput label={t(project.locale, includeChances ? "weatherAdvanced.maxDailyRainTotal" : "weatherAdvanced.maxRain")} value={thresholds.maxRain ?? thresholds.maxDailyRainTotal} onChange={(value) => onChange({ ...thresholds, maxRain: includeChances ? thresholds.maxRain : value, maxDailyRainTotal: includeChances ? value : thresholds.maxDailyRainTotal })} inputStyle={inputStyle} />
+    <ThresholdInput label={t(project.locale, "weatherAdvanced.minTemperature")} value={thresholds.minTemperature} onChange={(value) => onChange({ ...thresholds, minTemperature: value })} inputStyle={inputStyle} toDisplay={displayTemperature} fromDisplay={storeTemperature} />
+    <ThresholdInput label={t(project.locale, "weatherAdvanced.maxTemperature")} value={thresholds.maxTemperature} onChange={(value) => onChange({ ...thresholds, maxTemperature: value })} inputStyle={inputStyle} toDisplay={displayTemperature} fromDisplay={storeTemperature} />
+    <ThresholdInput label={t(project.locale, "weatherAdvanced.minWindSpeed")} value={thresholds.minWindSpeed} onChange={(value) => onChange({ ...thresholds, minWindSpeed: value })} inputStyle={inputStyle} toDisplay={displayWind} fromDisplay={storeWind} />
+    <ThresholdInput label={t(project.locale, "weatherAdvanced.maxWindSpeed")} value={thresholds.maxWindSpeed} onChange={(value) => onChange({ ...thresholds, maxWindSpeed: value })} inputStyle={inputStyle} toDisplay={displayWind} fromDisplay={storeWind} />
+    <ThresholdInput label={t(project.locale, includeChances ? "weatherAdvanced.minDailyRainTotal" : "weatherAdvanced.minRain")} value={thresholds.minRain ?? thresholds.minDailyRainTotal} onChange={(value) => onChange({ ...thresholds, minRain: includeChances ? thresholds.minRain : value, minDailyRainTotal: includeChances ? value : thresholds.minDailyRainTotal })} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} />
+    <ThresholdInput label={t(project.locale, includeChances ? "weatherAdvanced.maxDailyRainTotal" : "weatherAdvanced.maxRain")} value={thresholds.maxRain ?? thresholds.maxDailyRainTotal} onChange={(value) => onChange({ ...thresholds, maxRain: includeChances ? thresholds.maxRain : value, maxDailyRainTotal: includeChances ? value : thresholds.maxDailyRainTotal })} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} />
     {includeChances ? <>
       <ThresholdInput label={t(project.locale, "weatherAdvanced.minPrecipitationChance")} value={thresholds.minPrecipitationChance} onChange={(value) => onChange({ ...thresholds, minPrecipitationChance: value })} inputStyle={inputStyle} />
       <ThresholdInput label={t(project.locale, "weatherAdvanced.minStormChance")} value={thresholds.minStormChance} onChange={(value) => onChange({ ...thresholds, minStormChance: value })} inputStyle={inputStyle} />
@@ -93,7 +101,6 @@ const StateConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { pro
       </div>
     </CollapsibleSection>
   );
-};
 
 const TrendConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { project: CalendarProject; config: WeatherTrendConfig; inputStyle: CSSProperties; onProjectUpdate: (project: CalendarProject) => void }) => {
   const patch = (next: Partial<WeatherTrendConfig>) => onProjectUpdate(patchAdvancedSettings(project, { trendConfigs: { [config.id]: { ...config, ...next } } }));
@@ -117,7 +124,7 @@ const TrendConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { pro
   </label>
     </div>
     <div style={rowStyle}>
-      <ThresholdInput label={t(project.locale, "weatherAdvanced.temperatureOffset")} value={config.temperatureOffset} onChange={(value) => patch({ temperatureOffset: value })} inputStyle={inputStyle} />
+      <ThresholdInput label={t(project.locale, "weatherAdvanced.temperatureOffset")} value={config.temperatureOffset} onChange={(value) => patch({ temperatureOffset: value })} inputStyle={inputStyle} toDisplay={(value) => toDisplayTemperatureDelta(value, project.units.temperature)} fromDisplay={(value) => fromDisplayTemperatureDelta(value, project.units.temperature)} />
       <ThresholdInput label={t(project.locale, "weatherAdvanced.rainMultiplier")} value={config.rainMultiplier} onChange={(value) => patch({ rainMultiplier: value })} inputStyle={inputStyle} />
       <ThresholdInput label={t(project.locale, "weatherAdvanced.windMultiplier")} value={config.windMultiplier} onChange={(value) => patch({ windMultiplier: value })} inputStyle={inputStyle} />
       <ThresholdInput label={t(project.locale, "weatherAdvanced.stabilityModifier")} value={config.stabilityModifier} onChange={(value) => patch({ stabilityModifier: value })} inputStyle={inputStyle} />

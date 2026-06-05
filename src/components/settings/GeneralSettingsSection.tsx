@@ -1,3 +1,4 @@
+import { IMPERIAL_UNITS, METRIC_UNITS, getWeatherUnitLabels } from "../../calendar/weatherUnits";
 import type { CalendarProject, LocaleCode } from "../../domain/types";
 import { t } from "../../i18n/messages";
 
@@ -7,13 +8,23 @@ type Props = {
   inputStyle: React.CSSProperties;
 };
 
-export const GeneralSettingsSection = ({ project, onProjectUpdate, inputStyle }: Props) => (
-  <>
-    <Field label={t(project.locale, "settings.calendarName")}><input value={project.name} onChange={(e) => onProjectUpdate({ ...project, name: e.target.value })} style={inputStyle} /></Field>
-    <Field label={t(project.locale, "settings.language")}><select value={project.locale} onChange={(e) => onProjectUpdate({ ...project, locale: e.target.value as LocaleCode })} style={inputStyle}><option value="fr">Français</option><option value="en">English</option></select></Field>
-    <Field label={t(project.locale, "settings.unitsSummary")}><div style={{ color: "#cbd5e1", fontSize: 12, margin: "4px 0 8px" }}>{t(project.locale, "settings.unitsFixedMetric")}</div></Field>
-    <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12, color: "#cbd5e1" }}><input type="checkbox" checked={project.uiSettings.compactMode} onChange={(e) => onProjectUpdate({ ...project, uiSettings: { ...project.uiSettings, compactMode: e.target.checked } })} />{t(project.locale, "settings.compactMode")}</label>
-  </>
-);
+export const GeneralSettingsSection = ({ project, onProjectUpdate, inputStyle }: Props) => {
+  const units = getWeatherUnitLabels(project.units);
+  const unitsSystem = project.units.temperature === "fahrenheit" || project.units.windSpeed === "mph" || project.units.rain === "inch" ? "imperial" : "metric";
+  return (
+    <>
+      <Field label={t(project.locale, "settings.calendarName")}><input value={project.name} onChange={(e) => onProjectUpdate({ ...project, name: e.target.value })} style={inputStyle} /></Field>
+      <Field label={t(project.locale, "settings.language")}><select value={project.locale} onChange={(e) => onProjectUpdate({ ...project, locale: e.target.value as LocaleCode })} style={inputStyle}><option value="fr">Français</option><option value="en">English</option></select></Field>
+      <Field label={t(project.locale, "settings.unitsSystem")}>
+        <select value={unitsSystem} onChange={(e) => onProjectUpdate({ ...project, units: e.target.value === "imperial" ? IMPERIAL_UNITS : METRIC_UNITS })} style={inputStyle}>
+          <option value="metric">{t(project.locale, "settings.unitsMetric")}</option>
+          <option value="imperial">{t(project.locale, "settings.unitsImperial")}</option>
+        </select>
+      </Field>
+      <Field label={t(project.locale, "settings.unitsSummary")}><div style={{ color: "#cbd5e1", fontSize: 12, margin: "4px 0 8px" }}>{units.temperature} · {units.windSpeed} · {units.rainTotal}</div></Field>
+      <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12, color: "#cbd5e1" }}><input type="checkbox" checked={project.uiSettings.compactMode} onChange={(e) => onProjectUpdate({ ...project, uiSettings: { ...project.uiSettings, compactMode: e.target.checked } })} />{t(project.locale, "settings.compactMode")}</label>
+    </>
+  );
+};
 
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (<label style={{ display: "block" }}><div style={{ fontSize: 12, color: "#cbd5e1" }}>{label}</div>{children}</label>);

@@ -40,7 +40,7 @@ export const WeatherBiomesSettingsSection = ({
   onProjectUpdate: (project: CalendarProject) => void;
   inputStyle: React.CSSProperties;
 }) => {
-  const units = getWeatherUnitLabels(project.locale);
+  const units = getWeatherUnitLabels(project.units);
   const biomeState = getWeatherBiomeState(project);
   const currentDefinition = getWeatherBiomeDefinition(biomeState.currentBiomeId);
   const disabledBiomeIds = new Set(biomeState.disabledBiomeIds ?? []);
@@ -182,6 +182,7 @@ export const WeatherBiomesSettingsSection = ({
             <BiomeProfileEditor
               locale={project.locale}
               units={units}
+              unitSettings={project.units}
               inputStyle={inputStyle}
               profile={getProfile(definition.id)}
               project={project}

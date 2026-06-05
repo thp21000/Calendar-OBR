@@ -7,6 +7,7 @@ import { normalizeSeasonWeatherProfile } from "../calendar/seasonsLogic";
 import { DEFAULT_WEATHER_BIOME_ID, DEFAULT_WEATHER_BIOME_PROFILES, WEATHER_BIOME_DEFINITIONS, normalizeWeatherBiomeProfile } from "../calendar/weather/biomes";
 import { ensureDefaultSceneWeatherProfiles } from "../calendar/sceneWeatherDefaults";
 import { sanitizeWeatherAdvancedSettings } from "../calendar/weatherAdvancedSettings";
+import { DEFAULT_UNITS } from "../calendar/weatherUnits";
 import { isWeatherState } from "../calendar/weatherStates";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -104,9 +105,9 @@ export const validateImportedCalendarProject = (
   if (!isLocale(data.locale)) return { valid: false, error: "locale must be 'fr' or 'en'." };
 
   if (!isRecord(data.units)) return { valid: false, error: "units is required and must be an object." };
-  if (data.units.temperature !== "celsius") return { valid: false, error: "units.temperature must be 'celsius'." };
-  if (data.units.windSpeed !== "kmh") return { valid: false, error: "units.windSpeed must be 'kmh'." };
-  if (data.units.rain !== "mm") return { valid: false, error: "units.rain must be 'mm'." };
+  if (data.units.temperature !== "celsius" && data.units.temperature !== "fahrenheit") return { valid: false, error: "units.temperature is invalid." };
+  if (data.units.windSpeed !== "kmh" && data.units.windSpeed !== "mph") return { valid: false, error: "units.windSpeed is invalid." };
+  if (data.units.rain !== "mm" && data.units.rain !== "inch") return { valid: false, error: "units.rain is invalid." };
 
   if (!isRecord(data.currentTime)) return { valid: false, error: "currentTime is required and must be an object." };
   const absoluteDay = data.currentTime.absoluteDay;
@@ -158,6 +159,17 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     weatherOverrides: Array.isArray((data as Record<string, unknown>).weatherOverrides) ? (data as Record<string, unknown>).weatherOverrides as unknown[] : [],
     sceneWeatherProfiles: Array.isArray((data as Record<string, unknown>).sceneWeatherProfiles) ? (data as Record<string, unknown>).sceneWeatherProfiles as unknown[] : []
   };
+
+  if (isRecord(maybeCompat.units)) {
+    const units = maybeCompat.units as Record<string, unknown>;
+    maybeCompat.units = {
+      temperature: units.temperature === "fahrenheit" ? "fahrenheit" : DEFAULT_UNITS.temperature,
+      windSpeed: units.windSpeed === "mph" ? "mph" : DEFAULT_UNITS.windSpeed,
+      rain: units.rain === "inch" ? "inch" : DEFAULT_UNITS.rain
+    };
+  } else {
+    maybeCompat.units = DEFAULT_UNITS;
+  }
 
   if (!isRecord(maybeCompat.weatherSettings)) {
     maybeCompat.weatherSettings = {};

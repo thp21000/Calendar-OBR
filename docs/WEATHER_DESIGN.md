@@ -1345,3 +1345,13 @@ Pendant une transition de biome, la condition utilise le biome courant et ignore
 La page Paramètres présente la météo comme une pile de couches afin d'aider le MJ à comprendre l'ordre réel de résolution. La grande section Météo expose d'abord la base globale, puis les biomes, les saisons, les tendances, la dominance, les états météo instantanés, les événements météo et enfin la météo de scène / forcée.
 
 Cette organisation reflète les priorités du moteur : le biome fournit le climat naturel, les saisons l'ajustent, les tendances et règles de dominance orientent la génération automatique, les états instantanés décrivent le résultat lisible, puis les événements météo et overrides de scène peuvent modifier ou remplacer le résultat. Les sections longues restent repliables pour conserver une interface compacte dans le popover OBR.
+
+## Unités météo
+
+Le moteur météo conserve une unité interne canonique afin d’éviter les doubles conversions et les écarts entre génération, événements, biomes, saisons, overrides et import/export :
+
+- température : Celsius ;
+- vent : km/h ;
+- pluie : millimètres.
+
+Le réglage `project.units` ne modifie pas les valeurs stockées. Il choisit seulement les unités affichées et saisies dans l’interface : métrique (`°C`, `km/h`, `mm`) ou impérial (`°F`, `mph`, `in`). Les champs de configuration convertissent les valeurs affichées vers l’unité interne au moment de la sauvegarde. Les exports restent donc en unités internes, avec la préférence d’affichage conservée séparément.

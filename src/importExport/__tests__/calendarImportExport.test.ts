@@ -22,6 +22,23 @@ describe("calendarImportExport", () => {
     if (imported.ok) expect(imported.project).toEqual(project);
   });
 
+  it("exports then imports imperial unit settings", () => {
+    const project = createDefaultCalendarProject();
+    project.units = { temperature: "fahrenheit", windSpeed: "mph", rain: "inch" };
+    const imported = importCalendarProject(exportCalendarProject(project), createDefaultCalendarProject());
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.units).toEqual(project.units);
+  });
+
+  it("sanitizes invalid unit settings to metric defaults", () => {
+    const project = createDefaultCalendarProject();
+    const imported = importCalendarProject(JSON.stringify({ ...project, units: { temperature: "kelvin", windSpeed: "knots", rain: "drops" } }), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.units).toEqual({ temperature: "celsius", windSpeed: "kmh", rain: "mm" });
+  });
+
   it("rejects when id is missing", () => {
     const project = createDefaultCalendarProject();
     expect(validateImportedCalendarProject({ ...project, id: "" }).valid).toBe(false);

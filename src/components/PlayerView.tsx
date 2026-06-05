@@ -11,7 +11,7 @@ import { getCurrentWeather } from "../calendar/weatherLogic";
 import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getConfiguredWeatherStateIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../calendar/weatherAdvancedSettings";
-import { getWeatherUnitLabels } from "../calendar/weatherUnits";
+import { formatRainTotal, formatTemperature, formatWindSpeed, formatRain } from "../calendar/weatherUnits";
 import type { CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import type { PublicCalendarTodaySnapshot } from "../obr/publicSnapshot";
@@ -105,10 +105,9 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
   const visibleWeatherEvents = currentWeather ? getPlayerVisibleWeatherEvents(project, currentWeather, project.currentTime) : [];
   const visibleMoonEvents = getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay);
   const visibleDayNotes = getPlayerVisibleDayNotesForDay(project, displayDate);
-  const weatherUnits = getWeatherUnitLabels(project.locale);
 
   const weatherLabel = currentWeather
-    ? `${getConfiguredWeatherStateIcon(project, currentWeather.state ?? "clear")} ${getWeatherStateLabel(project, currentWeather.state ?? "clear")} · ${currentWeather.temperature} ${weatherUnits.temperature} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${currentWeather.windSpeed} ${weatherUnits.windSpeed} · ${t(project.locale, "calendar.rain")} ${currentWeather.rain} ${weatherUnits.rain}`
+    ? `${getConfiguredWeatherStateIcon(project, currentWeather.state ?? "clear")} ${getWeatherStateLabel(project, currentWeather.state ?? "clear")} · ${formatTemperature(currentWeather.temperature, project.units, project.locale)} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${formatWindSpeed(currentWeather.windSpeed, project.units, project.locale)} · ${t(project.locale, "calendar.rain")} ${formatRain(currentWeather.rain, project.units, project.locale)}`
     : t(project.locale, "calendar.noWeather");
 
   const publicEvents: PublicEventDetails[] = visibleEvents.map((event) => ({
@@ -159,12 +158,12 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
       </div>
       {currentWeather?.dailyMinTemperature !== undefined && currentWeather?.dailyMaxTemperature !== undefined ? (
         <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-          {t(project.locale, "weather.dailyMinMax")}: {currentWeather.dailyMinTemperature} / {currentWeather.dailyMaxTemperature} {weatherUnits.temperature}
+          {t(project.locale, "weather.dailyMinMax")}: {formatTemperature(currentWeather.dailyMinTemperature, project.units, project.locale)} / {formatTemperature(currentWeather.dailyMaxTemperature, project.units, project.locale)}
         </div>
       ) : null}
       {currentWeather?.dailyRainTotal !== undefined ? (
         <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-          {t(project.locale, "weather.rainAccumulation")}: {currentWeather.dailyRainTotal} {weatherUnits.rainTotal}
+          {t(project.locale, "weather.rainAccumulation")}: {formatRainTotal(currentWeather.dailyRainTotal, project.units, project.locale)}
         </div>
       ) : null}
       {currentWeather?.trendKind ? (

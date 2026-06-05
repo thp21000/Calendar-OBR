@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
+import { formatRain, formatRainTotal, formatTemperature, formatWindSpeed } from "../../calendar/weatherUnits";
 import { getWeatherOverrideForTime } from "../../calendar/weatherOverrides";
 import { getCurrentWeatherBiomeDefinition } from "../../calendar/weather/biomes";
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
@@ -26,10 +27,10 @@ const getForcedOverrideValues = (project: CalendarProject, override: WeatherOver
   const values: string[] = [];
   if (override.state) values.push(`${t(project.locale, "weatherOverride.state")} = ${getWeatherStateLabel(project, override.state)}`);
   if (override.dominantState) values.push(`${t(project.locale, "weatherOverride.dominantState")} = ${getWeatherStateLabel(project, override.dominantState)}`);
-  if (typeof override.temperature === "number") values.push(`${t(project.locale, "weatherOverride.temperature")} = ${override.temperature} ${weatherUnits.temperature}`);
-  if (typeof override.rain === "number") values.push(`${t(project.locale, "weatherOverride.rain")} = ${override.rain} ${weatherUnits.rain}`);
-  if (typeof override.dailyRainTotal === "number") values.push(`${t(project.locale, "weather.rainAccumulation")} = ${override.dailyRainTotal} ${weatherUnits.rainTotal}`);
-  if (typeof override.windSpeed === "number") values.push(`${t(project.locale, "weatherOverride.wind")} = ${override.windSpeed} ${weatherUnits.windSpeed}`);
+  if (typeof override.temperature === "number") values.push(`${t(project.locale, "weatherOverride.temperature")} = ${formatTemperature(override.temperature, project.units, project.locale)}`);
+  if (typeof override.rain === "number") values.push(`${t(project.locale, "weatherOverride.rain")} = ${formatRain(override.rain, project.units, project.locale)}`);
+  if (typeof override.dailyRainTotal === "number") values.push(`${t(project.locale, "weather.rainAccumulation")} = ${formatRainTotal(override.dailyRainTotal, project.units, project.locale)}`);
+  if (typeof override.windSpeed === "number") values.push(`${t(project.locale, "weatherOverride.wind")} = ${formatWindSpeed(override.windSpeed, project.units, project.locale)}`);
   if (override.windDirection) values.push(`${t(project.locale, "weatherOverride.windDirection")} = ${override.windDirection}`);
   if (override.trendKind) values.push(`${t(project.locale, "weather.trend")} = ${getWeatherTrendLabel(project, override.trendKind)}`);
   return values;
@@ -91,16 +92,16 @@ export const TodayStatusSummary = ({ project, currentSeason, currentWeather, tri
               </span>
             ) : null}
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
-              {getTemperatureIcon(currentWeather.temperature)} {currentWeather.temperature} {weatherUnits.temperature}
+              {getTemperatureIcon(currentWeather.temperature)} {formatTemperature(currentWeather.temperature, project.units, project.locale)}
             </span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
-              {getWindSpeedIcon(currentWeather.windSpeed)} {currentWeather.windSpeed} {weatherUnits.windSpeed}
+              {getWindSpeedIcon(currentWeather.windSpeed)} {formatWindSpeed(currentWeather.windSpeed, project.units, project.locale)}
               {currentWeather.windDirection ? (
                 <span title={currentWeather.windDirection}>{getWindDirectionIcon(currentWeather.windDirection)}</span>
               ) : null}
             </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getRainIcon(currentWeather)} {currentWeather.rain} {weatherUnits.rain}</span>
-            {currentWeather.dailyRainTotal !== undefined ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{t(project.locale, "weather.rainAccumulation")}: {currentWeather.dailyRainTotal} {weatherUnits.rainTotal}</span> : null}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getRainIcon(currentWeather)} {formatRain(currentWeather.rain, project.units, project.locale)}</span>
+            {currentWeather.dailyRainTotal !== undefined ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{t(project.locale, "weather.rainAccumulation")}: {formatRainTotal(currentWeather.dailyRainTotal, project.units, project.locale)}</span> : null}
           </>
         ) : <span style={{ fontSize: 12, color: "#94a3b8" }}>{t(project.locale, "calendar.noWeather")}</span>}
       </div>
@@ -219,12 +220,12 @@ export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits }: P
         {hourlyForecast.map((entry) => (
           <Panel key={entry.offsetHours} style={{ background: ui.colors.surfaceSoft, minHeight: 96, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
             <div style={{ fontSize: 12, fontWeight: 800 }}>+{entry.offsetHours} h</div>
-            <div>{getTemperatureIcon(entry.weather.temperature)} {entry.weather.temperature} {weatherUnits.temperature}</div>
+            <div>{getTemperatureIcon(entry.weather.temperature)} {formatTemperature(entry.weather.temperature, project.units, project.locale)}</div>
             <div>
-              {getWindSpeedIcon(entry.weather.windSpeed)} {entry.weather.windSpeed} {weatherUnits.windSpeed}
+              {getWindSpeedIcon(entry.weather.windSpeed)} {formatWindSpeed(entry.weather.windSpeed, project.units, project.locale)}
               {entry.weather.windDirection ? <span title={entry.weather.windDirection}> {getWindDirectionIcon(entry.weather.windDirection)}</span> : null}
             </div>
-            <div>{getRainIcon(entry.weather)} {entry.weather.rain} {weatherUnits.rain}</div>
+            <div>{getRainIcon(entry.weather)} {formatRain(entry.weather.rain, project.units, project.locale)}</div>
             {entry.weather.trendKind ? <div>{getConfiguredWeatherTrendIcon(project, entry.weather.trendKind)} {getWeatherTrendLabel(project, entry.weather.trendKind)}</div> : null}
           </Panel>
         ))}

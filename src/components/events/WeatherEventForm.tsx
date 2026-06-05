@@ -6,11 +6,39 @@ import { t } from "../../i18n/messages";
 import { WEATHER_STATES } from "../../calendar/weatherStates";
 import { getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { WEATHER_BIOME_DEFINITIONS, getWeatherBiomeDefinition, type WeatherBiomeId } from "../../calendar/weather/biomes";
+import { formatRain, formatRainTotal, formatTemperature, formatWindSpeed, fromDisplayRain, fromDisplayTemperature, fromDisplayWindSpeed, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../../calendar/weatherUnits";
 
 const weatherStates = WEATHER_STATES;
 const moonPhases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
 const windDirections: WindDirection[] = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 const weatherTrends = ["cold", "warm", "wet", "dry", "windy", "calm", "stormy", "stable", "unstable"] as const;
+
+const roundDisplay = (value: number): number => Math.round(value * 100) / 100;
+
+const toDisplayMetricValue = (project: CalendarProject, metric: WeatherConditionMetric, value: number): number => {
+  if (metric === "temperature" || metric === "dailyMinTemperature" || metric === "dailyMaxTemperature") return toDisplayTemperature(value, project.units.temperature);
+  if (metric === "windSpeed") return toDisplayWindSpeed(value, project.units.windSpeed);
+  return toDisplayRain(value, project.units.rain);
+};
+
+const fromDisplayMetricValue = (project: CalendarProject, metric: WeatherConditionMetric, value: number): number => {
+  if (metric === "temperature" || metric === "dailyMinTemperature" || metric === "dailyMaxTemperature") return fromDisplayTemperature(value, project.units.temperature);
+  if (metric === "windSpeed") return fromDisplayWindSpeed(value, project.units.windSpeed);
+  return fromDisplayRain(value, project.units.rain);
+};
+
+const formatMetricValue = (project: CalendarProject, metric: WeatherConditionMetric, value: number): string => {
+  if (metric === "temperature" || metric === "dailyMinTemperature" || metric === "dailyMaxTemperature") return formatTemperature(value, project.units, project.locale);
+  if (metric === "windSpeed") return formatWindSpeed(value, project.units, project.locale);
+  if (metric === "dailyRainTotal") return formatRainTotal(value, project.units, project.locale);
+  return formatRain(value, project.units, project.locale);
+};
+
+const readDisplayMetricValue = (project: CalendarProject, metric: WeatherConditionMetric, value: string): number | undefined => {
+  if (value.trim() === "") return undefined;
+  const parsed = parseWeatherInput(value);
+  return parsed === null ? undefined : fromDisplayMetricValue(project, metric, parsed);
+};
 
 type ConditionTypeToAdd = "metric" | "state" | "dominantState" | "windDirection" | "season" | "timeOfDay" | "moonPhase" | "biome";
 
@@ -66,7 +94,7 @@ export const conditionSummary = (project: CalendarProject, condition: WeatherCon
     const labels = biomeIds.map((id) => t(locale, getWeatherBiomeDefinition(id).nameKey));
     return `${t(locale, "weatherEvents.biomes")} = ${labels.length > 3 ? String(labels.length) : labels.join(", ")}`;
   }
-  return `${metricLabel(locale, condition.metric)} ${condition.operator === "gte" ? ">=" : "<="} ${condition.value}`;
+  return `${metricLabel(locale, condition.metric)} ${condition.operator === "gte" ? ">=" : "<="} ${formatMetricValue(project, condition.metric, condition.value)}`;
 };
 
 const formatWeatherHistoryDate = (project: CalendarProject, triggeredAtMinutes: number): string => {
@@ -159,7 +187,7 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
 
       {conditions.length === 0 ? <div style={hint}>{t(project.locale, "weatherEvents.noConditions")}</div> : conditions.map((condition, index) => <CollapsibleEditorBlock key={index} title={conditionSummary(project, condition)}>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.conditionType")} help={t(project.locale, "weatherEvents.help.conditionType")} /><select value={condition.type === undefined || condition.type === "metric" ? "metric" : condition.type} onChange={(e) => updateDraftCondition(index, getDefaultCondition(project, e.target.value as ConditionTypeToAdd))} style={mergedInputStyle}>{conditionTypeOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>
-        {(condition.type === "metric" || condition.type === undefined) ? <><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.metric")} help={t(project.locale, "weatherEvents.help.metric")} /><select value={condition.metric} onChange={(e) => updateDraftCondition(index, { ...condition, metric: e.target.value as WeatherConditionMetric })} style={mergedInputStyle}><option value="temperature">{t(project.locale, "weatherEvents.metricTemperature")}</option><option value="windSpeed">{t(project.locale, "weatherEvents.metricWindSpeed")}</option><option value="rain">{t(project.locale, "weatherEvents.metricRain")}</option><option value="dailyMinTemperature">{t(project.locale, "weatherEvents.metricDailyMinTemperature")}</option><option value="dailyMaxTemperature">{t(project.locale, "weatherEvents.metricDailyMaxTemperature")}</option><option value="dailyRainTotal">{t(project.locale, "weatherEvents.metricDailyRainTotal")}</option></select></label><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.operator")} help={t(project.locale, "weatherEvents.help.operator")} /><select value={condition.operator} onChange={(e) => updateDraftCondition(index, { ...condition, operator: e.target.value as WeatherConditionOperator })} style={mergedInputStyle}><option value="gte">{t(project.locale, "weatherEvents.operatorGte")}</option><option value="lte">{t(project.locale, "weatherEvents.operatorLte")}</option></select></label><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.value")} help={t(project.locale, "weatherEvents.help.value")} /><WeatherConditionValueInput value={condition.value} inputStyle={mergedInputStyle} onChange={(v) => updateDraftCondition(index, { ...condition, value: v })} /></label></> : null}
+        {(condition.type === "metric" || condition.type === undefined) ? <><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.metric")} help={t(project.locale, "weatherEvents.help.metric")} /><select value={condition.metric} onChange={(e) => updateDraftCondition(index, { ...condition, metric: e.target.value as WeatherConditionMetric })} style={mergedInputStyle}><option value="temperature">{t(project.locale, "weatherEvents.metricTemperature")}</option><option value="windSpeed">{t(project.locale, "weatherEvents.metricWindSpeed")}</option><option value="rain">{t(project.locale, "weatherEvents.metricRain")}</option><option value="dailyMinTemperature">{t(project.locale, "weatherEvents.metricDailyMinTemperature")}</option><option value="dailyMaxTemperature">{t(project.locale, "weatherEvents.metricDailyMaxTemperature")}</option><option value="dailyRainTotal">{t(project.locale, "weatherEvents.metricDailyRainTotal")}</option></select></label><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.operator")} help={t(project.locale, "weatherEvents.help.operator")} /><select value={condition.operator} onChange={(e) => updateDraftCondition(index, { ...condition, operator: e.target.value as WeatherConditionOperator })} style={mergedInputStyle}><option value="gte">{t(project.locale, "weatherEvents.operatorGte")}</option><option value="lte">{t(project.locale, "weatherEvents.operatorLte")}</option></select></label><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.value")} help={t(project.locale, "weatherEvents.help.value")} /><WeatherConditionValueInput project={project} metric={condition.metric} value={condition.value} inputStyle={mergedInputStyle} onChange={(v) => updateDraftCondition(index, { ...condition, value: v })} /></label></> : null}
         {condition.type === "state" ? <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.state")} help={t(project.locale, "weatherEvents.help.weatherState")} /><select value={condition.state} onChange={(e) => updateDraftCondition(index, { ...condition, state: e.target.value as WeatherState })} style={mergedInputStyle}>{weatherStates.map((s) => <option key={s} value={s}>{getWeatherStateLabel(project, s)}</option>)}</select></label> : null}
         {condition.type === "dominantState" ? <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.dominantState")} help={t(project.locale, "weatherEvents.help.weatherState")} /><select value={condition.state} onChange={(e) => updateDraftCondition(index, { ...condition, state: e.target.value as WeatherState })} style={mergedInputStyle}>{weatherStates.map((s) => <option key={s} value={s}>{getWeatherStateLabel(project, s)}</option>)}</select></label> : null}
         {condition.type === "windDirection" ? <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.windDirection")} help={t(project.locale, "weatherEvents.help.windDirection")} /><select value={condition.direction} onChange={(e) => updateDraftCondition(index, { ...condition, direction: e.target.value as WindDirection })} style={mergedInputStyle}>{windDirections.map((d) => <option key={d} value={d}>{d}</option>)}</select></label> : null}
@@ -206,32 +234,40 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectTrendKind")} help={t(project.locale, "weatherEvents.effectEmptyFieldsHelp")} /><select value={draft.effect?.trendKind ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), trendKind: e.target.value === "" ? undefined : e.target.value as WeatherTrendKind } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{weatherTrends.map((trend) => <option key={trend} value={trend}>{getWeatherTrendLabel(project, trend)}</option>)}</select></label>
       </CollapsibleEditorBlock>
       <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupTemperature")} help={t(project.locale, "weatherEvents.help.effectGroupTemperature")}>
-        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectTemperature")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.temperature ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), temperature: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
-        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectDailyMinTemperature")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.dailyMinTemperature ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyMinTemperature: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
-        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectDailyMaxTemperature")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.dailyMaxTemperature ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyMaxTemperature: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
+        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectTemperature")} help={t(project.locale, "weatherEvents.help.value")} /><WeatherMetricValueInput project={project} metric="temperature" value={draft.effect?.temperature} inputStyle={mergedInputStyle} onChange={(value) => updateDraft({ effect: { ...(draft.effect ?? {}), temperature: value } })} /></label>
+        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectDailyMinTemperature")} help={t(project.locale, "weatherEvents.help.value")} /><WeatherMetricValueInput project={project} metric="dailyMinTemperature" value={draft.effect?.dailyMinTemperature} inputStyle={mergedInputStyle} onChange={(value) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyMinTemperature: value } })} /></label>
+        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectDailyMaxTemperature")} help={t(project.locale, "weatherEvents.help.value")} /><WeatherMetricValueInput project={project} metric="dailyMaxTemperature" value={draft.effect?.dailyMaxTemperature} inputStyle={mergedInputStyle} onChange={(value) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyMaxTemperature: value } })} /></label>
       </CollapsibleEditorBlock>
       <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupRain")} help={t(project.locale, "weatherEvents.help.effectGroupRain")}>
-        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectRain")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.rain ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), rain: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
-        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectDailyRainTotal")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.dailyRainTotal ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyRainTotal: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
+        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectRain")} help={t(project.locale, "weatherEvents.help.value")} /><WeatherMetricValueInput project={project} metric="rain" value={draft.effect?.rain} inputStyle={mergedInputStyle} onChange={(value) => updateDraft({ effect: { ...(draft.effect ?? {}), rain: value } })} /></label>
+        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectDailyRainTotal")} help={t(project.locale, "weatherEvents.help.value")} /><WeatherMetricValueInput project={project} metric="dailyRainTotal" value={draft.effect?.dailyRainTotal} inputStyle={mergedInputStyle} onChange={(value) => updateDraft({ effect: { ...(draft.effect ?? {}), dailyRainTotal: value } })} /></label>
       </CollapsibleEditorBlock>
       <CollapsibleEditorBlock title={t(project.locale, "weatherEvents.effectGroupWind")} help={t(project.locale, "weatherEvents.help.effectGroupWind")}>
-        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectWindSpeed")} help={t(project.locale, "weatherEvents.help.value")} /><input type="number" value={draft.effect?.windSpeed ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), windSpeed: e.target.value.trim() === "" ? undefined : Number(e.target.value) } })} style={mergedInputStyle} /></label>
+        <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectWindSpeed")} help={t(project.locale, "weatherEvents.help.value")} /><WeatherMetricValueInput project={project} metric="windSpeed" value={draft.effect?.windSpeed} inputStyle={mergedInputStyle} onChange={(value) => updateDraft({ effect: { ...(draft.effect ?? {}), windSpeed: value } })} /></label>
         <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.effectWindDirection")} help={t(project.locale, "weatherEvents.help.windDirection")} /><select value={draft.effect?.windDirection ?? ""} onChange={(e) => updateDraft({ effect: { ...(draft.effect ?? {}), windDirection: e.target.value === "" ? undefined : e.target.value as WindDirection } })} style={mergedInputStyle}><option value="">{t(project.locale, "weatherEvents.effectNoOverride")}</option>{windDirections.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>
       </CollapsibleEditorBlock>
     </WeatherEventFormSection> : null}
     <WeatherEventFormSection title={t(project.locale, "weatherEvents.history")}>
       <div style={hint}>{t(project.locale, "weatherEvents.lastTriggeredAtMinutes")}: {typeof draft.lastTriggeredAtMinutes === "number" ? formatWeatherHistoryDate(project, draft.lastTriggeredAtMinutes) : t(project.locale, "weatherEvents.neverTriggered")}</div>
-      {(draft.triggerHistory ?? []).length === 0 ? <div style={hint}>{t(project.locale, "weatherEvents.noHistory")}</div> : <div style={{ display: "grid", gap: 4 }}>{(draft.triggerHistory ?? []).slice(-5).reverse().map((entry) => <div key={entry.id} style={hint}>{t(project.locale, "weatherEvents.historyAt")} {formatWeatherHistoryDate(project, entry.triggeredAtMinutes)}{entry.weatherState ? ` · ${getWeatherStateLabel(project, entry.weatherState)}` : ""}{entry.dominantState ? ` · ${getWeatherStateLabel(project, entry.dominantState)}` : ""}{typeof entry.temperature === "number" ? ` · T:${entry.temperature}` : ""}{typeof entry.rain === "number" ? ` · R:${entry.rain}` : ""}{typeof entry.windSpeed === "number" ? ` · W:${entry.windSpeed}` : ""}</div>)}</div>}
+      {(draft.triggerHistory ?? []).length === 0 ? <div style={hint}>{t(project.locale, "weatherEvents.noHistory")}</div> : <div style={{ display: "grid", gap: 4 }}>{(draft.triggerHistory ?? []).slice(-5).reverse().map((entry) => <div key={entry.id} style={hint}>{t(project.locale, "weatherEvents.historyAt")} {formatWeatherHistoryDate(project, entry.triggeredAtMinutes)}{entry.weatherState ? ` · ${getWeatherStateLabel(project, entry.weatherState)}` : ""}{entry.dominantState ? ` · ${getWeatherStateLabel(project, entry.dominantState)}` : ""}{typeof entry.temperature === "number" ? ` · T:${formatMetricValue(project, "temperature", entry.temperature)}` : ""}{typeof entry.rain === "number" ? ` · R:${formatMetricValue(project, "rain", entry.rain)}` : ""}{typeof entry.windSpeed === "number" ? ` · W:${formatMetricValue(project, "windSpeed", entry.windSpeed)}` : ""}</div>)}</div>}
     </WeatherEventFormSection>
 
     <div style={{ display: "flex", gap: 6, marginTop: 8 }}><button type="button" onClick={onCancel} style={buttonStyle}>{t(project.locale, "events.cancel")}</button><button type="button" onClick={() => onSubmit(draft)} style={buttonStyle}>{mode === "create" ? t(project.locale, "weatherEvents.create") : t(project.locale, "weatherEvents.update")}</button></div>
   </div>;
 };
 
-const WeatherConditionValueInput = ({ value, inputStyle, onChange }: { value: number; inputStyle: React.CSSProperties; onChange: (value: number) => void; }) => {
-  const [draft, setDraft] = useState(String(value));
-  useEffect(() => setDraft(String(value)), [value]);
-  return <input type="text" inputMode="decimal" value={draft} onChange={(e) => { const v = e.target.value; setDraft(v); const parsed = parseWeatherInput(v); if (parsed !== null) onChange(parsed); }} style={inputStyle} />;
+const WeatherConditionValueInput = ({ project, metric, value, inputStyle, onChange }: { project: CalendarProject; metric: WeatherConditionMetric; value: number; inputStyle: React.CSSProperties; onChange: (value: number) => void; }) => {
+  const displayValue = roundDisplay(toDisplayMetricValue(project, metric, value));
+  const [draft, setDraft] = useState(String(displayValue));
+  useEffect(() => setDraft(String(displayValue)), [displayValue]);
+  return <input type="text" inputMode="decimal" value={draft} onChange={(e) => { const next = e.target.value; setDraft(next); const parsed = readDisplayMetricValue(project, metric, next); if (parsed !== undefined) onChange(parsed); }} style={inputStyle} />;
+};
+
+const WeatherMetricValueInput = ({ project, metric, value, inputStyle, onChange }: { project: CalendarProject; metric: WeatherConditionMetric; value?: number; inputStyle: React.CSSProperties; onChange: (value: number | undefined) => void; }) => {
+  const displayValue = value === undefined ? "" : String(roundDisplay(toDisplayMetricValue(project, metric, value)));
+  const [draft, setDraft] = useState(displayValue);
+  useEffect(() => setDraft(displayValue), [displayValue]);
+  return <input type="text" inputMode="decimal" value={draft} onChange={(event) => { const next = event.target.value; setDraft(next); onChange(readDisplayMetricValue(project, metric, next)); }} style={inputStyle} />;
 };
 
 const labelStyle = { fontSize: 12, color: "#cbd5e1" };

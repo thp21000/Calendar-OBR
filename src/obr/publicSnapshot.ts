@@ -9,7 +9,7 @@ import { getCurrentSeason } from "../calendar/seasonsLogic";
 import { getCurrentWeather } from "../calendar/weatherLogic";
 import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
-import { getWeatherUnitLabels } from "../calendar/weatherUnits";
+import { getWeatherUnitLabels, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../calendar/weatherUnits";
 import type { CalendarCurrentTime, CalendarProject, LocaleCode, MoonPhaseId, WeatherSnapshot } from "../domain/types";
 import { t } from "../i18n/messages";
 
@@ -101,6 +101,11 @@ export const buildPublicCalendarIndex = (project: CalendarProject, revision: num
   currentTime: project.currentTime
 });
 
+const roundPublicWeatherValue = (value: number, decimals: number): number => {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+};
+
 export const createPublicCalendarTodaySnapshot = (
   project: CalendarProject,
   revision: number
@@ -109,7 +114,18 @@ export const createPublicCalendarTodaySnapshot = (
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
   const currentBiome = getCurrentWeatherBiomeDefinition(project);
-  const weatherUnits = getWeatherUnitLabels(project.locale);
+  const weatherUnits = getWeatherUnitLabels(project.units);
+  const rainDecimals = project.units.rain === "inch" ? 2 : 1;
+  const publicWeather = currentWeather ? {
+    ...currentWeather,
+    temperature: roundPublicWeatherValue(toDisplayTemperature(currentWeather.temperature, project.units.temperature), 0),
+    dailyMinTemperature: currentWeather.dailyMinTemperature === undefined ? undefined : roundPublicWeatherValue(toDisplayTemperature(currentWeather.dailyMinTemperature, project.units.temperature), 0),
+    dailyMaxTemperature: currentWeather.dailyMaxTemperature === undefined ? undefined : roundPublicWeatherValue(toDisplayTemperature(currentWeather.dailyMaxTemperature, project.units.temperature), 0),
+    windSpeed: roundPublicWeatherValue(toDisplayWindSpeed(currentWeather.windSpeed, project.units.windSpeed), 0),
+    rain: roundPublicWeatherValue(toDisplayRain(currentWeather.rain, project.units.rain), rainDecimals),
+    dailyRainTotal: currentWeather.dailyRainTotal === undefined ? undefined : roundPublicWeatherValue(toDisplayRain(currentWeather.dailyRainTotal, project.units.rain), rainDecimals),
+    units: weatherUnits
+  } : undefined;
   const visibleWeatherEvents = currentWeather
     ? getPlayerVisibleWeatherEvents(project, currentWeather, project.currentTime)
     : [];
@@ -123,7 +139,7 @@ export const createPublicCalendarTodaySnapshot = (
     currentTime: project.currentTime,
     formattedDate: formatDisplayDate(displayDate, project.locale, project.uiSettings.dateFormat, project.uiSettings.timeFormat),
     season: currentSeason ? { name: currentSeason.name, icon: currentSeason.icon } : undefined,
-    weather: currentWeather ? { ...currentWeather, units: weatherUnits } : undefined,
+    weather: publicWeather,
     weatherBiome: {
       name: t(project.locale, currentBiome.nameKey),
       icon: currentBiome.icon,

@@ -10,7 +10,7 @@ import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, Section
 import { formatEventTimeShort, formatEventVisibility } from "../../calendar/formatEvent";
 import { sendPopupNotification } from "../../obr/popupNotifications";
 import { getMoonEventRemainingDurationDays } from "../../calendar/moonEventsLogic";
-import { getWeatherUnitLabels } from "../../calendar/weatherUnits";
+import { formatRainTotal, formatTemperature, formatWindSpeed } from "../../calendar/weatherUnits";
 
 export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent, onOpenMoonEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void; onOpenMoonEvent?: (eventId: string) => void }) => {
   const dayInternal = calendarDateToAbsoluteDay(dayDetails.date, project.calendarSystem);
@@ -33,9 +33,9 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
       {dayDetails.dailyWeather ? (
         <>
           <span>{getConfiguredWeatherStateIcon(project, dayDetails.dailyWeather.dominantState)} {getWeatherStateLabel(project, dayDetails.dailyWeather.dominantState)}</span>
-          <span>{getTemperatureIcon(dayDetails.dailyWeather.averageTemperature)} {dayDetails.dailyWeather.averageTemperature} °C</span>
-          <span>{getWindSpeedIcon(dayDetails.dailyWeather.averageWindSpeed)} {dayDetails.dailyWeather.averageWindSpeed} km/h <span title={dayDetails.dailyWeather.dominantWindDirection}>{getWindDirectionIcon(dayDetails.dailyWeather.dominantWindDirection)}</span></span>
-          <span>24 h: {dayDetails.dailyWeather.rainTotal24h} {weatherUnits.rainTotal}</span>
+          <span>{getTemperatureIcon(dayDetails.dailyWeather.averageTemperature)} {formatTemperature(dayDetails.dailyWeather.averageTemperature, project.units, project.locale)}</span>
+          <span>{getWindSpeedIcon(dayDetails.dailyWeather.averageWindSpeed)} {formatWindSpeed(dayDetails.dailyWeather.averageWindSpeed, project.units, project.locale)} <span title={dayDetails.dailyWeather.dominantWindDirection}>{getWindDirectionIcon(dayDetails.dailyWeather.dominantWindDirection)}</span></span>
+          <span>24 h: {formatRainTotal(dayDetails.dailyWeather.rainTotal24h, project.units, project.locale)}</span>
         </>
       ) : t(project.locale, "calendar.noWeather")}
     </div>

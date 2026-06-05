@@ -3,10 +3,14 @@ import type { SeasonWeatherModifier } from "../calendar/weather/seasonModifiers/
 
 export type LocaleCode = "fr" | "en";
 
+export type TemperatureUnit = "celsius" | "fahrenheit";
+export type WindSpeedUnit = "kmh" | "mph";
+export type RainUnit = "mm" | "inch";
+
 export type UnitsSettings = {
-  temperature: "celsius";
-  windSpeed: "kmh";
-  rain: "mm";
+  temperature: TemperatureUnit;
+  windSpeed: WindSpeedUnit;
+  rain: RainUnit;
 };
 
 export type CalendarMonth = {

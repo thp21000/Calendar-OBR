@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import type { CalendarProject, LocaleCode, WeatherState } from "../../domain/types";
+import type { CalendarProject, LocaleCode, UnitsSettings, WeatherState } from "../../domain/types";
 import type { WeatherBiomeProfile, WeatherValueRange } from "../../calendar/weather/biomes";
 import { normalizeWeatherBiomeProfile } from "../../calendar/weather/biomes";
 import type { SeasonWeatherModifier } from "../../calendar/weather/seasonModifiers";
 import { t } from "../../i18n/messages";
 import { WEATHER_STATES } from "../../calendar/weatherStates";
 import { getConfiguredWeatherStateIcon, getWeatherStateLabel } from "../../calendar/weatherAdvancedSettings";
+import { fromDisplayRain, fromDisplayTemperature, fromDisplayTemperatureDelta, fromDisplayWindSpeed, toDisplayRain, toDisplayTemperature, toDisplayTemperatureDelta, toDisplayWindSpeed } from "../../calendar/weatherUnits";
 import { CollapsibleSection } from "../CollapsibleSection";
 
 type Units = { temperature: string; windSpeed: string; rain: string };
@@ -41,6 +42,8 @@ const NumericField = ({
   allowNegative = false,
   min,
   max,
+  toDisplay = (next: number) => next,
+  fromDisplay = (next: number) => next,
   displayMultiplier = 1,
   storeDivisor = 1,
   suffix
@@ -53,11 +56,13 @@ const NumericField = ({
   allowNegative?: boolean;
   min?: number;
   max?: number;
+  toDisplay?: (value: number) => number;
+  fromDisplay?: (value: number) => number;
   displayMultiplier?: number;
   storeDivisor?: number;
   suffix?: string;
 }) => {
-  const shownValue = value * displayMultiplier;
+  const shownValue = toDisplay(value) * displayMultiplier;
   const [draft, setDraft] = useState(String(Math.round(shownValue * 100) / 100));
 
   useEffect(() => {
@@ -75,7 +80,7 @@ const NumericField = ({
           setDraft(raw);
           const parsed = parseDecimalInput(raw);
           if (parsed === null) return;
-          let next = parsed / storeDivisor;
+          let next = fromDisplay(parsed / storeDivisor);
           if (!allowNegative) next = Math.max(0, next);
           if (typeof min === "number") next = Math.max(min, next);
           if (typeof max === "number") next = Math.min(max, next);
@@ -92,6 +97,7 @@ const updateRange = (range: WeatherValueRange, key: keyof WeatherValueRange, val
 export const BiomeProfileEditor = ({
   locale,
   units,
+  unitSettings,
   inputStyle,
   profile,
   onChange,
@@ -99,6 +105,7 @@ export const BiomeProfileEditor = ({
 }: {
   locale: LocaleCode;
   units: Units;
+  unitSettings: UnitsSettings;
   inputStyle: React.CSSProperties;
   profile: WeatherBiomeProfile;
   onChange: (profile: WeatherBiomeProfile) => void;
@@ -109,35 +116,43 @@ export const BiomeProfileEditor = ({
     patch({ ...profile, [section]: updateRange(profile[section], key, value) });
   const patchTrait = (key: keyof WeatherBiomeProfile["traits"], value: number) => patch({ ...profile, traits: { ...profile.traits, [key]: value } });
   const patchWeight = (state: WeatherState, value: number) => patch({ ...profile, stateWeights: { ...profile.stateWeights, [state]: value } });
+  const displayTemperature = (value: number) => toDisplayTemperature(value, unitSettings.temperature);
+  const storeTemperature = (value: number) => fromDisplayTemperature(value, unitSettings.temperature);
+  const displayTemperatureDelta = (value: number) => toDisplayTemperatureDelta(value, unitSettings.temperature);
+  const storeTemperatureDelta = (value: number) => fromDisplayTemperatureDelta(value, unitSettings.temperature);
+  const displayRain = (value: number) => toDisplayRain(value, unitSettings.rain);
+  const storeRain = (value: number) => fromDisplayRain(value, unitSettings.rain);
+  const displayWind = (value: number) => toDisplayWindSpeed(value, unitSettings.windSpeed);
+  const storeWind = (value: number) => fromDisplayWindSpeed(value, unitSettings.windSpeed);
 
   return (
     <>
       <CollapsibleSection title={t(locale, "weatherProfile.temperatureGroup")}>
         <div style={gridStyle}>
-          <NumericField label={t(locale, "weatherProfile.temperatureMin")} help={t(locale, "weatherProfile.help.temperatureMin")} value={profile.temperature.min} onChange={(value) => patchRange("temperature", "min", value)} inputStyle={inputStyle} allowNegative suffix={units.temperature} />
-          <NumericField label={t(locale, "weatherProfile.temperatureAverage")} help={t(locale, "weatherProfile.help.temperatureAverage")} value={profile.temperature.average} onChange={(value) => patchRange("temperature", "average", value)} inputStyle={inputStyle} allowNegative suffix={units.temperature} />
-          <NumericField label={t(locale, "weatherProfile.temperatureMax")} help={t(locale, "weatherProfile.help.temperatureMax")} value={profile.temperature.max} onChange={(value) => patchRange("temperature", "max", value)} inputStyle={inputStyle} allowNegative suffix={units.temperature} />
+          <NumericField label={t(locale, "weatherProfile.temperatureMin")} help={t(locale, "weatherProfile.help.temperatureMin")} value={profile.temperature.min} onChange={(value) => patchRange("temperature", "min", value)} inputStyle={inputStyle} allowNegative toDisplay={displayTemperature} fromDisplay={storeTemperature} suffix={units.temperature} />
+          <NumericField label={t(locale, "weatherProfile.temperatureAverage")} help={t(locale, "weatherProfile.help.temperatureAverage")} value={profile.temperature.average} onChange={(value) => patchRange("temperature", "average", value)} inputStyle={inputStyle} allowNegative toDisplay={displayTemperature} fromDisplay={storeTemperature} suffix={units.temperature} />
+          <NumericField label={t(locale, "weatherProfile.temperatureMax")} help={t(locale, "weatherProfile.help.temperatureMax")} value={profile.temperature.max} onChange={(value) => patchRange("temperature", "max", value)} inputStyle={inputStyle} allowNegative toDisplay={displayTemperature} fromDisplay={storeTemperature} suffix={units.temperature} />
         </div>
       </CollapsibleSection>
       <CollapsibleSection title={t(locale, "weatherProfile.rainGroup")}>
         <div style={gridStyle}>
-          <NumericField label={t(locale, "weatherProfile.rainMin")} help={t(locale, "weatherProfile.help.rainMin")} value={profile.rain.min} onChange={(value) => patchRange("rain", "min", value)} inputStyle={inputStyle} suffix={units.rain} />
-          <NumericField label={t(locale, "weatherProfile.rainAverage")} help={t(locale, "weatherProfile.help.rainAverage")} value={profile.rain.average} onChange={(value) => patchRange("rain", "average", value)} inputStyle={inputStyle} suffix={units.rain} />
-          <NumericField label={t(locale, "weatherProfile.rainMax")} help={t(locale, "weatherProfile.help.rainMax")} value={profile.rain.max} onChange={(value) => patchRange("rain", "max", value)} inputStyle={inputStyle} suffix={units.rain} />
+          <NumericField label={t(locale, "weatherProfile.rainMin")} help={t(locale, "weatherProfile.help.rainMin")} value={profile.rain.min} onChange={(value) => patchRange("rain", "min", value)} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} suffix={units.rain} />
+          <NumericField label={t(locale, "weatherProfile.rainAverage")} help={t(locale, "weatherProfile.help.rainAverage")} value={profile.rain.average} onChange={(value) => patchRange("rain", "average", value)} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} suffix={units.rain} />
+          <NumericField label={t(locale, "weatherProfile.rainMax")} help={t(locale, "weatherProfile.help.rainMax")} value={profile.rain.max} onChange={(value) => patchRange("rain", "max", value)} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} suffix={units.rain} />
         </div>
       </CollapsibleSection>
       <CollapsibleSection title={t(locale, "weatherProfile.dailyRainGroup")}>
         <div style={gridStyle}>
-          <NumericField label={t(locale, "weatherProfile.dailyRainMin")} help={t(locale, "weatherProfile.help.dailyRainMin")} value={profile.dailyRain.min} onChange={(value) => patchRange("dailyRain", "min", value)} inputStyle={inputStyle} suffix={units.rain} />
-          <NumericField label={t(locale, "weatherProfile.dailyRainAverage")} help={t(locale, "weatherProfile.help.dailyRainAverage")} value={profile.dailyRain.average} onChange={(value) => patchRange("dailyRain", "average", value)} inputStyle={inputStyle} suffix={units.rain} />
-          <NumericField label={t(locale, "weatherProfile.dailyRainMax")} help={t(locale, "weatherProfile.help.dailyRainMax")} value={profile.dailyRain.max} onChange={(value) => patchRange("dailyRain", "max", value)} inputStyle={inputStyle} suffix={units.rain} />
+          <NumericField label={t(locale, "weatherProfile.dailyRainMin")} help={t(locale, "weatherProfile.help.dailyRainMin")} value={profile.dailyRain.min} onChange={(value) => patchRange("dailyRain", "min", value)} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} suffix={units.rain} />
+          <NumericField label={t(locale, "weatherProfile.dailyRainAverage")} help={t(locale, "weatherProfile.help.dailyRainAverage")} value={profile.dailyRain.average} onChange={(value) => patchRange("dailyRain", "average", value)} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} suffix={units.rain} />
+          <NumericField label={t(locale, "weatherProfile.dailyRainMax")} help={t(locale, "weatherProfile.help.dailyRainMax")} value={profile.dailyRain.max} onChange={(value) => patchRange("dailyRain", "max", value)} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} suffix={units.rain} />
         </div>
       </CollapsibleSection>
       <CollapsibleSection title={t(locale, "weatherProfile.windGroup")}>
         <div style={gridStyle}>
-          <NumericField label={t(locale, "weatherProfile.windMin")} help={t(locale, "weatherProfile.help.windMin")} value={profile.windSpeed.min} onChange={(value) => patchRange("windSpeed", "min", value)} inputStyle={inputStyle} suffix={units.windSpeed} />
-          <NumericField label={t(locale, "weatherProfile.windAverage")} help={t(locale, "weatherProfile.help.windAverage")} value={profile.windSpeed.average} onChange={(value) => patchRange("windSpeed", "average", value)} inputStyle={inputStyle} suffix={units.windSpeed} />
-          <NumericField label={t(locale, "weatherProfile.windMax")} help={t(locale, "weatherProfile.help.windMax")} value={profile.windSpeed.max} onChange={(value) => patchRange("windSpeed", "max", value)} inputStyle={inputStyle} suffix={units.windSpeed} />
+          <NumericField label={t(locale, "weatherProfile.windMin")} help={t(locale, "weatherProfile.help.windMin")} value={profile.windSpeed.min} onChange={(value) => patchRange("windSpeed", "min", value)} inputStyle={inputStyle} toDisplay={displayWind} fromDisplay={storeWind} suffix={units.windSpeed} />
+          <NumericField label={t(locale, "weatherProfile.windAverage")} help={t(locale, "weatherProfile.help.windAverage")} value={profile.windSpeed.average} onChange={(value) => patchRange("windSpeed", "average", value)} inputStyle={inputStyle} toDisplay={displayWind} fromDisplay={storeWind} suffix={units.windSpeed} />
+          <NumericField label={t(locale, "weatherProfile.windMax")} help={t(locale, "weatherProfile.help.windMax")} value={profile.windSpeed.max} onChange={(value) => patchRange("windSpeed", "max", value)} inputStyle={inputStyle} toDisplay={displayWind} fromDisplay={storeWind} suffix={units.windSpeed} />
         </div>
       </CollapsibleSection>
       <CollapsibleSection title={t(locale, "weatherProfile.traitsGroup")}>
@@ -146,7 +161,7 @@ export const BiomeProfileEditor = ({
           <NumericField label={t(locale, "weatherProfile.precipitationChance")} help={t(locale, "weatherProfile.help.precipitationChance")} value={profile.traits.precipitationChance} onChange={(value) => patchTrait("precipitationChance", value)} inputStyle={inputStyle} min={0} max={1} displayMultiplier={100} storeDivisor={100} suffix="%" />
           <NumericField label={t(locale, "weatherProfile.fogChance")} help={t(locale, "weatherProfile.help.fogChance")} value={profile.traits.fogChance} onChange={(value) => patchTrait("fogChance", value)} inputStyle={inputStyle} min={0} max={1} displayMultiplier={100} storeDivisor={100} suffix="%" />
           <NumericField label={t(locale, "weatherProfile.stormChance")} help={t(locale, "weatherProfile.help.stormChance")} value={profile.traits.stormChance} onChange={(value) => patchTrait("stormChance", value)} inputStyle={inputStyle} min={0} max={1} displayMultiplier={100} storeDivisor={100} suffix="%" />
-          <NumericField label={t(locale, "weatherProfile.dayNightAmplitude")} help={t(locale, "weatherProfile.help.dayNightAmplitude")} value={profile.traits.dayNightAmplitude} onChange={(value) => patchTrait("dayNightAmplitude", value)} inputStyle={inputStyle} suffix={units.temperature} />
+          <NumericField label={t(locale, "weatherProfile.dayNightAmplitude")} help={t(locale, "weatherProfile.help.dayNightAmplitude")} value={profile.traits.dayNightAmplitude} onChange={(value) => patchTrait("dayNightAmplitude", value)} inputStyle={inputStyle} toDisplay={displayTemperatureDelta} fromDisplay={storeTemperatureDelta} suffix={units.temperature} />
           <NumericField label={t(locale, "weatherProfile.windVariability")} help={t(locale, "weatherProfile.help.windVariability")} value={profile.traits.windVariability} onChange={(value) => patchTrait("windVariability", value)} inputStyle={inputStyle} min={0} max={1} displayMultiplier={100} storeDivisor={100} suffix="%" />
         </div>
       </CollapsibleSection>
@@ -170,12 +185,14 @@ const neutralModifierValue = (value: number | undefined, fallback: number) => ty
 export const SeasonWeatherModifierEditor = ({
   locale,
   units,
+  unitSettings,
   inputStyle,
   modifier,
   onChange
 }: {
   locale: LocaleCode;
   units: Units;
+  unitSettings: UnitsSettings;
   inputStyle: React.CSSProperties;
   modifier: SeasonWeatherModifier | undefined;
   onChange: (modifier: SeasonWeatherModifier) => void;
@@ -184,15 +201,17 @@ export const SeasonWeatherModifierEditor = ({
   const patchNested = <Section extends keyof SeasonWeatherModifier>(section: Section, key: string, value: number) =>
     patch({ ...modifier, [section]: { ...((modifier?.[section] as object | undefined) ?? {}), [key]: value } });
   const patchWeight = (state: WeatherState, value: number) => patch({ ...modifier, stateWeights: { ...(modifier?.stateWeights ?? {}), [state]: Math.max(0, value) } });
+  const displayTemperatureDelta = (value: number) => toDisplayTemperatureDelta(value, unitSettings.temperature);
+  const storeTemperatureDelta = (value: number) => fromDisplayTemperatureDelta(value, unitSettings.temperature);
 
   return (
     <>
       <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 8 }}>{t(locale, "seasons.weatherModifierHelp")}</div>
       <CollapsibleSection title={t(locale, "weatherProfile.temperatureGroup")}>
         <div style={gridStyle}>
-          <NumericField label={t(locale, "weatherProfile.modifierTemperatureMin")} help={t(locale, "weatherProfile.help.seasonTemperatureMin")} value={neutralModifierValue(modifier?.temperature?.minOffset, 0)} onChange={(value) => patchNested("temperature", "minOffset", value)} inputStyle={inputStyle} allowNegative suffix={units.temperature} />
-          <NumericField label={t(locale, "weatherProfile.modifierTemperatureAverage")} help={t(locale, "weatherProfile.help.seasonTemperatureAverage")} value={neutralModifierValue(modifier?.temperature?.averageOffset, 0)} onChange={(value) => patchNested("temperature", "averageOffset", value)} inputStyle={inputStyle} allowNegative suffix={units.temperature} />
-          <NumericField label={t(locale, "weatherProfile.modifierTemperatureMax")} help={t(locale, "weatherProfile.help.seasonTemperatureMax")} value={neutralModifierValue(modifier?.temperature?.maxOffset, 0)} onChange={(value) => patchNested("temperature", "maxOffset", value)} inputStyle={inputStyle} allowNegative suffix={units.temperature} />
+          <NumericField label={t(locale, "weatherProfile.modifierTemperatureMin")} help={t(locale, "weatherProfile.help.seasonTemperatureMin")} value={neutralModifierValue(modifier?.temperature?.minOffset, 0)} onChange={(value) => patchNested("temperature", "minOffset", value)} inputStyle={inputStyle} allowNegative toDisplay={displayTemperatureDelta} fromDisplay={storeTemperatureDelta} suffix={units.temperature} />
+          <NumericField label={t(locale, "weatherProfile.modifierTemperatureAverage")} help={t(locale, "weatherProfile.help.seasonTemperatureAverage")} value={neutralModifierValue(modifier?.temperature?.averageOffset, 0)} onChange={(value) => patchNested("temperature", "averageOffset", value)} inputStyle={inputStyle} allowNegative toDisplay={displayTemperatureDelta} fromDisplay={storeTemperatureDelta} suffix={units.temperature} />
+          <NumericField label={t(locale, "weatherProfile.modifierTemperatureMax")} help={t(locale, "weatherProfile.help.seasonTemperatureMax")} value={neutralModifierValue(modifier?.temperature?.maxOffset, 0)} onChange={(value) => patchNested("temperature", "maxOffset", value)} inputStyle={inputStyle} allowNegative toDisplay={displayTemperatureDelta} fromDisplay={storeTemperatureDelta} suffix={units.temperature} />
         </div>
       </CollapsibleSection>
       <CollapsibleSection title={t(locale, "weatherProfile.rainGroup")}>
