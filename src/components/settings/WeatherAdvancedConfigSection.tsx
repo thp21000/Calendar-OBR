@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { DEFAULT_WEATHER_DOMINANCE_CONFIGS, DEFAULT_WEATHER_STATE_CONFIGS, DEFAULT_WEATHER_TREND_CONFIGS, WEATHER_TRENDS, getWeatherAdvancedSettings, getWeatherStateLabel, getWeatherTrendLabel, normalizeWeatherAdvancedSettings } from "../../calendar/weatherAdvancedSettings";
+import { DEFAULT_WEATHER_DOMINANCE_CONFIGS, DEFAULT_WEATHER_STATE_CONFIGS, DEFAULT_WEATHER_TREND_CONFIGS, WEATHER_TRENDS, getWeatherAdvancedSettings, getWeatherStateLabel, getWeatherTrendLabel, sanitizeWeatherAdvancedSettings } from "../../calendar/weatherAdvancedSettings";
 import { WEATHER_STATES } from "../../calendar/weatherStates";
 import type { CalendarProject, LocaleCode, WeatherAdvancedSettings, WeatherAdvancedThresholds, WeatherDominanceConfig, WeatherState, WeatherStateConfig, WeatherTrendConfig, WeatherTrendKind } from "../../domain/types";
 import { t } from "../../i18n/messages";
@@ -13,7 +13,7 @@ const buttonStyle: CSSProperties = { border: "1px solid #374151", borderRadius: 
 
 const patchAdvancedSettings = (project: CalendarProject, patch: WeatherAdvancedSettings): CalendarProject => ({
   ...project,
-  weatherAdvancedSettings: normalizeWeatherAdvancedSettings({
+  weatherAdvancedSettings: sanitizeWeatherAdvancedSettings({
     ...(project.weatherAdvancedSettings ?? {}),
     ...patch,
     stateConfigs: { ...(project.weatherAdvancedSettings?.stateConfigs ?? {}), ...(patch.stateConfigs ?? {}) },

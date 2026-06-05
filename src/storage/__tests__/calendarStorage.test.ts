@@ -75,6 +75,50 @@ describe("calendarStorage integrity", () => {
     vi.unstubAllGlobals();
   });
 
+  it("saves advanced weather settings after sanitizing invalid values", () => {
+    const memory = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => memory.get(k) ?? null,
+      setItem: (k: string, v: string) => memory.set(k, v),
+      removeItem: (k: string) => memory.delete(k)
+    });
+
+    const project = createDefaultCalendarProject() as any;
+    project.weatherAdvancedSettings = {
+      stateConfigs: { blizzard: { enabled: false, priority: Number.NaN, thresholds: { minRain: 2, maxRain: "bad" } } },
+      trendConfigs: { wet: { rainMultiplier: 2, windMultiplier: Number.POSITIVE_INFINITY } }
+    };
+
+    expect(saveCalendarProject(project, CALENDAR_STORAGE_KEY).ok).toBe(true);
+    const persisted = JSON.parse(memory.get(CALENDAR_STORAGE_KEY) ?? "{}");
+
+    expect(persisted.weatherAdvancedSettings.stateConfigs.blizzard.enabled).toBe(false);
+    expect(persisted.weatherAdvancedSettings.stateConfigs.blizzard.priority).toBeUndefined();
+    expect(persisted.weatherAdvancedSettings.stateConfigs.blizzard.thresholds).toEqual({ minRain: 2 });
+    expect(persisted.weatherAdvancedSettings.trendConfigs.wet.rainMultiplier).toBe(2);
+    expect(persisted.weatherAdvancedSettings.trendConfigs.wet.windMultiplier).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("loads old projects without injecting advanced weather settings", () => {
+    const memory = new Map<string, string>();
+    const oldProject = createDefaultCalendarProject();
+    delete (oldProject as { weatherAdvancedSettings?: unknown }).weatherAdvancedSettings;
+    memory.set(CALENDAR_STORAGE_KEY, JSON.stringify(oldProject));
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => memory.get(k) ?? null,
+      setItem: (k: string, v: string) => memory.set(k, v),
+      removeItem: (k: string) => memory.delete(k)
+    });
+
+    const loaded = loadCalendarProject(CALENDAR_STORAGE_KEY);
+
+    expect(loaded.weatherAdvancedSettings).toBeUndefined();
+    vi.unstubAllGlobals();
+  });
+
+
   it("reset creates and persists a valid default project", () => {
     const memory = new Map<string, string>();
     vi.stubGlobal("localStorage", {

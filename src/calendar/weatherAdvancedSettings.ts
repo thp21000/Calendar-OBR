@@ -104,8 +104,20 @@ export const DEFAULT_WEATHER_DOMINANCE_CONFIGS: Record<string, WeatherDominanceC
 const safeNumber = (value: unknown, fallback: number | undefined): number | undefined =>
   typeof value === "number" && Number.isFinite(value) ? value : fallback;
 
+const sanitizeLabel = (value: unknown): Partial<Record<LocaleCode, string>> | undefined => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
+  const source = value as Record<string, unknown>;
+  const label: Partial<Record<LocaleCode, string>> = {};
+  if (typeof source.fr === "string") label.fr = source.fr;
+  if (typeof source.en === "string") label.en = source.en;
+  return Object.keys(label).length > 0 ? label : undefined;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 const sanitizeThresholds = (value: unknown, fallback: WeatherAdvancedThresholds = {}): WeatherAdvancedThresholds => {
-  const source = typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  const source = isRecord(value) ? value : {};
   return {
     minTemperature: safeNumber(source.minTemperature, fallback.minTemperature),
     maxTemperature: safeNumber(source.maxTemperature, fallback.maxTemperature),
@@ -124,13 +136,11 @@ const sanitizeThresholds = (value: unknown, fallback: WeatherAdvancedThresholds 
   };
 };
 
-const sanitizeLabel = (value: unknown): Partial<Record<LocaleCode, string>> | undefined => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
-  const source = value as Record<string, unknown>;
-  const label: Partial<Record<LocaleCode, string>> = {};
-  if (typeof source.fr === "string") label.fr = source.fr;
-  if (typeof source.en === "string") label.en = source.en;
-  return Object.keys(label).length > 0 ? label : undefined;
+const compactThresholds = (thresholds: WeatherAdvancedThresholds): WeatherAdvancedThresholds | undefined => {
+  const compact = Object.fromEntries(
+    Object.entries(thresholds).filter(([, value]) => typeof value === "number" && Number.isFinite(value))
+  ) as WeatherAdvancedThresholds;
+  return Object.keys(compact).length > 0 ? compact : undefined;
 };
 
 export const normalizeWeatherAdvancedSettings = (settings?: WeatherAdvancedSettings): NormalizedWeatherAdvancedSettings => {
@@ -185,6 +195,80 @@ export const normalizeWeatherAdvancedSettings = (settings?: WeatherAdvancedSetti
   }
 
   return { stateConfigs, trendConfigs, dominanceConfigs };
+};
+
+const cleanRecord = <T extends Record<string, unknown>>(value: T): T | undefined =>
+  Object.keys(value).length > 0 ? value : undefined;
+
+export const sanitizeWeatherAdvancedSettings = (settings: unknown): WeatherAdvancedSettings | undefined => {
+  if (!isRecord(settings)) return undefined;
+
+  const stateConfigs: Record<string, Partial<WeatherStateConfig>> = {};
+  if (isRecord(settings.stateConfigs)) {
+    for (const [id, value] of Object.entries(settings.stateConfigs)) {
+      if (!id.trim() || !isRecord(value)) continue;
+      const next: Partial<WeatherStateConfig> = {};
+      if (typeof value.id === "string" && value.id.trim() && value.id !== id) next.id = value.id;
+      if (typeof value.enabled === "boolean") next.enabled = value.enabled;
+      if (typeof value.custom === "boolean") next.custom = value.custom;
+      if (typeof value.icon === "string") next.icon = value.icon;
+      const label = sanitizeLabel(value.label);
+      if (label) next.label = label;
+      const description = sanitizeLabel(value.description);
+      if (description) next.description = description;
+      const priority = safeNumber(value.priority, undefined);
+      if (priority !== undefined) next.priority = priority;
+      const thresholds = compactThresholds(sanitizeThresholds(value.thresholds));
+      if (thresholds) next.thresholds = thresholds;
+      if (Object.keys(next).length > 0) stateConfigs[id] = next;
+    }
+  }
+
+  const trendConfigs: Record<string, Partial<WeatherTrendConfig>> = {};
+  if (isRecord(settings.trendConfigs)) {
+    for (const [id, value] of Object.entries(settings.trendConfigs)) {
+      if (!id.trim() || !isRecord(value)) continue;
+      const next: Partial<WeatherTrendConfig> = {};
+      if (typeof value.id === "string" && value.id.trim() && value.id !== id) next.id = value.id;
+      if (typeof value.enabled === "boolean") next.enabled = value.enabled;
+      if (typeof value.icon === "string") next.icon = value.icon;
+      const label = sanitizeLabel(value.label);
+      if (label) next.label = label;
+      for (const key of ["temperatureOffset", "rainMultiplier", "windMultiplier", "stabilityModifier", "stormChanceModifier"] as const) {
+        const numeric = safeNumber(value[key], undefined);
+        if (numeric !== undefined) next[key] = numeric;
+      }
+      if (Object.keys(next).length > 0) trendConfigs[id] = next;
+    }
+  }
+
+  const dominanceConfigs: Record<string, Partial<WeatherDominanceConfig>> = {};
+  if (isRecord(settings.dominanceConfigs)) {
+    for (const [id, value] of Object.entries(settings.dominanceConfigs)) {
+      if (!id.trim() || !isRecord(value)) continue;
+      const stateId = typeof value.stateId === "string" && value.stateId.trim() ? value.stateId : undefined;
+      const next: Partial<WeatherDominanceConfig> = {};
+      if (typeof value.id === "string" && value.id.trim() && value.id !== id) next.id = value.id;
+      if (stateId !== undefined) next.stateId = stateId;
+      if (typeof value.enabled === "boolean") next.enabled = value.enabled;
+      if (typeof value.custom === "boolean") next.custom = value.custom;
+      const priority = safeNumber(value.priority, undefined);
+      if (priority !== undefined) next.priority = priority;
+      const thresholds = compactThresholds(sanitizeThresholds(value.thresholds));
+      if (thresholds) next.thresholds = thresholds;
+      if (Object.keys(next).length > 0) dominanceConfigs[id] = next;
+    }
+  }
+
+  const sanitized: WeatherAdvancedSettings = {};
+  const cleanStates = cleanRecord(stateConfigs);
+  if (cleanStates) sanitized.stateConfigs = cleanStates;
+  const cleanTrends = cleanRecord(trendConfigs);
+  if (cleanTrends) sanitized.trendConfigs = cleanTrends;
+  const cleanDominance = cleanRecord(dominanceConfigs);
+  if (cleanDominance) sanitized.dominanceConfigs = cleanDominance;
+
+  return Object.keys(sanitized).length > 0 ? sanitized : undefined;
 };
 
 export const getWeatherAdvancedSettings = (project: CalendarProject): NormalizedWeatherAdvancedSettings =>

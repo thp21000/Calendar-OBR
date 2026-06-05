@@ -701,9 +701,78 @@ describe("calendarImportExport phase17 integrity", () => {
     expect(imported.ok).toBe(true);
     if (!imported.ok) return;
     expect(imported.project.weatherAdvancedSettings?.stateConfigs?.blizzard.enabled).toBe(false);
-    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.clear.enabled).toBe(true);
+    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.clear).toBeUndefined();
     expect(imported.project.weatherAdvancedSettings?.trendConfigs?.wet.rainMultiplier).toBe(2);
+    expect(imported.project.weatherAdvancedSettings?.trendConfigs?.wet.windMultiplier).toBeUndefined();
     expect(imported.project.weatherAdvancedSettings?.dominanceConfigs?.monsoon.enabled).toBe(false);
+  });
+
+  it("imports old projects without advanced weather settings without adding the field", () => {
+    const project = createDefaultCalendarProject();
+    const payload: any = { ...project };
+    delete payload.weatherAdvancedSettings;
+
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherAdvancedSettings).toBeUndefined();
+  });
+
+  it("cleans invalid advanced weather settings without dropping valid custom entries", () => {
+    const project = createDefaultCalendarProject();
+    const payload: any = {
+      ...project,
+      weatherAdvancedSettings: {
+        stateConfigs: {
+          blizzard: { enabled: "no", custom: true, icon: 7, label: { fr: "Blizzard maison", en: 12 }, thresholds: { minRain: 2, maxRain: "bad", minFogChance: 0.9 } },
+          customAsh: { enabled: true, custom: true, label: { en: "Custom ash" }, thresholds: { minWindSpeed: 10, maxWindSpeed: Infinity } },
+          ignored: "bad"
+        },
+        trendConfigs: {
+          wet: { enabled: true, rainMultiplier: 2.5, windMultiplier: Number.NaN, label: { fr: "Humide custom", en: null } },
+          badTrend: { enabled: "yes", temperatureOffset: "hot" }
+        },
+        dominanceConfigs: {
+          monsoon: { enabled: false, priority: 80, thresholds: { minDailyRainTotal: 40, maxStormChance: "bad" } },
+          customRule: { stateId: "customAsh", enabled: true, thresholds: { minFogChance: 0.5, maxFogChance: Number.POSITIVE_INFINITY } },
+          ignored: 42
+        }
+      }
+    };
+
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.blizzard.enabled).toBeUndefined();
+    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.blizzard.custom).toBe(true);
+    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.blizzard.label?.fr).toBe("Blizzard maison");
+    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.blizzard.label?.en).toBeUndefined();
+    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.blizzard.thresholds).toEqual({ minRain: 2, minFogChance: 0.9 });
+    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.customAsh.enabled).toBe(true);
+    expect(imported.project.weatherAdvancedSettings?.stateConfigs?.customAsh.thresholds).toEqual({ minWindSpeed: 10 });
+    expect(imported.project.weatherAdvancedSettings?.trendConfigs?.wet.rainMultiplier).toBe(2.5);
+    expect(imported.project.weatherAdvancedSettings?.trendConfigs?.wet.windMultiplier).toBeUndefined();
+    expect(imported.project.weatherAdvancedSettings?.trendConfigs?.badTrend).toBeUndefined();
+    expect(imported.project.weatherAdvancedSettings?.dominanceConfigs?.monsoon.thresholds).toEqual({ minDailyRainTotal: 40 });
+    expect(imported.project.weatherAdvancedSettings?.dominanceConfigs?.customRule.stateId).toBe("customAsh");
+    expect(imported.project.weatherAdvancedSettings?.dominanceConfigs?.customRule.thresholds).toEqual({ minFogChance: 0.5 });
+  });
+
+  it("preserves advanced weather settings through export import cycle", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherAdvancedSettings = {
+      stateConfigs: { monsoon: { enabled: true, thresholds: { minRain: 30 }, label: { fr: "Mousson rare" } } },
+      trendConfigs: { wet: { rainMultiplier: 2 } },
+      dominanceConfigs: { monsoon: { enabled: false, thresholds: { minDailyRainTotal: 55 } } }
+    };
+
+    const imported = importCalendarProject(exportCalendarProject(project), createDefaultCalendarProject());
+
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherAdvancedSettings).toEqual(project.weatherAdvancedSettings);
   });
 
   it("keeps import stable with invalid month reference in events", () => {

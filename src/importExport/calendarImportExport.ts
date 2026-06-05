@@ -6,7 +6,7 @@ import { normalizeMoon } from "../calendar/moonLogic";
 import { normalizeSeasonWeatherProfile } from "../calendar/seasonsLogic";
 import { DEFAULT_WEATHER_BIOME_ID, DEFAULT_WEATHER_BIOME_PROFILES, WEATHER_BIOME_DEFINITIONS, normalizeWeatherBiomeProfile } from "../calendar/weather/biomes";
 import { ensureDefaultSceneWeatherProfiles } from "../calendar/sceneWeatherDefaults";
-import { normalizeWeatherAdvancedSettings } from "../calendar/weatherAdvancedSettings";
+import { sanitizeWeatherAdvancedSettings } from "../calendar/weatherAdvancedSettings";
 import { isWeatherState } from "../calendar/weatherStates";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -471,7 +471,11 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
   }
 
   if (isRecord(maybeCompat.weatherAdvancedSettings)) {
-    maybeCompat.weatherAdvancedSettings = normalizeWeatherAdvancedSettings(maybeCompat.weatherAdvancedSettings as CalendarProject["weatherAdvancedSettings"]);
+    const weatherAdvancedSettings = sanitizeWeatherAdvancedSettings(maybeCompat.weatherAdvancedSettings);
+    if (weatherAdvancedSettings) maybeCompat.weatherAdvancedSettings = weatherAdvancedSettings;
+    else delete maybeCompat.weatherAdvancedSettings;
+  } else {
+    delete maybeCompat.weatherAdvancedSettings;
   }
 
   const validation = validateImportedCalendarProject(ensureDefaultSceneWeatherProfiles(maybeCompat as CalendarProject));

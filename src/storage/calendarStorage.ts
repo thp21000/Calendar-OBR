@@ -1,6 +1,6 @@
 import type { CalendarProject } from "../domain/types";
 import { createDefaultMoonSystem, ensureDefaultMoonSystem } from "../calendar/moonLogic";
-import { sanitizeCalendarProject, validateImportedCalendarProject } from "../importExport/calendarImportExport";
+import { sanitizeCalendarProject } from "../importExport/calendarImportExport";
 import { DEFAULT_WEATHER_BIOME_ID } from "../calendar/weather/biomes";
 import { DEFAULT_SCENE_WEATHER_PROFILES, ensureDefaultSceneWeatherProfiles } from "../calendar/sceneWeatherDefaults";
 import { notifyCalendarProjectUpdated } from "./projectSync";
@@ -75,14 +75,14 @@ export const loadCalendarProject = (storageKey = STORAGE_KEY): CalendarProject =
 };
 
 export const saveCalendarProject = (project: CalendarProject, storageKey = STORAGE_KEY): { ok: true } | { ok: false; error: string } => {
-  const validation = validateImportedCalendarProject(project);
-  if (!validation.valid) return { ok: false, error: validation.error };
+  const sanitized = sanitizeCalendarProject(project);
+  if (!sanitized.ok) return { ok: false, error: sanitized.error };
 
   const storage = safeStorage();
   if (!storage) return { ok: false, error: "localStorage unavailable" };
 
   try {
-    storage.setItem(storageKey, JSON.stringify(project));
+    storage.setItem(storageKey, JSON.stringify(sanitized.project));
     notifyCalendarProjectUpdated(storageKey);
     return { ok: true };
   } catch {
