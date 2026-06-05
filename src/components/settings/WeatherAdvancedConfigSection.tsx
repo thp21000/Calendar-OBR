@@ -74,6 +74,7 @@ const ThresholdGrid = ({ project, thresholds, onChange, inputStyle, includeChanc
     </> : null}
   </div>
 );
+};
 
 const StatusBadges = ({ project, custom, enabled }: { project: CalendarProject; custom?: boolean; enabled: boolean }) => <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
   <span style={badgeStyle}>{custom ? t(project.locale, "weatherAdvanced.custom") : t(project.locale, "weatherAdvanced.builtin")}</span>
