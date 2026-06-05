@@ -25,7 +25,7 @@ export const WeatherBiomePickerPopup = ({ project, onClose, onApply }: { project
       audience: "players",
       title: t(project.locale, selectedDefinition.nameKey),
       body: t(project.locale, selectedDefinition.entryMessageKey),
-      date: formatDisplayDate(displayDate, project.locale),
+      date: formatDisplayDate(displayDate, project.locale, project.uiSettings.dateFormat, project.uiSettings.timeFormat),
       icon: selectedDefinition.icon,
       summary: t(project.locale, selectedDefinition.descriptionKey)
     });

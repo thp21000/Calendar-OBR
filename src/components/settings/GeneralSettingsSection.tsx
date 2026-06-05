@@ -11,7 +11,8 @@ export const GeneralSettingsSection = ({ project, onProjectUpdate, inputStyle }:
   <>
     <Field label={t(project.locale, "settings.calendarName")}><input value={project.name} onChange={(e) => onProjectUpdate({ ...project, name: e.target.value })} style={inputStyle} /></Field>
     <Field label={t(project.locale, "settings.language")}><select value={project.locale} onChange={(e) => onProjectUpdate({ ...project, locale: e.target.value as LocaleCode })} style={inputStyle}><option value="fr">Français</option><option value="en">English</option></select></Field>
-    <Field label={t(project.locale, "settings.eraName")}><input value={project.calendarSystem.eraName} onChange={(e) => onProjectUpdate({ ...project, calendarSystem: { ...project.calendarSystem, eraName: e.target.value } })} style={inputStyle} /></Field>
+    <Field label={t(project.locale, "settings.unitsSummary")}><div style={{ color: "#cbd5e1", fontSize: 12, margin: "4px 0 8px" }}>{t(project.locale, "settings.unitsFixedMetric")}</div></Field>
+    <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, fontSize: 12, color: "#cbd5e1" }}><input type="checkbox" checked={project.uiSettings.compactMode} onChange={(e) => onProjectUpdate({ ...project, uiSettings: { ...project.uiSettings, compactMode: e.target.checked } })} />{t(project.locale, "settings.compactMode")}</label>
   </>
 );
 

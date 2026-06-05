@@ -121,7 +121,7 @@ export const createPublicCalendarTodaySnapshot = (
     calendarName: project.name,
     locale: project.locale,
     currentTime: project.currentTime,
-    formattedDate: formatDisplayDate(displayDate, project.locale),
+    formattedDate: formatDisplayDate(displayDate, project.locale, project.uiSettings.dateFormat, project.uiSettings.timeFormat),
     season: currentSeason ? { name: currentSeason.name, icon: currentSeason.icon } : undefined,
     weather: currentWeather ? { ...currentWeather, units: weatherUnits } : undefined,
     weatherBiome: {

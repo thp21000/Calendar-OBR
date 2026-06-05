@@ -16,14 +16,17 @@ type Props = {
   project: CalendarProject;
   onProjectUpdate: (project: CalendarProject) => void;
   inputStyle: React.CSSProperties;
+  showBase?: boolean;
+  showOverrides?: boolean;
 };
 
-export const WeatherSettingsSection = ({ project, onProjectUpdate, inputStyle }: Props) => {
+export const WeatherSettingsSection = ({ project, onProjectUpdate, inputStyle, showBase = true, showOverrides = true }: Props) => {
   const mode = project.weatherSettings.forecastMode ?? "fine";
   const seed = project.weatherSettings.seed ?? "";
 
   return (
     <>
+      {showBase ? <>
       <label style={{ display: "block" }}>
         <div style={{ fontSize: 12, color: "#cbd5e1" }}>{t(project.locale, "weather.seed")}</div>
         <input
@@ -82,7 +85,8 @@ export const WeatherSettingsSection = ({ project, onProjectUpdate, inputStyle }:
         </select>
       </label>
       <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(project.locale, "weather.forecastModeHelp")}</div>
-      <div style={{ marginTop: 12, borderTop: "1px solid #374151", paddingTop: 8 }}>
+      </> : null}
+      {showOverrides ? <div style={{ marginTop: showBase ? 12 : 0, borderTop: showBase ? "1px solid #374151" : undefined, paddingTop: showBase ? 8 : 0 }}>
         <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 6 }}>{t(project.locale, "weatherOverride.title")}</div>
         <button type="button" onClick={() => onProjectUpdate({ ...project, weatherOverrides: [...(project.weatherOverrides ?? []), { id: `wo-${Date.now()}`, absoluteDay: project.currentTime.absoluteDay }] })} style={{ border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "6px 10px", marginBottom: 8, cursor: "pointer" }}>{t(project.locale, "weatherOverride.add")}</button>
         <div style={{ display: "grid", gap: 8 }}>
@@ -103,7 +107,7 @@ export const WeatherSettingsSection = ({ project, onProjectUpdate, inputStyle }:
             </div>
           ))}
         </div>
-      </div>
+      </div> : null}
 
     </>
   );

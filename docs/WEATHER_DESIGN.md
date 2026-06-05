@@ -1339,3 +1339,9 @@ Les profils de biomes personnalisés complets ne sont pas encore créés par l'U
 Les événements météo peuvent désormais inclure une condition `biome` avec une liste optionnelle de `biomeIds`. Une liste absente ou vide ne limite pas l'événement ; dès qu'au moins un biome est sélectionné, la logique de déclenchement compare uniquement `getWeatherBiomeState(project).currentBiomeId` à cette liste.
 
 Pendant une transition de biome, la condition utilise le biome courant et ignore volontairement `previousBiomeId`, car les transitions représentent un lissage climatique visuel/génératif et non une double appartenance de l'environnement. Les imports nettoient cette liste pour conserver seulement les IDs de biomes connus, supprimer les doublons et préserver les anciens événements sans restriction.
+
+## Organisation des paramètres météo
+
+La page Paramètres présente la météo comme une pile de couches afin d'aider le MJ à comprendre l'ordre réel de résolution. La grande section Météo expose d'abord la base globale, puis les biomes, les saisons, les tendances, la dominance, les états météo instantanés, les événements météo et enfin la météo de scène / forcée.
+
+Cette organisation reflète les priorités du moteur : le biome fournit le climat naturel, les saisons l'ajustent, les tendances et règles de dominance orientent la génération automatique, les états instantanés décrivent le résultat lisible, puis les événements météo et overrides de scène peuvent modifier ou remplacer le résultat. Les sections longues restent repliables pour conserver une interface compacte dans le popover OBR.

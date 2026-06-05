@@ -434,6 +434,22 @@ describe("calendarImportExport", () => {
     expect(sanitized.project.dayNotes).toEqual([]);
   });
 
+  it("sanitizes display date and time format preferences", () => {
+    const project = createDefaultCalendarProject();
+    const payload: any = { ...project, uiSettings: { ...project.uiSettings, dateFormat: "yearMonthDay", timeFormat: "12h" } };
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.uiSettings.dateFormat).toBe("yearMonthDay");
+    expect(imported.project.uiSettings.timeFormat).toBe("12h");
+
+    const invalid = importCalendarProject(JSON.stringify({ ...project, uiSettings: { ...project.uiSettings, dateFormat: "free", timeFormat: "bad" } }), project);
+    expect(invalid.ok).toBe(true);
+    if (!invalid.ok) return;
+    expect(invalid.project.uiSettings.dateFormat).toBeUndefined();
+    expect(invalid.project.uiSettings.timeFormat).toBeUndefined();
+  });
+
   it("sanitizes invalid day notes", () => {
     const project = createDefaultCalendarProject();
     const payload = {

@@ -22,7 +22,7 @@ export const CurrentTimeSettingsSection = ({ project, onProjectUpdate, inputStyl
 
   return (
     <>
-      <div style={{ marginBottom: 8 }}><strong>{t(project.locale, "settings.datePreview")}:</strong> {formatDisplayDate(displayDate, project.locale)}</div>
+      <div style={{ marginBottom: 8 }}><strong>{t(project.locale, "settings.datePreview")}:</strong> {formatDisplayDate(displayDate, project.locale, project.uiSettings.dateFormat, project.uiSettings.timeFormat)}</div>
       <Field label={t(project.locale, "settings.currentYear")}><input type="number" value={displayDate.year} onChange={(e) => updateDate({ year: Number(e.target.value) })} style={inputStyle} /></Field>
       <Field label={t(project.locale, "settings.currentMonth")}><select value={displayDate.monthId} onChange={(e) => updateDate({ monthId: e.target.value })} style={inputStyle}>{months.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></Field>
       <Field label={t(project.locale, "settings.currentDay")}><input type="number" value={displayDate.dayOfMonth} onChange={(e) => updateDate({ dayOfMonth: Number(e.target.value) })} style={inputStyle} /></Field>

@@ -152,17 +152,20 @@ export const WeatherAdvancedConfigSection = ({ project, onProjectUpdate, inputSt
   const resetAllDominance = () => onProjectUpdate(resetBuiltinEntries(project, "dominanceConfigs", Object.keys(DEFAULT_WEATHER_DOMINANCE_CONFIGS)));
   return <div>
     <div style={helpStyle}>{t(project.locale, "settings.weatherAdvancedConfigHelp")}</div>
-    <CollapsibleSection title={t(project.locale, "settings.weatherStates")} storageKey="calendar-obr.settings.weatherAdvanced.states">
-      <div style={toolbarStyle}><button type="button" onClick={resetAllStates} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllStates")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.builtinStatesLocked")}</span></div>
-      <div style={{ display: "grid", gap: 8 }}>{WEATHER_STATES.map((state) => <StateConfigCard key={state} project={project} config={settings.stateConfigs[state]} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
-    </CollapsibleSection>
     <CollapsibleSection title={t(project.locale, "settings.weatherTrends")} storageKey="calendar-obr.settings.weatherAdvanced.trends">
+      <div style={helpStyle}>{t(project.locale, "settings.weatherTrendsHelp")}</div>
       <div style={toolbarStyle}><button type="button" onClick={resetAllTrends} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllTrends")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.builtinTrendsLocked")}</span></div>
       <div style={{ display: "grid", gap: 8 }}>{WEATHER_TRENDS.map((trend) => <TrendConfigCard key={trend} project={project} config={settings.trendConfigs[trend]} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
     </CollapsibleSection>
     <CollapsibleSection title={t(project.locale, "settings.weatherDominanceRules")} storageKey="calendar-obr.settings.weatherAdvanced.dominance">
+      <div style={helpStyle}>{t(project.locale, "settings.weatherDominanceHelp")}</div>
       <div style={toolbarStyle}><button type="button" onClick={() => onProjectUpdate(addCustomDominanceRule(project))} style={buttonStyle}>{t(project.locale, "weatherAdvanced.addDominanceRule")}</button><button type="button" onClick={resetAllDominance} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllDominanceRules")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.customDominanceHelp")}</span></div>
       <div style={{ display: "grid", gap: 8 }}>{Object.values(settings.dominanceConfigs).sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)).map((rule) => <DominanceConfigCard key={rule.id} project={project} config={rule} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
+    </CollapsibleSection>
+    <CollapsibleSection title={t(project.locale, "settings.weatherStates")} storageKey="calendar-obr.settings.weatherAdvanced.states">
+      <div style={helpStyle}>{t(project.locale, "settings.weatherStatesHelp")}</div>
+      <div style={toolbarStyle}><button type="button" onClick={resetAllStates} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllStates")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.builtinStatesLocked")}</span></div>
+      <div style={{ display: "grid", gap: 8 }}>{WEATHER_STATES.map((state) => <StateConfigCard key={state} project={project} config={settings.stateConfigs[state]} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
     </CollapsibleSection>
   </div>;
 };

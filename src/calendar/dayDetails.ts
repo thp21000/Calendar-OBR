@@ -42,7 +42,7 @@ export const getDayDetails = (project: CalendarProject, date: CalendarDate): Day
 
   return {
     date: displayDate,
-    formattedDate: formatDisplayDate(displayDate, project.locale),
+    formattedDate: formatDisplayDate(displayDate, project.locale, project.uiSettings.dateFormat, project.uiSettings.timeFormat),
     seasonName: season?.name,
     seasonIcon: season?.icon,
     weather: generateWeatherForTime(project, absolute.absoluteDay, 12),

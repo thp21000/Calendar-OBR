@@ -84,10 +84,15 @@ export type CalendarEvent = {
   reminderMinutesBefore?: number;
 };
 
+export type DateFormatPreference = "weekdayDayMonthYear" | "dayMonthYear" | "dayMonthYearNumeric" | "yearMonthDay" | "monthDayYear";
+export type TimeFormatPreference = "24h" | "12h";
+
 export type UiSettings = {
   activeTab: "today" | "month" | "events" | "settings" | "player";
   compactMode: boolean;
   monthGridStartsOnWeekdayId?: string;
+  dateFormat?: DateFormatPreference;
+  timeFormat?: TimeFormatPreference;
   defaultMoonSystemInitialized?: boolean;
 };
 

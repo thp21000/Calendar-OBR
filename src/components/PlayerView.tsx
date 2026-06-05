@@ -144,7 +144,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
   return (
     <>
       <div style={{ marginBottom: 8, fontWeight: 700 }}>{project.name}</div>
-      <div style={{ marginBottom: 10, fontSize: 14, fontWeight: 700 }}>{formatDisplayDate(displayDate, project.locale)}</div>
+      <div style={{ marginBottom: 10, fontSize: 14, fontWeight: 700 }}>{formatDisplayDate(displayDate, project.locale, project.uiSettings.dateFormat, project.uiSettings.timeFormat)}</div>
       <div style={{ marginBottom: 10, fontSize: 12, color: "#93c5fd" }}>{t(project.locale, "player.readOnly")}</div>
 
       <PlayerOverviewCard

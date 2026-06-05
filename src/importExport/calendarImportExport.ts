@@ -203,6 +203,12 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     delete maybeCompat.uiSettings.defaultMoonSystemInitialized;
   }
 
+  if (isRecord(maybeCompat.uiSettings)) {
+    const ui = maybeCompat.uiSettings as Record<string, unknown>;
+    if (!["weekdayDayMonthYear", "dayMonthYear", "dayMonthYearNumeric", "yearMonthDay", "monthDayYear"].includes(String(ui.dateFormat))) delete ui.dateFormat;
+    if (ui.timeFormat !== "24h" && ui.timeFormat !== "12h") delete ui.timeFormat;
+  }
+
   if (isRecord(maybeCompat.weatherSettings)) {
     const ws = maybeCompat.weatherSettings as Record<string, unknown>;
     if (typeof ws.seed !== "string") delete ws.seed;
