@@ -73,7 +73,7 @@ const ThresholdGrid = ({ project, thresholds, onChange, inputStyle, includeChanc
       <ThresholdInput label={t(project.locale, "weatherAdvanced.minFogChance")} value={thresholds.minFogChance} onChange={(value) => onChange({ ...thresholds, minFogChance: value })} inputStyle={inputStyle} />
     </> : null}
   </div>
-);
+  );
 };
 
 const StatusBadges = ({ project, custom, enabled }: { project: CalendarProject; custom?: boolean; enabled: boolean }) => <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -102,6 +102,7 @@ const StateConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { pro
       </div>
     </CollapsibleSection>
   );
+};
 
 const TrendConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { project: CalendarProject; config: WeatherTrendConfig; inputStyle: CSSProperties; onProjectUpdate: (project: CalendarProject) => void }) => {
   const patch = (next: Partial<WeatherTrendConfig>) => onProjectUpdate(patchAdvancedSettings(project, { trendConfigs: { [config.id]: { ...config, ...next } } }));
