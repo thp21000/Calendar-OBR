@@ -7,6 +7,7 @@ import { CollapsibleSection } from "../CollapsibleSection";
 
 const cardStyle: CSSProperties = { border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", display: "grid", gap: 6 };
 const rowStyle: CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 };
+const trendIdentityRowStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 };
 const helpStyle: CSSProperties = { fontSize: 12, color: "#9ca3af", marginBottom: 8 };
 const metaStyle: CSSProperties = { fontSize: 11, color: "#94a3b8" };
 const buttonStyle: CSSProperties = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "5px 8px", fontSize: 12, cursor: "pointer" };
@@ -101,10 +102,10 @@ const TrendConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { pro
     <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong>{config.icon ?? "•"} {getWeatherTrendLabel(project, config.id as WeatherTrendKind)}</strong><StatusBadges project={project} custom={false} enabled={config.enabled} /></div>
     <div style={metaStyle}>{config.id}</div>
     <label><input type="checkbox" checked={config.enabled} onChange={(event) => patch({ enabled: event.target.checked })} /> {t(project.locale, "weatherAdvanced.enabled")}</label>
-    <div style={rowStyle}>
+    <div style={trendIdentityRowStyle}>
       <label>
-        <div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelFr")}</div>
-        <input value={config.label?.fr ?? ""} onChange={(event) => patch({ label: textPatch(config.label, "fr", event.target.value) })} style={inputStyle} />
+        <div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.icon")}</div>
+        <input value={config.icon ?? ""} onChange={(event) => patch({ icon: event.target.value })} style={inputStyle} />
       </label>
       <label>
         <div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelEn")}</div>
