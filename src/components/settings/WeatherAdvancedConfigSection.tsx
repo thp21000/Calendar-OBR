@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { DEFAULT_WEATHER_DOMINANCE_CONFIGS, DEFAULT_WEATHER_STATE_CONFIGS, DEFAULT_WEATHER_TREND_CONFIGS, WEATHER_TRENDS, getWeatherAdvancedSettings, getWeatherStateLabel, getWeatherTrendLabel, sanitizeWeatherAdvancedSettings } from "../../calendar/weatherAdvancedSettings";
+import { DEFAULT_WEATHER_DOMINANCE_CONFIGS, WEATHER_TRENDS, getWeatherAdvancedSettings, getWeatherStateLabel, getWeatherTrendLabel, sanitizeWeatherAdvancedSettings } from "../../calendar/weatherAdvancedSettings";
 import { WEATHER_STATES } from "../../calendar/weatherStates";
 import type { CalendarProject, LocaleCode, WeatherAdvancedSettings, WeatherAdvancedThresholds, WeatherDominanceConfig, WeatherState, WeatherStateConfig, WeatherTrendConfig, WeatherTrendKind } from "../../domain/types";
 import { t } from "../../i18n/messages";
@@ -11,16 +11,34 @@ const helpStyle: CSSProperties = { fontSize: 12, color: "#9ca3af", marginBottom:
 const metaStyle: CSSProperties = { fontSize: 11, color: "#94a3b8" };
 const buttonStyle: CSSProperties = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "5px 8px", fontSize: 12, cursor: "pointer" };
 
-const patchAdvancedSettings = (project: CalendarProject, patch: WeatherAdvancedSettings): CalendarProject => ({
+const dangerButtonStyle: CSSProperties = { ...buttonStyle, borderColor: "#7f1d1d", color: "#fecaca" };
+const toolbarStyle: CSSProperties = { display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 8 };
+const badgeStyle: CSSProperties = { border: "1px solid #374151", borderRadius: 999, padding: "1px 6px", fontSize: 10, color: "#cbd5e1", whiteSpace: "nowrap" };
+
+const applyAdvancedSettings = (project: CalendarProject, settings?: WeatherAdvancedSettings): CalendarProject => ({
   ...project,
-  weatherAdvancedSettings: sanitizeWeatherAdvancedSettings({
-    ...(project.weatherAdvancedSettings ?? {}),
-    ...patch,
-    stateConfigs: { ...(project.weatherAdvancedSettings?.stateConfigs ?? {}), ...(patch.stateConfigs ?? {}) },
-    trendConfigs: { ...(project.weatherAdvancedSettings?.trendConfigs ?? {}), ...(patch.trendConfigs ?? {}) },
-    dominanceConfigs: { ...(project.weatherAdvancedSettings?.dominanceConfigs ?? {}), ...(patch.dominanceConfigs ?? {}) }
-  })
+  weatherAdvancedSettings: sanitizeWeatherAdvancedSettings(settings)
 });
+
+const patchAdvancedSettings = (project: CalendarProject, patch: WeatherAdvancedSettings): CalendarProject => applyAdvancedSettings(project, {
+  ...(project.weatherAdvancedSettings ?? {}),
+  ...patch,
+  stateConfigs: { ...(project.weatherAdvancedSettings?.stateConfigs ?? {}), ...(patch.stateConfigs ?? {}) },
+  trendConfigs: { ...(project.weatherAdvancedSettings?.trendConfigs ?? {}), ...(patch.trendConfigs ?? {}) },
+  dominanceConfigs: { ...(project.weatherAdvancedSettings?.dominanceConfigs ?? {}), ...(patch.dominanceConfigs ?? {}) }
+});
+
+const removeConfigEntry = (project: CalendarProject, section: keyof WeatherAdvancedSettings, id: string): CalendarProject => {
+  const nextSection = { ...((project.weatherAdvancedSettings?.[section] as Record<string, unknown> | undefined) ?? {}) };
+  delete nextSection[id];
+  return applyAdvancedSettings(project, { ...(project.weatherAdvancedSettings ?? {}), [section]: nextSection });
+};
+
+const resetBuiltinEntries = (project: CalendarProject, section: keyof WeatherAdvancedSettings, ids: readonly string[]): CalendarProject => {
+  const nextSection = { ...((project.weatherAdvancedSettings?.[section] as Record<string, unknown> | undefined) ?? {}) };
+  for (const id of ids) delete nextSection[id];
+  return applyAdvancedSettings(project, { ...(project.weatherAdvancedSettings ?? {}), [section]: nextSection });
+};
 
 const textPatch = (label: Partial<Record<LocaleCode, string>> | undefined, locale: LocaleCode, value: string) => ({ ...(label ?? {}), [locale]: value });
 const numberOrUndefined = (value: string) => value === "" ? undefined : Number(value);
@@ -38,8 +56,8 @@ const ThresholdGrid = ({ project, thresholds, onChange, inputStyle, includeChanc
     <ThresholdInput label={t(project.locale, "weatherAdvanced.maxTemperature")} value={thresholds.maxTemperature} onChange={(value) => onChange({ ...thresholds, maxTemperature: value })} inputStyle={inputStyle} />
     <ThresholdInput label={t(project.locale, "weatherAdvanced.minWindSpeed")} value={thresholds.minWindSpeed} onChange={(value) => onChange({ ...thresholds, minWindSpeed: value })} inputStyle={inputStyle} />
     <ThresholdInput label={t(project.locale, "weatherAdvanced.maxWindSpeed")} value={thresholds.maxWindSpeed} onChange={(value) => onChange({ ...thresholds, maxWindSpeed: value })} inputStyle={inputStyle} />
-    <ThresholdInput label={t(project.locale, includeChances ? "weatherAdvanced.minDailyRainTotal" : "weatherAdvanced.minRain")} value={thresholds.minRain ?? thresholds.minDailyRainTotal} onChange={(value) => onChange({ ...thresholds, minRain: value, minDailyRainTotal: includeChances ? value : thresholds.minDailyRainTotal })} inputStyle={inputStyle} />
-    <ThresholdInput label={t(project.locale, includeChances ? "weatherAdvanced.maxDailyRainTotal" : "weatherAdvanced.maxRain")} value={thresholds.maxRain ?? thresholds.maxDailyRainTotal} onChange={(value) => onChange({ ...thresholds, maxRain: value, maxDailyRainTotal: includeChances ? value : thresholds.maxDailyRainTotal })} inputStyle={inputStyle} />
+    <ThresholdInput label={t(project.locale, includeChances ? "weatherAdvanced.minDailyRainTotal" : "weatherAdvanced.minRain")} value={thresholds.minRain ?? thresholds.minDailyRainTotal} onChange={(value) => onChange({ ...thresholds, minRain: includeChances ? thresholds.minRain : value, minDailyRainTotal: includeChances ? value : thresholds.minDailyRainTotal })} inputStyle={inputStyle} />
+    <ThresholdInput label={t(project.locale, includeChances ? "weatherAdvanced.maxDailyRainTotal" : "weatherAdvanced.maxRain")} value={thresholds.maxRain ?? thresholds.maxDailyRainTotal} onChange={(value) => onChange({ ...thresholds, maxRain: includeChances ? thresholds.maxRain : value, maxDailyRainTotal: includeChances ? value : thresholds.maxDailyRainTotal })} inputStyle={inputStyle} />
     {includeChances ? <>
       <ThresholdInput label={t(project.locale, "weatherAdvanced.minPrecipitationChance")} value={thresholds.minPrecipitationChance} onChange={(value) => onChange({ ...thresholds, minPrecipitationChance: value })} inputStyle={inputStyle} />
       <ThresholdInput label={t(project.locale, "weatherAdvanced.minStormChance")} value={thresholds.minStormChance} onChange={(value) => onChange({ ...thresholds, minStormChance: value })} inputStyle={inputStyle} />
@@ -48,13 +66,19 @@ const ThresholdGrid = ({ project, thresholds, onChange, inputStyle, includeChanc
   </div>
 );
 
+const StatusBadges = ({ project, custom, enabled }: { project: CalendarProject; custom?: boolean; enabled: boolean }) => <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+  <span style={badgeStyle}>{custom ? t(project.locale, "weatherAdvanced.custom") : t(project.locale, "weatherAdvanced.builtin")}</span>
+  {!enabled ? <span style={{ ...badgeStyle, color: "#fecaca", borderColor: "#7f1d1d" }}>{t(project.locale, "weatherAdvanced.disabled")}</span> : null}
+</span>;
+
 const StateConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { project: CalendarProject; config: WeatherStateConfig; inputStyle: CSSProperties; onProjectUpdate: (project: CalendarProject) => void }) => {
   const patch = (next: Partial<WeatherStateConfig>) => onProjectUpdate(patchAdvancedSettings(project, { stateConfigs: { [config.id]: { ...config, ...next } } }));
-  const reset = () => onProjectUpdate(patchAdvancedSettings(project, { stateConfigs: { [config.id]: DEFAULT_WEATHER_STATE_CONFIGS[config.id as WeatherState] ?? { id: config.id, enabled: true, custom: true } } }));
+  const reset = () => onProjectUpdate(removeConfigEntry(project, "stateConfigs", config.id));
   return (
     <CollapsibleSection title={`${config.icon ?? "•"} ${getWeatherStateLabel(project, config.id as WeatherState)} · ${config.enabled ? t(project.locale, "weatherAdvanced.enabled") : t(project.locale, "weatherAdvanced.disabled")}`} storageKey={`calendar-obr.settings.weatherAdvanced.state.${config.id}`}>
       <div style={cardStyle}>
-        <div style={metaStyle}>{config.custom ? t(project.locale, "weatherAdvanced.custom") : t(project.locale, "weatherAdvanced.builtin")} · {config.id}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><span style={metaStyle}>{config.id}</span><StatusBadges project={project} custom={false} enabled={config.enabled} /></div>
+        <div style={metaStyle}>{t(project.locale, "weatherAdvanced.thresholdsHelp")}</div>
         <label><input type="checkbox" checked={config.enabled} onChange={(event) => patch({ enabled: event.target.checked })} /> {t(project.locale, "weatherAdvanced.enabled")}</label>
         <div style={rowStyle}>
           <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.icon")}</div><input value={config.icon ?? ""} onChange={(event) => patch({ icon: event.target.value })} style={inputStyle} /></label>
@@ -72,13 +96,14 @@ const StateConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { pro
 
 const TrendConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { project: CalendarProject; config: WeatherTrendConfig; inputStyle: CSSProperties; onProjectUpdate: (project: CalendarProject) => void }) => {
   const patch = (next: Partial<WeatherTrendConfig>) => onProjectUpdate(patchAdvancedSettings(project, { trendConfigs: { [config.id]: { ...config, ...next } } }));
-  const reset = () => onProjectUpdate(patchAdvancedSettings(project, { trendConfigs: { [config.id]: DEFAULT_WEATHER_TREND_CONFIGS[config.id as WeatherTrendKind] ?? { id: config.id, enabled: true } } }));
+  const reset = () => onProjectUpdate(removeConfigEntry(project, "trendConfigs", config.id));
   return <div style={cardStyle}>
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong>{config.icon ?? "•"} {getWeatherTrendLabel(project, config.id as WeatherTrendKind)}</strong><span style={metaStyle}>{config.id}</span></div>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong>{config.icon ?? "•"} {getWeatherTrendLabel(project, config.id as WeatherTrendKind)}</strong><StatusBadges project={project} custom={false} enabled={config.enabled} /></div>
+    <div style={metaStyle}>{config.id}</div>
     <label><input type="checkbox" checked={config.enabled} onChange={(event) => patch({ enabled: event.target.checked })} /> {t(project.locale, "weatherAdvanced.enabled")}</label>
     <div style={rowStyle}>
       <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.icon")}</div><input value={config.icon ?? ""} onChange={(event) => patch({ icon: event.target.value })} style={inputStyle} /></label>
-      <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelFr")}</div><input value={config.label?.fr ?? ""} onChange={(event) => patch({ label: textPatch(config.label, "fr", event.target.value) })} style={inputStyle} /></label>
+      <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelEn")}</div><input value={config.label?.en ?? ""} onChange={(event) => patch({ label: textPatch(config.label, "en", event.target.value) })} style={inputStyle} /></label>
       <ThresholdInput label={t(project.locale, "weatherAdvanced.temperatureOffset")} value={config.temperatureOffset} onChange={(value) => patch({ temperatureOffset: value })} inputStyle={inputStyle} />
       <ThresholdInput label={t(project.locale, "weatherAdvanced.rainMultiplier")} value={config.rainMultiplier} onChange={(value) => patch({ rainMultiplier: value })} inputStyle={inputStyle} />
       <ThresholdInput label={t(project.locale, "weatherAdvanced.windMultiplier")} value={config.windMultiplier} onChange={(value) => patch({ windMultiplier: value })} inputStyle={inputStyle} />
@@ -90,10 +115,16 @@ const TrendConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { pro
 };
 
 const DominanceConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { project: CalendarProject; config: WeatherDominanceConfig; inputStyle: CSSProperties; onProjectUpdate: (project: CalendarProject) => void }) => {
-  const patch = (next: Partial<WeatherDominanceConfig>) => onProjectUpdate(patchAdvancedSettings(project, { dominanceConfigs: { [config.id]: { ...config, ...next } } }));
-  const reset = () => onProjectUpdate(patchAdvancedSettings(project, { dominanceConfigs: { [config.id]: DEFAULT_WEATHER_DOMINANCE_CONFIGS[config.id] ?? { id: config.id, enabled: true, stateId: config.stateId } } }));
+  const isCustom = config.custom === true || !DEFAULT_WEATHER_DOMINANCE_CONFIGS[config.id];
+  const patch = (next: Partial<WeatherDominanceConfig>) => onProjectUpdate(patchAdvancedSettings(project, { dominanceConfigs: { [config.id]: { ...config, ...next, custom: isCustom } } }));
+  const reset = () => onProjectUpdate(removeConfigEntry(project, "dominanceConfigs", config.id));
+  const remove = () => {
+    if (typeof window !== "undefined" && !window.confirm(t(project.locale, "weatherAdvanced.confirmDeleteDominanceRule"))) return;
+    onProjectUpdate(removeConfigEntry(project, "dominanceConfigs", config.id));
+  };
   return <div style={cardStyle}>
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong>{config.stateId}</strong><span style={metaStyle}>{config.id}</span></div>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong>{config.stateId}</strong><StatusBadges project={project} custom={isCustom} enabled={config.enabled} /></div>
+    <div style={metaStyle}>{config.id}</div>
     <label><input type="checkbox" checked={config.enabled} onChange={(event) => patch({ enabled: event.target.checked })} /> {t(project.locale, "weatherAdvanced.enabled")}</label>
     <div style={rowStyle}>
       <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.state")}</div><select value={config.stateId} onChange={(event) => patch({ stateId: event.target.value })} style={inputStyle}>{WEATHER_STATES.map((state) => <option key={state} value={state}>{getWeatherStateLabel(project, state)}</option>)}</select></label>
@@ -101,21 +132,36 @@ const DominanceConfigCard = ({ project, config, inputStyle, onProjectUpdate }: {
     </div>
     <div style={{ fontWeight: 700, fontSize: 12 }}>{t(project.locale, "weatherAdvanced.thresholds")}</div>
     <ThresholdGrid project={project} thresholds={config.thresholds ?? {}} onChange={(thresholds) => patch({ thresholds })} inputStyle={inputStyle} includeChances />
-    <button type="button" onClick={reset} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetDefaults")}</button>
+    <div style={toolbarStyle}>
+      {!isCustom ? <button type="button" onClick={reset} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetDefaults")}</button> : null}
+      {isCustom ? <button type="button" onClick={remove} style={dangerButtonStyle}>{t(project.locale, "weatherAdvanced.deleteDominanceRule")}</button> : null}
+    </div>
   </div>;
+};
+
+const addCustomDominanceRule = (project: CalendarProject): CalendarProject => {
+  const id = `custom-dominance-${Date.now()}`;
+  const enabledState = WEATHER_STATES.find((state) => getWeatherAdvancedSettings(project).stateConfigs[state].enabled) ?? "overcast";
+  return patchAdvancedSettings(project, { dominanceConfigs: { [id]: { id, custom: true, enabled: true, stateId: enabledState, priority: 50, thresholds: {} } } });
 };
 
 export const WeatherAdvancedConfigSection = ({ project, onProjectUpdate, inputStyle }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; inputStyle: CSSProperties }) => {
   const settings = getWeatherAdvancedSettings(project);
+  const resetAllStates = () => onProjectUpdate(resetBuiltinEntries(project, "stateConfigs", WEATHER_STATES));
+  const resetAllTrends = () => onProjectUpdate(resetBuiltinEntries(project, "trendConfigs", WEATHER_TRENDS));
+  const resetAllDominance = () => onProjectUpdate(resetBuiltinEntries(project, "dominanceConfigs", Object.keys(DEFAULT_WEATHER_DOMINANCE_CONFIGS)));
   return <div>
     <div style={helpStyle}>{t(project.locale, "settings.weatherAdvancedConfigHelp")}</div>
     <CollapsibleSection title={t(project.locale, "settings.weatherStates")} storageKey="calendar-obr.settings.weatherAdvanced.states">
+      <div style={toolbarStyle}><button type="button" onClick={resetAllStates} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllStates")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.builtinStatesLocked")}</span></div>
       <div style={{ display: "grid", gap: 8 }}>{WEATHER_STATES.map((state) => <StateConfigCard key={state} project={project} config={settings.stateConfigs[state]} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
     </CollapsibleSection>
     <CollapsibleSection title={t(project.locale, "settings.weatherTrends")} storageKey="calendar-obr.settings.weatherAdvanced.trends">
+      <div style={toolbarStyle}><button type="button" onClick={resetAllTrends} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllTrends")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.builtinTrendsLocked")}</span></div>
       <div style={{ display: "grid", gap: 8 }}>{WEATHER_TRENDS.map((trend) => <TrendConfigCard key={trend} project={project} config={settings.trendConfigs[trend]} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
     </CollapsibleSection>
     <CollapsibleSection title={t(project.locale, "settings.weatherDominanceRules")} storageKey="calendar-obr.settings.weatherAdvanced.dominance">
+      <div style={toolbarStyle}><button type="button" onClick={() => onProjectUpdate(addCustomDominanceRule(project))} style={buttonStyle}>{t(project.locale, "weatherAdvanced.addDominanceRule")}</button><button type="button" onClick={resetAllDominance} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllDominanceRules")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.customDominanceHelp")}</span></div>
       <div style={{ display: "grid", gap: 8 }}>{Object.values(settings.dominanceConfigs).sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)).map((rule) => <DominanceConfigCard key={rule.id} project={project} config={rule} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
     </CollapsibleSection>
   </div>;
