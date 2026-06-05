@@ -103,14 +103,18 @@ const TrendConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { pro
     <div style={metaStyle}>{config.id}</div>
     <label><input type="checkbox" checked={config.enabled} onChange={(event) => patch({ enabled: event.target.checked })} /> {t(project.locale, "weatherAdvanced.enabled")}</label>
     <div style={trendIdentityRowStyle}>
-      <label>
-        <div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.icon")}</div>
-        <input value={config.icon ?? ""} onChange={(event) => patch({ icon: event.target.value })} style={inputStyle} />
-      </label>
-      <label>
-        <div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelEn")}</div>
-        <input value={config.label?.en ?? ""} onChange={(event) => patch({ label: textPatch(config.label, "en", event.target.value) })} style={inputStyle} />
-      </label>
+  <label>
+    <div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.icon")}</div>
+    <input value={config.icon ?? ""} onChange={(event) => patch({ icon: event.target.value })} style={inputStyle} />
+  </label>
+  <label>
+    <div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelFr")}</div>
+    <input value={config.label?.fr ?? ""} onChange={(event) => patch({ label: textPatch(config.label, "fr", event.target.value) })} style={inputStyle} />
+  </label>
+  <label>
+    <div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelEn")}</div>
+    <input value={config.label?.en ?? ""} onChange={(event) => patch({ label: textPatch(config.label, "en", event.target.value) })} style={inputStyle} />
+  </label>
     </div>
     <div style={rowStyle}>
       <ThresholdInput label={t(project.locale, "weatherAdvanced.temperatureOffset")} value={config.temperatureOffset} onChange={(value) => patch({ temperatureOffset: value })} inputStyle={inputStyle} />
