@@ -54,4 +54,5 @@ export type WeatherBiomeState = {
   previousBiomeId?: WeatherBiomeId;
   biomeChangedAtMinutes?: number;
   transitionDurationMinutes?: number;
+  disabledBiomeIds?: WeatherBiomeId[];
 };

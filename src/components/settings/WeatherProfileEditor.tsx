@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import type { LocaleCode, WeatherState } from "../../domain/types";
+import type { CalendarProject, LocaleCode, WeatherState } from "../../domain/types";
 import type { WeatherBiomeProfile, WeatherValueRange } from "../../calendar/weather/biomes";
 import { normalizeWeatherBiomeProfile } from "../../calendar/weather/biomes";
 import type { SeasonWeatherModifier } from "../../calendar/weather/seasonModifiers";
 import { t } from "../../i18n/messages";
 import { WEATHER_STATES } from "../../calendar/weatherStates";
+import { getConfiguredWeatherStateIcon, getWeatherStateLabel } from "../../calendar/weatherAdvancedSettings";
 import { CollapsibleSection } from "../CollapsibleSection";
 
 type Units = { temperature: string; windSpeed: string; rain: string };
@@ -93,13 +94,15 @@ export const BiomeProfileEditor = ({
   units,
   inputStyle,
   profile,
-  onChange
+  onChange,
+  project
 }: {
   locale: LocaleCode;
   units: Units;
   inputStyle: React.CSSProperties;
   profile: WeatherBiomeProfile;
   onChange: (profile: WeatherBiomeProfile) => void;
+  project?: CalendarProject;
 }) => {
   const patch = (next: WeatherBiomeProfile) => onChange(normalizeWeatherBiomeProfile(next));
   const patchRange = (section: "temperature" | "rain" | "dailyRain" | "windSpeed", key: keyof WeatherValueRange, value: number) =>
@@ -149,9 +152,13 @@ export const BiomeProfileEditor = ({
       </CollapsibleSection>
       <CollapsibleSection title={t(locale, "weatherProfile.stateWeightsGroup")}>
         <div style={twoColGridStyle}>
-          {WEATHER_STATES.map((state) => (
-            <NumericField key={state} label={t(locale, "weatherProfile.stateWeight") + ` · ${t(locale, `weather.state.${state}`)}`} help={t(locale, "weatherProfile.help.stateWeight")} value={profile.stateWeights[state] ?? 1} onChange={(value) => patchWeight(state, value)} inputStyle={inputStyle} />
-          ))}
+          {WEATHER_STATES.map((state) => {
+            const stateLabel = project ? getWeatherStateLabel(project, state) : t(locale, `weather.state.${state}`);
+            const stateIcon = project ? getConfiguredWeatherStateIcon(project, state) : "";
+            return (
+              <NumericField key={state} label={t(locale, "weatherProfile.stateWeight") + ` · ${stateIcon ? `${stateIcon} ` : ""}${stateLabel}`} help={t(locale, "weatherProfile.help.stateWeight")} value={profile.stateWeights[state] ?? 1} onChange={(value) => patchWeight(state, value)} inputStyle={inputStyle} />
+            );
+          })}
         </div>
       </CollapsibleSection>
     </>

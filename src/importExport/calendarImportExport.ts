@@ -169,7 +169,16 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     const previousBiomeId = isWeatherBiomeId(biome.previousBiomeId) ? biome.previousBiomeId : undefined;
     const biomeChangedAtMinutes = typeof biome.biomeChangedAtMinutes === "number" && Number.isFinite(biome.biomeChangedAtMinutes) ? Math.trunc(biome.biomeChangedAtMinutes) : undefined;
     const transitionDurationMinutes = typeof biome.transitionDurationMinutes === "number" && Number.isFinite(biome.transitionDurationMinutes) && biome.transitionDurationMinutes > 0 ? Math.trunc(biome.transitionDurationMinutes) : undefined;
-    maybeCompat.weatherBiome = { currentBiomeId, ...(previousBiomeId ? { previousBiomeId } : {}), ...(biomeChangedAtMinutes !== undefined ? { biomeChangedAtMinutes } : {}), ...(transitionDurationMinutes !== undefined ? { transitionDurationMinutes } : {}) };
+    const disabledBiomeIds = Array.isArray(biome.disabledBiomeIds)
+      ? Array.from(new Set(biome.disabledBiomeIds.filter(isWeatherBiomeId))).filter((id) => id !== currentBiomeId)
+      : undefined;
+    maybeCompat.weatherBiome = {
+      currentBiomeId,
+      ...(previousBiomeId ? { previousBiomeId } : {}),
+      ...(biomeChangedAtMinutes !== undefined ? { biomeChangedAtMinutes } : {}),
+      ...(transitionDurationMinutes !== undefined ? { transitionDurationMinutes } : {}),
+      ...(disabledBiomeIds && disabledBiomeIds.length > 0 ? { disabledBiomeIds } : {})
+    };
   } else if (maybeCompat.weatherBiome !== undefined) {
     delete maybeCompat.weatherBiome;
   }

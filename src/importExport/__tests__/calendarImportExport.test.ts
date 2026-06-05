@@ -775,6 +775,28 @@ describe("calendarImportExport phase17 integrity", () => {
     expect(imported.project.weatherAdvancedSettings).toEqual(project.weatherAdvancedSettings);
   });
 
+  it("sanitizes weather biome availability while preserving valid disabled biomes", () => {
+    const project = createDefaultCalendarProject();
+    const payload: any = {
+      ...project,
+      weatherBiome: {
+        currentBiomeId: "desert",
+        previousBiomeId: "temperate",
+        biomeChangedAtMinutes: 122.8,
+        transitionDurationMinutes: 90,
+        disabledBiomeIds: ["sea", "missing", "sea", "desert"]
+      }
+    };
+
+    const imported = importCalendarProject(JSON.stringify(payload), project);
+
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.weatherBiome?.currentBiomeId).toBe("desert");
+    expect(imported.project.weatherBiome?.disabledBiomeIds).toEqual(["sea"]);
+    expect(imported.project.weatherBiome?.biomeChangedAtMinutes).toBe(122);
+  });
+
   it("keeps import stable with invalid month reference in events", () => {
     const project = createDefaultCalendarProject();
     const payload: any = {

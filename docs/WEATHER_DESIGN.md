@@ -1323,3 +1323,13 @@ Les seuils des `stateConfigs` influencent aussi la classification automatique in
 À la persistance, les réglages avancés restent optionnels : les anciens calendriers sans `weatherAdvancedSettings` n'ont pas besoin d'être migrés en écrivant tous les defaults. Si le champ est présent, import/export et sauvegarde le nettoient avec `sanitizeWeatherAdvancedSettings` pour conserver les overrides valides, les entrées custom propres et supprimer les valeurs invalides (`NaN`, `Infinity`, types incorrects).
 
 L'interface de configuration avancée garde les états et tendances prédéfinis comme base non supprimable : les actions de réinitialisation retirent leurs overrides afin de retrouver les defaults runtime sans gonfler la sauvegarde. Les règles de dominance peuvent, elles, recevoir des règles personnalisées sûres qui ciblent un `WeatherState` existant ; ces règles custom peuvent être supprimées, tandis que les règles prédéfinies ne peuvent qu'être désactivées ou réinitialisées.
+
+## Configuration des biomes météo
+
+La section Paramètres > Biomes météo sert d'outil de réglage de campagne pour le climat de base. Elle rappelle que le biome fournit la base climatique, puis que les saisons, événements météo, overrides MJ et météos de scène peuvent modifier ou remplacer ce climat.
+
+L'écran affiche d'abord le biome courant avec son icône, son nom, sa description et un sélecteur compact. Changer le biome courant conserve la logique de transition existante (`previousBiomeId`, `biomeChangedAtMinutes`, `transitionDurationMinutes`) afin d'éviter une rupture brutale de météo ; une action séparée permet de stabiliser immédiatement la transition si le MJ le souhaite.
+
+Chaque biome prédéfini reste une carte repliable. Le MJ peut y ajuster les profils de température, pluie instantanée, pluie journalière, vent, traits météo et poids d'états météo. Les poids utilisent la liste partagée `WEATHER_STATES` et les libellés/icônes configurés dans la configuration météo avancée, afin que les états renommés ou ré-icônés restent cohérents entre les sections.
+
+Les profils de biomes personnalisés complets ne sont pas encore créés par l'UI. Les actions de réinitialisation retirent seulement les overrides de profils pour retrouver les defaults runtime et éviter de remplir inutilement les sauvegardes. Une disponibilité par biome peut masquer un biome du sélecteur courant sans empêcher les anciennes sauvegardes ou météos forcées de continuer à fonctionner.
