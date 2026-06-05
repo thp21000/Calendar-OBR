@@ -15,7 +15,6 @@ import { formatRainTotal, formatTemperature, formatWindSpeed } from "../../calen
 export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent, onOpenMoonEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void; onOpenMoonEvent?: (eventId: string) => void }) => {
   const dayInternal = calendarDateToAbsoluteDay(dayDetails.date, project.calendarSystem);
   const displayDate = absoluteDayToCalendarDate(dayInternal, project.calendarSystem);
-  const weatherUnits = getWeatherUnitLabels(project.locale);
   return (
   <div style={{ marginTop: 10, border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
     <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
