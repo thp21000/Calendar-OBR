@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getDailyWeatherSummary } from "../weatherDaily";
 import { getWeatherTrendForDay } from "../weatherTrend";
-import { DEFAULT_WEATHER_STATE_CONFIGS, DEFAULT_WEATHER_TREND_CONFIGS, WEATHER_TRENDS, chooseDominantWeatherState, getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherAdvancedSettings, getWeatherStateLabel, getWeatherTrendLabel, normalizeWeatherAdvancedSettings, resolveGeneratedWeatherState } from "../weatherAdvancedSettings";
+import { DEFAULT_WEATHER_STATE_CONFIGS, DEFAULT_WEATHER_TREND_CONFIGS, WEATHER_TRENDS, chooseDominantWeatherState, getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getConfiguredHourlyWeatherState, getConfiguredWeatherState, getWeatherAdvancedSettings, getWeatherStateLabel, getWeatherTrendLabel, normalizeWeatherAdvancedSettings, resolveGeneratedWeatherState } from "../weatherAdvancedSettings";
 import { WEATHER_STATES } from "../weatherStates";
 import { generateWeatherForTime } from "../weatherLogic";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
@@ -49,6 +49,50 @@ describe("weatherAdvancedSettings", () => {
     expect(getWeatherStateLabel(project, "storm", "fr")).toBe("Orage maison");
     expect(getConfiguredWeatherTrendIcon(project, "wet")).toBe("W");
     expect(getWeatherTrendLabel(project, "wet", "en")).toBe("very wet");
+  });
+
+  it("uses configured thresholds for instant automatic classification", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherAdvancedSettings = { stateConfigs: { monsoon: { thresholds: { minRain: 30 } } } };
+
+    expect(getConfiguredWeatherState(project, { temperature: 24, windSpeed: 18, rain: 16 })).toBe("heavyRain");
+  });
+
+  it("falls back when an instant generated state is disabled", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherAdvancedSettings = { stateConfigs: { blizzard: { enabled: false } } };
+
+    expect(["snow", "strongWind"]).toContain(getConfiguredWeatherState(project, { temperature: -8, windSpeed: 52, rain: 2 }));
+  });
+
+  it("uses configured state priority when multiple thresholds match", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherAdvancedSettings = {
+      stateConfigs: {
+        storm: { priority: 1, thresholds: { minRain: 6, minWindSpeed: 40 } },
+        heavyRain: { priority: 200, thresholds: { minRain: 6 } }
+      }
+    };
+
+    expect(getConfiguredWeatherState(project, { temperature: 12, windSpeed: 50, rain: 8 })).toBe("heavyRain");
+  });
+
+  it("uses configured thresholds for hourly states derived from dominant weather", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherAdvancedSettings = { stateConfigs: { monsoon: { thresholds: { minRain: 30 } } } };
+
+    expect(getConfiguredHourlyWeatherState(project, { temperature: 23, windSpeed: 14, rain: 1, dailyRainTotal: 22, dominantState: "monsoon", hour: 13 })).toBe("heavyRain");
+  });
+
+  it("keeps default configured classification close to historical specialized states", () => {
+    const project = createDefaultCalendarProject();
+
+    expect(getConfiguredWeatherState(project, { temperature: -8, windSpeed: 52, rain: 2 })).toBe("blizzard");
+    expect(getConfiguredWeatherState(project, { temperature: 24, windSpeed: 18, rain: 16 })).toBe("monsoon");
+    expect(getConfiguredWeatherState(project, { temperature: 32, windSpeed: 76, rain: 0 })).toBe("sandstorm");
+    expect(getConfiguredWeatherState(project, { temperature: 0, windSpeed: 8, rain: 1.5 })).toBe("snow");
+    expect(getConfiguredWeatherState(project, { temperature: 12, windSpeed: 10, rain: 7 })).toBe("heavyRain");
+    expect(getConfiguredWeatherState(project, { temperature: 18, windSpeed: 50, rain: 0 })).toBe("strongWind");
   });
 
   it("falls back when generated automatic state is disabled", () => {

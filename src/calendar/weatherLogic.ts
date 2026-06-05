@@ -1,6 +1,5 @@
 import { getCurrentSeason } from "./seasonsLogic";
-import { getHourlyWeatherState, getWeatherState } from "./weatherState";
-import { resolveGeneratedWeatherState } from "./weatherAdvancedSettings";
+import { getConfiguredHourlyWeatherState } from "./weatherAdvancedSettings";
 import { getDailyWeatherSummary } from "./weatherDaily";
 import { getAccumulatedRainForTime, getSmoothedRainRateForTime } from "./weatherRain";
 import { getHourlyWindForDay } from "./weatherWind";
@@ -95,16 +94,15 @@ export const generateWeatherForTime = (project: CalendarProject, absoluteDay: nu
   const overriddenWindSpeed = typeof weatherOverride?.windSpeed === "number" ? Math.max(0, weatherOverride.windSpeed) : windSpeed;
   const overriddenRain = typeof weatherOverride?.rain === "number" ? Math.max(0, weatherOverride.rain) : rain;
   const overriddenWindDirection = weatherOverride?.windDirection ?? windDirection;
-  const computedState = getHourlyWeatherState({
+  const computedState = getConfiguredHourlyWeatherState(scopedProject, {
     temperature: overriddenTemperature,
     windSpeed: overriddenWindSpeed,
     rain: overriddenRain,
-    dailyRainTotal: dailySummary?.rainTotal24h,
+    dailyRainTotal: typeof weatherOverride?.dailyRainTotal === "number" ? Math.max(0, weatherOverride.dailyRainTotal) : accumulatedRain,
     dominantState: dailySummary?.dominantState,
     hour: metricTime.hour
   });
-  const generatedState = resolveGeneratedWeatherState(scopedProject, computedState);
-  const overriddenState = weatherOverride?.state ?? generatedState;
+  const overriddenState = weatherOverride?.state ?? computedState;
 
   return {
     temperature: overriddenTemperature,
@@ -187,7 +185,7 @@ export const getForecastWeatherForTime = (
     windSpeed,
     windDirection,
     rain,
-    state: weatherOverride?.state ?? resolveGeneratedWeatherState(project, getWeatherState({ temperature, windSpeed, rain })),
+    state: weatherOverride?.state ?? getConfiguredHourlyWeatherState(project, { temperature, windSpeed, rain, dailyRainTotal, dominantState: realWeather.dominantState, hour: metricTime.hour }),
     dailyMinTemperature,
     dailyMaxTemperature,
     dailyRainTotal,

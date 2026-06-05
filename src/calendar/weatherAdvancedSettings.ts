@@ -1,4 +1,4 @@
-import { getWeatherStateIcon } from "./weatherState";
+import { getHourlyWeatherState, getWeatherState, getWeatherStateIcon, type HourlyWeatherStateInput } from "./weatherState";
 import { WEATHER_STATES } from "./weatherStates";
 import type { CalendarProject, LocaleCode, WeatherAdvancedSettings, WeatherAdvancedThresholds, WeatherDominanceConfig, WeatherState, WeatherStateConfig, WeatherTrendConfig, WeatherTrendKind } from "../domain/types";
 
@@ -20,6 +20,8 @@ export type WeatherDominanceMetrics = {
   precipitationChance: number;
   rainAverage: number;
 };
+
+type WeatherStateThresholdInput = Pick<HourlyWeatherStateInput, "temperature" | "windSpeed" | "rain" | "dailyRainTotal">;
 
 const trendDefaults: Record<WeatherTrendKind, Omit<WeatherTrendConfig, "id" | "enabled">> = {
   cold: { icon: "🧊", label: { fr: "froide", en: "cold" }, temperatureOffset: -3, rainMultiplier: 1.05, windMultiplier: 1, stormChanceModifier: 0, stabilityModifier: 0 },
@@ -55,7 +57,7 @@ const stateThresholds: Partial<Record<WeatherState, WeatherAdvancedThresholds>> 
   blizzard: { maxTemperature: -5, minWindSpeed: 45, minRain: 1 },
   sandstorm: { minTemperature: 18, minWindSpeed: 70, maxRain: 0.5 },
   monsoon: { minRain: 15 },
-  seaFog: { maxWindSpeed: 18, maxRain: 2 },
+  seaFog: {},
   volcanicAsh: {},
   tempest: { minWindSpeed: 70, minRain: 12 },
   storm: { minWindSpeed: 45, minRain: 8 },
@@ -216,6 +218,31 @@ export const getEnabledWeatherStates = (project: CalendarProject): WeatherState[
 export const getEnabledWeatherTrends = (project: CalendarProject): WeatherTrendKind[] =>
   WEATHER_TRENDS.filter((trend) => getWeatherTrendConfig(project, trend)?.enabled !== false);
 
+const hasExplicitStateThresholds = (project: CalendarProject, state: WeatherState): boolean =>
+  hasThresholds(project.weatherAdvancedSettings?.stateConfigs?.[state]?.thresholds);
+
+const stateThresholdMatches = (thresholds: WeatherAdvancedThresholds | undefined, input: WeatherStateThresholdInput): boolean => {
+  if (!thresholds) return false;
+  if (thresholds.minTemperature !== undefined && input.temperature < thresholds.minTemperature) return false;
+  if (thresholds.maxTemperature !== undefined && input.temperature > thresholds.maxTemperature) return false;
+  if (thresholds.minWindSpeed !== undefined && input.windSpeed < thresholds.minWindSpeed) return false;
+  if (thresholds.maxWindSpeed !== undefined && input.windSpeed > thresholds.maxWindSpeed) return false;
+  if (thresholds.minRain !== undefined && input.rain < thresholds.minRain) return false;
+  if (thresholds.maxRain !== undefined && input.rain > thresholds.maxRain) return false;
+  if (thresholds.minDailyRainTotal !== undefined && (input.dailyRainTotal === undefined || input.dailyRainTotal < thresholds.minDailyRainTotal)) return false;
+  if (thresholds.maxDailyRainTotal !== undefined && (input.dailyRainTotal === undefined || input.dailyRainTotal > thresholds.maxDailyRainTotal)) return false;
+  return true;
+};
+
+const chooseConfiguredStateByThresholds = (project: CalendarProject, input: WeatherStateThresholdInput): WeatherState | undefined => {
+  const configs = Object.values(getWeatherAdvancedSettings(project).stateConfigs)
+    .filter((config) => config.enabled !== false && WEATHER_STATES.includes(config.id as WeatherState))
+    .filter((config) => hasThresholds(config.thresholds))
+    .filter((config) => stateThresholdMatches(config.thresholds, input))
+    .sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+  return configs[0]?.id as WeatherState | undefined;
+};
+
 const generatedStateFallbacks: Record<WeatherState, WeatherState[]> = {
   blizzard: ["snow", "strongWind", "overcast"],
   sandstorm: ["strongWind", "overcast"],
@@ -237,6 +264,29 @@ const generatedStateFallbacks: Record<WeatherState, WeatherState[]> = {
 export const resolveGeneratedWeatherState = (project: CalendarProject, state: WeatherState): WeatherState => {
   if (getWeatherStateConfig(project, state).enabled !== false) return state;
   return generatedStateFallbacks[state].find((candidate) => getWeatherStateConfig(project, candidate).enabled !== false) ?? "clear";
+};
+
+const resolveConfiguredHistoricalState = (project: CalendarProject, state: WeatherState, input: WeatherStateThresholdInput): WeatherState => {
+  if (getWeatherStateConfig(project, state).enabled === false) return resolveGeneratedWeatherState(project, state);
+  if (!hasExplicitStateThresholds(project, state) || stateThresholdMatches(getWeatherStateConfig(project, state).thresholds, input)) return state;
+  return generatedStateFallbacks[state].find((candidate) => {
+    if (getWeatherStateConfig(project, candidate).enabled === false) return false;
+    return !hasExplicitStateThresholds(project, candidate) || stateThresholdMatches(getWeatherStateConfig(project, candidate).thresholds, input);
+  }) ?? "clear";
+};
+
+export const getConfiguredWeatherState = (project: CalendarProject, snapshot: WeatherStateThresholdInput): WeatherState => {
+  const configured = chooseConfiguredStateByThresholds(project, snapshot);
+  if (configured) return resolveGeneratedWeatherState(project, configured);
+  return resolveConfiguredHistoricalState(project, getWeatherState(snapshot), snapshot);
+};
+
+export const getConfiguredHourlyWeatherState = (project: CalendarProject, input: HourlyWeatherStateInput): WeatherState => {
+  const configured = chooseConfiguredStateByThresholds(project, input);
+  if (configured && (["blizzard", "monsoon", "sandstorm"].includes(configured) || input.rain >= 6 || input.windSpeed >= 45)) {
+    return resolveGeneratedWeatherState(project, configured);
+  }
+  return resolveConfiguredHistoricalState(project, getHourlyWeatherState(input), input);
 };
 
 const isDominanceStateEnabled = (project: CalendarProject, state: WeatherState): boolean => {

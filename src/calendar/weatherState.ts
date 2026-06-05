@@ -42,7 +42,7 @@ export const getWeatherStateIcon = (state: WeatherState): string => {
   }
 };
 
-type HourlyWeatherStateInput = Pick<WeatherSnapshot, "temperature" | "windSpeed" | "rain"> & {
+export type HourlyWeatherStateInput = Pick<WeatherSnapshot, "temperature" | "windSpeed" | "rain"> & {
   dailyRainTotal?: number;
   dominantState?: WeatherState;
   hour?: number;
