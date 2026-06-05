@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getDailyWeatherSummary } from "../weatherDaily";
 import { getWeatherTrendForDay } from "../weatherTrend";
 import { DEFAULT_WEATHER_STATE_CONFIGS, DEFAULT_WEATHER_TREND_CONFIGS, WEATHER_TRENDS, chooseDominantWeatherState, getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherAdvancedSettings, getWeatherStateLabel, getWeatherTrendLabel, normalizeWeatherAdvancedSettings, resolveGeneratedWeatherState } from "../weatherAdvancedSettings";
 import { WEATHER_STATES } from "../weatherStates";
@@ -70,6 +71,36 @@ describe("weatherAdvancedSettings", () => {
       rainAverage: 6
     });
     expect(state).not.toBe("monsoon");
+  });
+
+  it("does not let hardcoded daily dominance fallback select a disabled dominance rule", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];
+    project.weatherBiomeProfiles = {
+      temperate: {
+        temperature: { min: 22, average: 26, max: 32 },
+        rain: { min: 20, average: 20, max: 20 },
+        dailyRain: { min: 80, average: 80, max: 80 },
+        windSpeed: { min: 5, average: 12, max: 20 },
+        traits: { stability: 0.6, precipitationChance: 1, fogChance: 0.1, stormChance: 0.4, dayNightAmplitude: 4, windVariability: 0.2 },
+        stateWeights: {}
+      }
+    };
+    project.weatherAdvancedSettings = { dominanceConfigs: { monsoon: { enabled: false } } };
+
+    const summary = getDailyWeatherSummary(project, 3);
+
+    expect(summary?.dominantState).not.toBe("monsoon");
+    expect(summary?.dominantState).toBe("heavyRain");
+  });
+
+  it("keeps forced override state when only its dominance rule is disabled", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];
+    project.weatherAdvancedSettings = { dominanceConfigs: { monsoon: { enabled: false } } };
+    project.weatherOverrides = [{ id: "force-monsoon", absoluteDay: 3, state: "monsoon" }];
+
+    expect(generateWeatherForTime(project, 3, 12)?.state).toBe("monsoon");
   });
 
   it("keeps forced override state even if disabled", () => {

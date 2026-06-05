@@ -216,26 +216,40 @@ export const getEnabledWeatherStates = (project: CalendarProject): WeatherState[
 export const getEnabledWeatherTrends = (project: CalendarProject): WeatherTrendKind[] =>
   WEATHER_TRENDS.filter((trend) => getWeatherTrendConfig(project, trend)?.enabled !== false);
 
+const generatedStateFallbacks: Record<WeatherState, WeatherState[]> = {
+  blizzard: ["snow", "strongWind", "overcast"],
+  sandstorm: ["strongWind", "overcast"],
+  monsoon: ["heavyRain", "overcast"],
+  seaFog: ["fog", "cloudy"],
+  volcanicAsh: ["overcast"],
+  tempest: ["storm", "strongWind", "overcast"],
+  storm: ["heavyRain", "strongWind", "overcast"],
+  snow: ["overcast", "cloudy"],
+  strongWind: ["overcast", "cloudy"],
+  heavyRain: ["lightRain", "overcast"],
+  lightRain: ["cloudy", "overcast"],
+  fog: ["cloudy", "overcast"],
+  overcast: ["cloudy", "clear"],
+  cloudy: ["clear"],
+  clear: ["cloudy"]
+};
+
 export const resolveGeneratedWeatherState = (project: CalendarProject, state: WeatherState): WeatherState => {
   if (getWeatherStateConfig(project, state).enabled !== false) return state;
-  const fallback: Record<WeatherState, WeatherState[]> = {
-    blizzard: ["snow", "strongWind", "overcast"],
-    sandstorm: ["strongWind", "overcast"],
-    monsoon: ["heavyRain", "overcast"],
-    seaFog: ["fog", "cloudy"],
-    volcanicAsh: ["overcast"],
-    tempest: ["storm", "strongWind", "overcast"],
-    storm: ["heavyRain", "strongWind", "overcast"],
-    snow: ["overcast", "cloudy"],
-    strongWind: ["overcast", "cloudy"],
-    heavyRain: ["lightRain", "overcast"],
-    lightRain: ["cloudy", "overcast"],
-    fog: ["cloudy", "overcast"],
-    overcast: ["cloudy", "clear"],
-    cloudy: ["clear"],
-    clear: ["cloudy"]
-  };
-  return fallback[state].find((candidate) => getWeatherStateConfig(project, candidate).enabled !== false) ?? "clear";
+  return generatedStateFallbacks[state].find((candidate) => getWeatherStateConfig(project, candidate).enabled !== false) ?? "clear";
+};
+
+const isDominanceStateEnabled = (project: CalendarProject, state: WeatherState): boolean => {
+  const rules = Object.values(getWeatherAdvancedSettings(project).dominanceConfigs)
+    .filter((rule) => rule.id === state || rule.stateId === state);
+  return rules.length === 0 || rules.some((rule) => rule.enabled !== false);
+};
+
+export const resolveGeneratedDominantState = (project: CalendarProject, state: WeatherState): WeatherState => {
+  const candidates = [state, ...generatedStateFallbacks[state]];
+  return candidates.find((candidate) =>
+    getWeatherStateConfig(project, candidate).enabled !== false && isDominanceStateEnabled(project, candidate)
+  ) ?? resolveGeneratedWeatherState(project, "clear");
 };
 
 const hasThresholds = (thresholds: WeatherAdvancedThresholds | undefined): boolean => Boolean(thresholds && Object.values(thresholds).some((value) => typeof value === "number" && Number.isFinite(value)));

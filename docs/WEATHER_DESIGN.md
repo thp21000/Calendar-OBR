@@ -1315,3 +1315,5 @@ Les réglages avancés fusionnent les defaults internes avec les overrides du pr
 - `dominanceConfigs` permet d'activer/désactiver ou d'ajuster les seuils de dominance automatique.
 
 Les overrides MJ, événements météo et météos de scène qui forcent explicitement un état continuent de l'afficher même si l'état est désactivé pour la génération automatique. En revanche, la génération automatique évite les états désactivés et utilise un fallback proche (`blizzard` vers `snow`, `monsoon` vers `heavyRain`, etc.).
+
+Les règles de dominance désactivées sont également respectées lors du fallback historique : si `monsoon` est désactivé dans `dominanceConfigs`, le résumé journalier automatique ne peut pas retomber sur `monsoon` via l'ancienne règle codée en dur et choisit un état voisin autorisé.
