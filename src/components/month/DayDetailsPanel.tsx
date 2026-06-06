@@ -122,7 +122,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                   onClick={(clickEvent) => {
                     clickEvent.stopPropagation();
                     sendPopupNotification({
-                      type: "event",
+                      type: "moon",
                       audience: "players",
                       title: event.name,
                       body: event.playerDescription?.trim() || event.summary || event.name,

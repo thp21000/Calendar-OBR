@@ -14,6 +14,7 @@ import {
 } from "../calendar/weatherEventsLogic";
 import { getCurrentWeather, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
+import { notificationToPopupPayload, sendPopupNotification } from "../obr/popupNotifications";
 import type { CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import { TodayEventsCard } from "./today/TodayEventsCard";
@@ -134,6 +135,9 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         ...createNotificationsFromTriggers(triggered, triggeredWeather.filter((w) => w.notifyOnTrigger !== false), triggeredMoon.filter((m) => m.notifyOnTrigger), nextTime),
         ...createReminderNotifications(reminderEvents, nextTime)
       ].filter((item) => !dismissed.has(item.id));
+      for (const notification of created) {
+        void sendPopupNotification(notificationToPopupPayload(project, notification, nextTime));
+      }
       setNotifications((prev) => {
         const merged = new Map<string, CalendarNotification>();
         [...prev, ...created].forEach((item) => {

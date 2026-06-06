@@ -74,7 +74,7 @@ export const MoonEventDetailsPopup = ({ project, event, onClose, contextDateLabe
               type="button"
               onClick={() =>
                 sendPopupNotification({
-                  type: "event",
+                  type: "moon",
                   audience: "players",
                   title: event.name,
                   body: event.playerDescription?.trim() || event.summary || event.name,

@@ -28,6 +28,7 @@ import {
 import { useObrPopoverHeight } from "./obr/useObrPopoverHeight";
 import { useObrTheme } from "./obr/useObrTheme";
 import { SceneWeatherModalView } from "./components/SceneWeatherManagementPopup";
+import { NotificationModalView } from "./components/notifications/NotificationModalView";
 
 export const App = () => {
   const [scope, setScope] = useState<StorageScope | null>(null);
@@ -43,7 +44,7 @@ export const App = () => {
   const revisionRef = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
   const modalView = new URLSearchParams(window.location.search).get("view");
-  const isModalView = modalView === "scene-weather" || modalView === "scene-weather-confirm";
+  const isModalView = modalView === "scene-weather" || modalView === "scene-weather-confirm" || modalView === "notification";
 
   useObrPopoverHeight({ containerRef: contentRef, minHeight: 220, maxHeight: 700, padding: 20, disabled: isModalView });
   useObrTheme();
@@ -126,6 +127,7 @@ export const App = () => {
   };
 
   if (isModalView) {
+    if (modalView === "notification") return <NotificationModalView project={project} />;
     if (viewerRole !== "gm") {
       return <main><div ref={contentRef} style={appShellStyle}><SectionCard><EmptyState text={t(project.locale, "sceneWeather.gmOnly")} /></SectionCard></div></main>;
     }
