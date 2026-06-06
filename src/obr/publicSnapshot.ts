@@ -28,6 +28,7 @@ export type PublicCalendarEventSnapshot = {
   icon?: string;
   summary?: string;
   playerDescription?: string;
+  link?: string;
   timeLabel: string;
 };
 
@@ -158,6 +159,7 @@ export const createPublicCalendarTodaySnapshot = (
       icon: event.icon,
       summary: event.summary || undefined,
       playerDescription: event.playerDescription || undefined,
+      link: event.link || undefined,
       timeLabel: formatEventTimeShort(project, event)
       })),
     weatherEventsToday: visibleWeatherEvents.map((event) => ({

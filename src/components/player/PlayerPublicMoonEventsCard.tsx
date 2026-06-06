@@ -1,19 +1,18 @@
+import type { LocaleCode } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { EmptyState, SectionCard, SectionHeader } from "../ui";
 import type { PublicEventDetails } from "./PublicEventDetailsPopup";
+import { PlayerPublicEventButton } from "./PlayerPublicEventsCard";
 
-export const PlayerPublicMoonEventsCard = ({ locale, events, onSelectEvent }: { locale: "fr" | "en"; events: PublicEventDetails[]; onSelectEvent: (event: PublicEventDetails) => void }) => (
-  <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginTop: 10 }}>
-    <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(locale, "player.moonEventsToday")}</div>
+export const PlayerPublicMoonEventsCard = ({ locale, events, onSelectEvent }: { locale: LocaleCode; events: PublicEventDetails[]; onSelectEvent: (event: PublicEventDetails) => void }) => (
+  <SectionCard>
+    <SectionHeader title={t(locale, "player.publicMoonEvents")} />
     {events.length === 0 ? (
-      <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(locale, "player.noMoonEvents")}</div>
+      <EmptyState text={t(locale, "player.noPublicMoonEvents")} />
     ) : (
-      events.map((event) => (
-        <button key={event.id} type="button" onClick={() => onSelectEvent(event)} style={{ width: "100%", textAlign: "left", border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827", cursor: "pointer", marginBottom: 4, fontSize: 12 }}>
-          {event.icon ?? "🌕"} <strong>{event.name}</strong>
-          {event.subtitle ? ` · ${event.subtitle}` : ""}
-          {event.summary ? ` — ${event.summary}` : ""}
-        </button>
-      ))
+      <div style={{ display: "grid", gap: 6 }}>
+        {events.map((event) => <PlayerPublicEventButton key={event.id} event={event} onSelectEvent={onSelectEvent} />)}
+      </div>
     )}
-  </div>
+  </SectionCard>
 );

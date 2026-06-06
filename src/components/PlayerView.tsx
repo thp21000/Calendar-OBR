@@ -1,188 +1,43 @@
-import { useState } from "react";
-import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
-import { getPlayerVisibleEventsForCurrentDay } from "../calendar/eventsLogic";
-import { formatDisplayDate } from "../calendar/formatDisplayDate";
-import { formatEventTimeShort } from "../calendar/formatEvent";
-import { getPlayerVisibleDayNotesForDay } from "../calendar/dayNotesLogic";
-import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
-import { getCurrentMoonPhases } from "../calendar/moonLogic";
-import { getCurrentSeason } from "../calendar/seasonsLogic";
-import { getCurrentWeather } from "../calendar/weatherLogic";
-import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
-import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
-import { getConfiguredWeatherStateIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../calendar/weatherAdvancedSettings";
-import { formatRainTotal, formatTemperature, formatWindSpeed, formatRain } from "../calendar/weatherUnits";
+import { useMemo, useState } from "react";
 import type { CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import type { PublicCalendarTodaySnapshot } from "../obr/publicSnapshot";
 import type { PublicEventDetails } from "./player/PublicEventDetailsPopup";
 import { PublicEventDetailsPopup } from "./player/PublicEventDetailsPopup";
+import { PlayerHeaderCard } from "./player/PlayerHeaderCard";
 import { PlayerDayNotesCard } from "./player/PlayerDayNotesCard";
 import { PlayerOverviewCard } from "./player/PlayerOverviewCard";
 import { PlayerPublicEventsCard } from "./player/PlayerPublicEventsCard";
 import { PlayerPublicMoonEventsCard } from "./player/PlayerPublicMoonEventsCard";
+import { PlayerWeatherCard } from "./player/PlayerWeatherCard";
+import { buildPlayerViewModelFromProject, buildPlayerViewModelFromSnapshot } from "./player/playerViewModel";
 
 export const PlayerView = ({ project, snapshot }: { project: CalendarProject; snapshot?: PublicCalendarTodaySnapshot | null }) => {
   const [selectedPublicEvent, setSelectedPublicEvent] = useState<PublicEventDetails | null>(null);
-
-  if (snapshot) {
-    const weatherLabel = snapshot.weather
-      ? `${getConfiguredWeatherStateIcon(project, snapshot.weather.state ?? "clear")} ${getWeatherStateLabel(project, snapshot.weather.state ?? "clear", snapshot.locale)} · ${snapshot.weather.temperature} ${snapshot.weather.units.temperature}`
-      : t(snapshot.locale, "calendar.noWeather");
-
-    const publicEvents: PublicEventDetails[] = snapshot.eventsToday.map((event) => ({ ...event }));
-    const publicWeatherEvents: PublicEventDetails[] = (snapshot.weatherEventsToday ?? []).map((event) => ({
-      id: event.id,
-      name: event.name,
-      icon: event.icon,
-      summary: event.summary || undefined,
-      playerDescription: event.playerDescription || undefined,
-      link: event.link || undefined
-    }));
-
-    const publicMoonEvents: PublicEventDetails[] = snapshot.moonEventsToday.map((event) => ({
-      id: event.id,
-      name: event.name,
-      icon: event.icon,
-      summary: event.summary || undefined,
-      playerDescription: event.playerDescription || undefined,
-      subtitle: `${event.moonName} · ${t(snapshot.locale, `moon.phase.${event.phaseId}`)}`
-    }));
-
+  const model = useMemo(
+    () => snapshot ? buildPlayerViewModelFromSnapshot(project, snapshot) : buildPlayerViewModelFromProject(project),
+    [project, snapshot]
+  );
+  
     return (
       <>
-        <div style={{ marginBottom: 8, fontWeight: 700 }}>{snapshot.calendarName}</div>
-        <div style={{ marginBottom: 10, fontSize: 14, fontWeight: 700 }}>{snapshot.formattedDate}</div>
-        <div style={{ marginBottom: 10, fontSize: 12, color: "#93c5fd" }}>{t(snapshot.locale, "player.readOnly")}</div>
-
-        <PlayerOverviewCard
-          locale={snapshot.locale}
-          seasonName={snapshot.season?.name}
-          seasonIcon={snapshot.season?.icon}
-          weatherLabel={weatherLabel}
-          moons={snapshot.moons.map((m) => ({ id: `${m.name}:${m.phaseId}`, text: `${m.icon} ${m.name} — ${t(snapshot.locale, `moon.phase.${m.phaseId}`)}` }))}
+        <PlayerHeaderCard locale={model.locale} calendarName={model.calendarName} formattedDate={model.formattedDate} />
+      <PlayerOverviewCard locale={model.locale} model={model} />
+      <PlayerWeatherCard locale={model.locale} model={model} />
+      <PlayerPublicEventsCard locale={model.locale} events={model.events} onSelectEvent={setSelectedPublicEvent} />
+      {model.weatherEvents.length > 0 ? (
+        <PlayerPublicEventsCard
+          locale={model.locale}
+          title={t(model.locale, "player.publicWeatherEvents")}
+          emptyText={t(model.locale, "player.noPublicWeatherEvents")}
+          events={model.weatherEvents}
+          onSelectEvent={setSelectedPublicEvent}
         />
-        <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-          {snapshot.weatherBiome.icon} {snapshot.weatherBiome.name}: {snapshot.weatherBiome.description}
-        </div>
-        {snapshot.weather?.dailyMinTemperature !== undefined && snapshot.weather?.dailyMaxTemperature !== undefined ? (
-          <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-            {t(snapshot.locale, "weather.dailyMinMax")}: {snapshot.weather.dailyMinTemperature} / {snapshot.weather.dailyMaxTemperature} {snapshot.weather.units.temperature}
-          </div>
-        ) : null}
-        {snapshot.weather?.dailyRainTotal !== undefined ? (
-          <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-            {t(snapshot.locale, "weather.rainAccumulation")}: {snapshot.weather.dailyRainTotal} {snapshot.weather.units.rainTotal}
-          </div>
-        ) : null}
-        {snapshot.weather?.trendKind ? (
-          <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-            {t(snapshot.locale, "weather.trend")}: {getWeatherTrendLabel(project, snapshot.weather.trendKind, snapshot.locale)}
-          </div>
-        ) : null}
-        {snapshot.weather?.dominantState ? (
-          <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 6 }}>
-            {t(snapshot.locale, "weather.dominantState")}: {getConfiguredWeatherStateIcon(project, snapshot.weather.dominantState)} {getWeatherStateLabel(project, snapshot.weather.dominantState, snapshot.locale)}
-          </div>
-        ) : null}
-
-        <PlayerPublicEventsCard locale={snapshot.locale} events={publicEvents} onSelectEvent={setSelectedPublicEvent} />
-        {publicWeatherEvents.length > 0 ? <PlayerPublicEventsCard locale={snapshot.locale} title={t(snapshot.locale, "calendar.weatherEvents")} events={publicWeatherEvents} onSelectEvent={setSelectedPublicEvent} /> : null}
-        <PlayerPublicMoonEventsCard locale={snapshot.locale} events={publicMoonEvents} onSelectEvent={setSelectedPublicEvent} />
-        <PlayerDayNotesCard locale={snapshot.locale} notes={snapshot.dayNotesToday} />
-
-        {selectedPublicEvent ? <PublicEventDetailsPopup locale={snapshot.locale} event={selectedPublicEvent} onClose={() => setSelectedPublicEvent(null)} /> : null}
-      </>
-    );
-  }
-
-  const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
-  const visibleEvents = getPlayerVisibleEventsForCurrentDay(project);
-  const currentSeason = getCurrentSeason(project);
-  const currentWeather = getCurrentWeather(project);
-  const currentBiome = getCurrentWeatherBiomeDefinition(project);
-  const currentMoonPhases = getCurrentMoonPhases(project);
-  const visibleWeatherEvents = currentWeather ? getPlayerVisibleWeatherEvents(project, currentWeather, project.currentTime) : [];
-  const visibleMoonEvents = getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay);
-  const visibleDayNotes = getPlayerVisibleDayNotesForDay(project, displayDate);
-
-  const weatherLabel = currentWeather
-    ? `${getConfiguredWeatherStateIcon(project, currentWeather.state ?? "clear")} ${getWeatherStateLabel(project, currentWeather.state ?? "clear")} · ${formatTemperature(currentWeather.temperature, project.units, project.locale)} · ${t(project.locale, "calendar.wind")} ${currentWeather.windDirection} ${formatWindSpeed(currentWeather.windSpeed, project.units, project.locale)} · ${t(project.locale, "calendar.rain")} ${formatRain(currentWeather.rain, project.units, project.locale)}`
-    : t(project.locale, "calendar.noWeather");
-
-  const publicEvents: PublicEventDetails[] = visibleEvents.map((event) => ({
-    id: event.id,
-    name: event.name,
-    icon: event.icon,
-    summary: event.summary || undefined,
-    playerDescription: event.playerDescription || undefined,
-    timeLabel: formatEventTimeShort(project, event)
-  }));
-
-  const publicWeatherEvents: PublicEventDetails[] = visibleWeatherEvents.map((event) => ({
-    id: event.id,
-    name: event.name,
-    icon: event.icon,
-    summary: event.summary || undefined,
-    playerDescription: event.playerDescription || undefined,
-    link: event.link || undefined
-  }));
-
-  const publicMoonEvents: PublicEventDetails[] = visibleMoonEvents.map((event) => {
-    const moon = project.moons.find((m) => m.id === event.moonId);
-    return {
-      id: event.id,
-      name: event.name,
-      icon: event.icon,
-      summary: event.summary || undefined,
-      playerDescription: event.playerDescription || undefined,
-      subtitle: `${moon?.name ?? "?"} · ${t(project.locale, `moon.phase.${event.phaseId}`)}`
-    };
-  });
-
-  return (
-    <>
-      <div style={{ marginBottom: 8, fontWeight: 700 }}>{project.name}</div>
-      <div style={{ marginBottom: 10, fontSize: 14, fontWeight: 700 }}>{formatDisplayDate(displayDate, project.locale, project.uiSettings.dateFormat, project.uiSettings.timeFormat)}</div>
-      <div style={{ marginBottom: 10, fontSize: 12, color: "#93c5fd" }}>{t(project.locale, "player.readOnly")}</div>
-
-      <PlayerOverviewCard
-        locale={project.locale}
-        seasonName={currentSeason?.name}
-        seasonIcon={currentSeason?.icon}
-        weatherLabel={weatherLabel}
-        moons={currentMoonPhases.map(({ moon, phase }) => ({ id: moon.id, text: `${phase.icon} ${moon.name} — ${t(project.locale, `moon.phase.${phase.id}`)}` }))}
-      />
-      <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-        {currentBiome.icon} {t(project.locale, currentBiome.nameKey)}: {t(project.locale, currentBiome.descriptionKey)}
-      </div>
-      {currentWeather?.dailyMinTemperature !== undefined && currentWeather?.dailyMaxTemperature !== undefined ? (
-        <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-          {t(project.locale, "weather.dailyMinMax")}: {formatTemperature(currentWeather.dailyMinTemperature, project.units, project.locale)} / {formatTemperature(currentWeather.dailyMaxTemperature, project.units, project.locale)}
-        </div>
       ) : null}
-      {currentWeather?.dailyRainTotal !== undefined ? (
-        <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-          {t(project.locale, "weather.rainAccumulation")}: {formatRainTotal(currentWeather.dailyRainTotal, project.units, project.locale)}
-        </div>
-      ) : null}
-      {currentWeather?.trendKind ? (
-        <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 4 }}>
-          {t(project.locale, "weather.trend")}: {getWeatherTrendLabel(project, currentWeather.trendKind)}
-        </div>
-      ) : null}
-      {currentWeather?.dominantState ? (
-        <div style={{ fontSize: 12, color: "#d1d5db", marginBottom: 6 }}>
-          {t(project.locale, "weather.dominantState")}: {getConfiguredWeatherStateIcon(project, currentWeather.dominantState)} {getWeatherStateLabel(project, currentWeather.dominantState)}
-        </div>
-      ) : null}
+      <PlayerPublicMoonEventsCard locale={model.locale} events={model.moonEvents} onSelectEvent={setSelectedPublicEvent} />
+      <PlayerDayNotesCard locale={model.locale} notes={model.dayNotes} />
 
-      <PlayerPublicEventsCard locale={project.locale} events={publicEvents} onSelectEvent={setSelectedPublicEvent} />
-      {publicWeatherEvents.length > 0 ? <PlayerPublicEventsCard locale={project.locale} title={t(project.locale, "calendar.weatherEvents")} events={publicWeatherEvents} onSelectEvent={setSelectedPublicEvent} /> : null}
-      <PlayerPublicMoonEventsCard locale={project.locale} events={publicMoonEvents} onSelectEvent={setSelectedPublicEvent} />
-      <PlayerDayNotesCard locale={project.locale} notes={visibleDayNotes.map((n) => ({ id: n.id, playerNote: n.playerNote }))} />
-
-      {selectedPublicEvent ? <PublicEventDetailsPopup locale={project.locale} event={selectedPublicEvent} onClose={() => setSelectedPublicEvent(null)} /> : null}
+      {selectedPublicEvent ? <PublicEventDetailsPopup locale={model.locale} event={selectedPublicEvent} onClose={() => setSelectedPublicEvent(null)} /> : null}
     </>
   );
 };

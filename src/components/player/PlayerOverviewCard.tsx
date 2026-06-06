@@ -1,18 +1,28 @@
+import type { LocaleCode } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { EmptyState, SectionCard, SectionHeader } from "../ui";
+import type { PlayerViewModel } from "./playerViewModel";
 
-type MoonRow = { id: string; text: string };
-
-export const PlayerOverviewCard = ({ locale, seasonName, seasonIcon, weatherLabel, moons }: { locale: "fr" | "en"; seasonName?: string; seasonIcon?: string; weatherLabel: string; moons: MoonRow[] }) => (
-  <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 10 }}>
-    <div><strong>{t(locale, "calendar.season")}:</strong> {seasonName ? `${seasonIcon ?? ""}${seasonIcon ? " " : ""}${seasonName}` : t(locale, "calendar.noSeason")}</div>
-    <div><strong>{t(locale, "calendar.weather")}:</strong> {weatherLabel}</div>
-    <div style={{ marginTop: 6 }}>
-      <strong>{t(locale, "calendar.moons")}:</strong>
-      {moons.length === 0 ? (
-        <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(locale, "calendar.noMoon")}</div>
-      ) : (
-        moons.map((m) => <div key={m.id}>{m.text}</div>)
-      )}
+export const PlayerOverviewCard = ({ locale, model }: { locale: LocaleCode; model: Pick<PlayerViewModel, "season" | "biome" | "weather" | "moons"> }) => (
+  <SectionCard>
+    <SectionHeader title={t(locale, "player.todaySummary")} />
+    <div style={{ display: "grid", gap: 8 }}>
+      <SummaryLine label={t(locale, "calendar.season")} value={model.season ? `${model.season.icon ?? ""}${model.season.icon ? " " : ""}${model.season.name}` : t(locale, "calendar.noSeason")} />
+      <SummaryLine label={t(locale, "player.currentBiome")} value={model.biome ? `${model.biome.icon} ${model.biome.name}` : "—"} />
+      <SummaryLine label={t(locale, "calendar.weather")} value={model.weather ? `${model.weather.stateIcon} ${model.weather.stateLabel} · ${model.weather.temperature}` : t(locale, "calendar.noWeather")} />
+      <div>
+        <div style={{ color: "#9ca3af", fontSize: 11, marginBottom: 3 }}>{t(locale, "calendar.moons")}</div>
+        {model.moons.length === 0 ? <EmptyState text={t(locale, "calendar.noMoon")} /> : <div style={{ display: "grid", gap: 4 }}>
+          {model.moons.map((moon) => <div key={moon.id} style={{ fontSize: 12, color: "#e5e7eb" }}>{moon.icon} {moon.name} — {moon.phaseLabel}</div>)}
+        </div>}
+      </div>
     </div>
+  </SectionCard>
+);
+
+const SummaryLine = ({ label, value }: { label: string; value: string }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12 }}>
+    <span style={{ color: "#9ca3af" }}>{label}</span>
+    <span style={{ color: "#e5e7eb", textAlign: "right", fontWeight: 700 }}>{value}</span>
   </div>
 );

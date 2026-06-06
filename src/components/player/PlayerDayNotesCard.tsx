@@ -1,8 +1,12 @@
+import type { LocaleCode } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { EmptyState, SectionCard, SectionHeader } from "../ui";
 
-export const PlayerDayNotesCard = ({ locale, notes }: { locale: "fr" | "en"; notes: Array<{ id: string; playerNote?: string }> }) => (
-  <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginTop: 10 }}>
-    <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(locale, "player.dayNotes")}</div>
-    {notes.length === 0 ? <div style={{ color: "#9ca3af", fontSize: 12 }}>{t(locale, "player.noDayNotes")}</div> : notes.map((n) => <div key={n.id} style={{ fontSize: 12 }}>{n.playerNote}</div>)}
-  </div>
+export const PlayerDayNotesCard = ({ locale, notes }: { locale: LocaleCode; notes: Array<{ id: string; playerNote?: string }> }) => (
+  <SectionCard>
+    <SectionHeader title={t(locale, "player.dayNotes")} />
+    {notes.length === 0 ? <EmptyState text={t(locale, "player.noDayNotes")} /> : <div style={{ display: "grid", gap: 6 }}>
+      {notes.map((note) => <div key={note.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", fontSize: 12, color: "#e5e7eb", whiteSpace: "pre-wrap" }}>{note.playerNote}</div>)}
+    </div>}
+  </SectionCard>
 );
