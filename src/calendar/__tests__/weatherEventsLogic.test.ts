@@ -7,6 +7,7 @@ import {
   deleteWeatherCondition,
   deleteWeatherEvent,
   getTriggeredWeatherEvents,
+  getCurrentlyMatchingWeatherEvents,
   getNewlyTriggeredWeatherEventsBetween,
   getActiveWeatherEventsWithDuration,
   getPlayerVisibleWeatherEvents,
@@ -524,6 +525,39 @@ it("événement désactivé non déclenché", () => {
     expect(isWithinCooldownWindow(60, 120, 1)).toBe(false);
   });
 
+  it("retourne les événements informatifs dont les conditions actuelles matchent", () => {
+    const project = buildProject([
+      { ...createDefaultWeatherEvent("fr"), id: "info-now", kind: "informational", conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
+    ]);
+    const matching = getCurrentlyMatchingWeatherEvents(project, weather, project.currentTime);
+    expect(matching.map((event) => event.id)).toEqual(["info-now"]);
+  });
+
+  it("retourne les effets météo dont les conditions actuelles matchent", () => {
+    const project = buildProject([
+      { ...createDefaultWeatherEvent("fr"), id: "effect-now", kind: "weatherEffect", conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
+    ]);
+    const matching = getCurrentlyMatchingWeatherEvents(project, weather, project.currentTime);
+    expect(matching.map((event) => event.id)).toEqual(["effect-now"]);
+  });
+
+  it("n'affiche pas un effet météo comme alerte actuelle si ses conditions ne matchent plus", () => {
+    const project = buildProject([
+      { ...createDefaultWeatherEvent("fr"), id: "effect-old", kind: "weatherEffect", durationHours: 2, conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
+    ]);
+    const matching = getCurrentlyMatchingWeatherEvents(project, { ...weather, temperature: 5 }, project.currentTime);
+    expect(matching).toEqual([]);
+  });
+
+  it("n'affiche jamais les événements météo archived ou disabled comme alertes actuelles", () => {
+    const project = buildProject([
+      { ...createDefaultWeatherEvent("fr"), id: "archived", status: "archived", conditions: [{ metric: "temperature", operator: "gte", value: 35 }] },
+      { ...createDefaultWeatherEvent("fr"), id: "disabled-status", status: "disabled", conditions: [{ metric: "temperature", operator: "gte", value: 35 }] },
+      { ...createDefaultWeatherEvent("fr"), id: "disabled-flag", enabled: false, conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
+    ]);
+    expect(getCurrentlyMatchingWeatherEvents(project, weather, project.currentTime)).toEqual([]);
+  });
+
   it("garde un effet météo actif pendant durationHours même si la météo ne matche plus", () => {
     const project = buildProject([
       { ...createDefaultWeatherEvent("fr"), id: "dur-active", kind: "weatherEffect", durationHours: 2, conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
@@ -597,6 +631,25 @@ it("événement désactivé non déclenché", () => {
     const event = { ...createDefaultWeatherEvent("fr"), id: "d", enabled: false, visibility: "players" as const, conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 30 }] };
     const project = buildProject([event]);
     expect(getPlayerVisibleWeatherEvents(project, weather, project.currentTime)).toEqual([]);
+  });
+
+  it("visibility players ne voit pas un effet météo dont les conditions actuelles sont fausses même si sa durée est active", () => {
+    const event = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "player-old-effect",
+      kind: "weatherEffect" as const,
+      visibility: "players" as const,
+      durationHours: 2,
+      conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 35 }]
+    };
+    const project = buildProject([event]);
+    const visible = getPlayerVisibleWeatherEvents(
+      project,
+      { ...weather, temperature: 5 },
+      { absoluteDay: 0, hour: 12, minute: 0 },
+      { "player-old-effect": toAbsoluteMinutes({ absoluteDay: 0, hour: 11, minute: 0 }) }
+    );
+    expect(visible).toEqual([]);
   });
 
   it("retour public météo n'expose pas les champs MJ/internes", () => {

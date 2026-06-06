@@ -7,7 +7,7 @@ import * as moonLogic from "../calendar/moonLogic";
 import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import {
-  getActiveWeatherEventsWithDuration,
+  getCurrentlyMatchingWeatherEvents,
   getNewlyTriggeredWeatherEventsBetween,
   applyWeatherEventTriggerActions,
   toAbsoluteMinutes
@@ -75,7 +75,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
   const triggeredWeatherEvents = currentWeather
-    ? getActiveWeatherEventsWithDuration(project, currentWeather, project.currentTime, lastTriggeredAtMinutesRef.current)
+    ? getCurrentlyMatchingWeatherEvents(project, currentWeather, project.currentTime)
     : [];
   const currentMoonPhases = moonLogic.getCurrentMoonPhases(project);
   const triggeredMoonEvents = getTriggeredMoonEvents(project, project.currentTime.absoluteDay);

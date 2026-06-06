@@ -86,6 +86,17 @@ export const getTriggeredWeatherEvents = (
 ): WeatherEvent[] =>
   project.weatherEvents.filter((event) => isWeatherEventTriggered(weather, event, { project, time: project.currentTime }));
 
+export const getCurrentlyMatchingWeatherEvents = (
+  project: CalendarProject,
+  weather: WeatherSnapshot,
+  currentTime: InternalTime
+): WeatherEvent[] =>
+  project.weatherEvents.filter((event) => {
+    const status = event.status ?? "active";
+    if (event.enabled === false || status === "archived" || status === "disabled") return false;
+    return isWeatherEventTriggered(weather, event, { project, time: currentTime });
+  });
+
 export const getActiveWeatherEventsWithDuration = (
   project: CalendarProject,
   weather: WeatherSnapshot,
@@ -297,7 +308,8 @@ export const getPlayerVisibleWeatherEvents = (
   currentTime: InternalTime,
   lastTriggeredAtMinutesByEventId?: Record<string, number>
 ): PlayerVisibleWeatherEvent[] => {
-  const activeNow = getActiveWeatherEventsWithDuration(project, weather, currentTime, lastTriggeredAtMinutesByEventId);
+  void lastTriggeredAtMinutesByEventId;
+  const activeNow = getCurrentlyMatchingWeatherEvents(project, weather, currentTime);
   const activeIds = new Set(activeNow.map((event) => event.id));
   return project.weatherEvents.filter((event) => {
     if (event.enabled === false) return false;
