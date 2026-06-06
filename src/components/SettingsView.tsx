@@ -10,6 +10,7 @@ import { FutureSettingsSection } from "./settings/FutureSettingsSection";
 import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
 import { MoonsSettingsSection } from "./settings/MoonsSettingsSection";
 import { PacksSettingsSection } from "./settings/PacksSettingsSection";
+import { PlayerViewSettingsSection } from "./settings/PlayerViewSettingsSection";
 import { SeasonsSettingsSection } from "./settings/SeasonsSettingsSection";
 import { SceneWeatherProfilesSettingsSection } from "./settings/SceneWeatherProfilesSettingsSection";
 import { WeatherBiomesSettingsSection } from "./settings/WeatherBiomesSettingsSection";
@@ -86,7 +87,7 @@ export const SettingsView = ({
       </SettingsGroup>
 
       <SettingsGroup title={t(project.locale, "settings.group.playerView")} help={t(project.locale, "settings.group.playerViewHelp")} storageKey="calendar-obr.settings.group.playerView">
-        <HelpText text={t(project.locale, "settings.playerViewHelp")} />
+        <PlayerViewSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
       </SettingsGroup>
 
       <SettingsGroup title={t(project.locale, "settings.group.data")} help={t(project.locale, "settings.group.dataHelp")} storageKey="calendar-obr.settings.group.data">

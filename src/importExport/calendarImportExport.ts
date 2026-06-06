@@ -9,6 +9,7 @@ import { ensureDefaultSceneWeatherProfiles } from "../calendar/sceneWeatherDefau
 import { sanitizeWeatherAdvancedSettings } from "../calendar/weatherAdvancedSettings";
 import { DEFAULT_UNITS } from "../calendar/weatherUnits";
 import { isWeatherState } from "../calendar/weatherStates";
+import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -219,6 +220,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     const ui = maybeCompat.uiSettings as Record<string, unknown>;
     if (!["weekdayDayMonthYear", "dayMonthYear", "dayMonthYearNumeric", "yearMonthDay", "monthDayYear"].includes(String(ui.dateFormat))) delete ui.dateFormat;
     if (ui.timeFormat !== "24h" && ui.timeFormat !== "12h") delete ui.timeFormat;
+    ui.playerView = normalizePlayerViewSettings(ui.playerView);
   }
 
   if (isRecord(maybeCompat.weatherSettings)) {

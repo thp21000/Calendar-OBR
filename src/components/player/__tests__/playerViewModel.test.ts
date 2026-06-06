@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject } from "../../../domain/types";
 import type { PublicCalendarTodaySnapshot } from "../../../obr/publicSnapshot";
+import { DEFAULT_PLAYER_VIEW_SETTINGS } from "../../../calendar/playerViewSettings";
 import { buildPlayerViewModelFromProject, buildPlayerViewModelFromSnapshot } from "../playerViewModel";
 
 const baseProject = (): CalendarProject => ({
@@ -93,6 +94,7 @@ describe("playerViewModel", () => {
       weatherEventsToday: [],
       moonEventsToday: [],
       dayNotesToday: [],
+      playerView: DEFAULT_PLAYER_VIEW_SETTINGS,
       weather: {
         temperature: 68,
         windSpeed: 31,

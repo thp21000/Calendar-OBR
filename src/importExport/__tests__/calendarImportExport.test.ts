@@ -887,4 +887,54 @@ describe("calendarImportExport phase17 integrity", () => {
     const imported = importCalendarProject(JSON.stringify(payload), project);
     expect(imported.ok).toBe(true);
   });
+  });
+it("imports old projects without player view settings with defaults", () => {
+  const project = createDefaultCalendarProject();
+  const payload: any = { ...project, uiSettings: { ...project.uiSettings } };
+  delete payload.uiSettings.playerView;
+  const imported = importCalendarProject(JSON.stringify(payload), project);
+  expect(imported.ok).toBe(true);
+  if (!imported.ok) return;
+  expect(imported.project.uiSettings.playerView?.enabledTabs).toEqual({ today: true, month: true });
+  expect(imported.project.uiSettings.playerView?.defaultTab).toBe("today");
+});
+
+it("preserves valid player view settings through export import cycle", () => {
+  const project = createDefaultCalendarProject();
+  project.uiSettings.playerView = {
+    ...project.uiSettings.playerView!,
+    enabledTabs: { today: false, month: true },
+    defaultTab: "month",
+    today: { ...project.uiSettings.playerView!.today, showWeather: false, weatherDetailLevel: "narrative" },
+    month: { ...project.uiSettings.playerView!.month, showFiveDayForecast: true, forecastDetailLevel: "precise" }
+  };
+  const imported = importCalendarProject(exportCalendarProject(project), createDefaultCalendarProject());
+  expect(imported.ok).toBe(true);
+  if (!imported.ok) return;
+  expect(imported.project.uiSettings.playerView).toEqual(project.uiSettings.playerView);
+});
+
+it("sanitizes invalid player view settings on import", () => {
+  const project = createDefaultCalendarProject();
+  const payload: any = {
+    ...project,
+    uiSettings: {
+      ...project.uiSettings,
+      playerView: {
+        enabledTabs: { today: false, month: false },
+        defaultTab: "month",
+        today: { showWeather: "yes", weatherDetailLevel: "invalid" },
+        month: { showFiveDayForecast: true, forecastDetailLevel: "narrative" }
+      }
+    }
+  };
+  const imported = importCalendarProject(JSON.stringify(payload), project);
+  expect(imported.ok).toBe(true);
+  if (!imported.ok) return;
+  expect(imported.project.uiSettings.playerView?.enabledTabs).toEqual({ today: true, month: false });
+  expect(imported.project.uiSettings.playerView?.defaultTab).toBe("today");
+  expect(imported.project.uiSettings.playerView?.today.showWeather).toBe(true);
+  expect(imported.project.uiSettings.playerView?.today.weatherDetailLevel).toBe("precise");
+  expect(imported.project.uiSettings.playerView?.month.showFiveDayForecast).toBe(true);
+  expect(imported.project.uiSettings.playerView?.month.forecastDetailLevel).toBe("narrative");
 });

@@ -92,6 +92,44 @@ export type CalendarEvent = {
 export type DateFormatPreference = "weekdayDayMonthYear" | "dayMonthYear" | "dayMonthYearNumeric" | "yearMonthDay" | "monthDayYear";
 export type TimeFormatPreference = "24h" | "12h";
 
+export type PlayerWeatherDetailLevel = "precise" | "broad" | "narrative";
+export type PlayerForecastDetailLevel = "precise" | "broad" | "narrative";
+export type PlayerViewTab = "today" | "month";
+
+export type PlayerViewSettings = {
+  enabledTabs: {
+    today: boolean;
+    month: boolean;
+  };
+  defaultTab: PlayerViewTab;
+  today: {
+    showHeader: boolean;
+    showDate: boolean;
+    showSeason: boolean;
+    showWeather: boolean;
+    showBiome: boolean;
+    showMoons: boolean;
+    showEvents: boolean;
+    showWeatherEvents: boolean;
+    showMoonEvents: boolean;
+    showDayNotes: boolean;
+    showHourlyForecast: boolean;
+    weatherDetailLevel: PlayerWeatherDetailLevel;
+    forecastDetailLevel: PlayerForecastDetailLevel;
+  };
+  month: {
+    showMonthGrid: boolean;
+    showPublicEvents: boolean;
+    showWeatherEvents: boolean;
+    showMoonEvents: boolean;
+    showDayNotes: boolean;
+    showWeatherSummary: boolean;
+    showFiveDayForecast: boolean;
+    weatherDetailLevel: PlayerWeatherDetailLevel;
+    forecastDetailLevel: PlayerForecastDetailLevel;
+  };
+};
+
 export type UiSettings = {
   activeTab: "today" | "month" | "events" | "settings" | "player";
   compactMode: boolean;

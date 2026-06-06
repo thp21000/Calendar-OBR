@@ -10,8 +10,9 @@ import { getCurrentWeather } from "../calendar/weatherLogic";
 import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getWeatherUnitLabels, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../calendar/weatherUnits";
-import type { CalendarCurrentTime, CalendarProject, LocaleCode, MoonPhaseId, WeatherSnapshot } from "../domain/types";
+import type { CalendarCurrentTime, CalendarProject, LocaleCode, MoonPhaseId, PlayerViewSettings, WeatherSnapshot } from "../domain/types";
 import { t } from "../i18n/messages";
+import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
 
 export type PublicCalendarIndex = {
   schemaVersion: 1;
@@ -91,6 +92,7 @@ export type PublicCalendarTodaySnapshot = {
     phaseId: MoonPhaseId;
   }>;
   dayNotesToday: Array<{ id: string; playerNote?: string }>;
+  playerView: PlayerViewSettings;
 };
 
 export const buildPublicCalendarIndex = (project: CalendarProject, revision: number): PublicCalendarIndex => ({
@@ -179,7 +181,8 @@ export const createPublicCalendarTodaySnapshot = (
       moonName: project.moons.find((moon) => moon.id === event.moonId)?.name ?? "?",
       phaseId: event.phaseId
     })),
-    dayNotesToday: getPlayerVisibleDayNotesForDay(project, displayDate).map((note) => ({ id: note.id, playerNote: note.playerNote || undefined }))
+    dayNotesToday: getPlayerVisibleDayNotesForDay(project, displayDate).map((note) => ({ id: note.id, playerNote: note.playerNote || undefined })),
+    playerView: normalizePlayerViewSettings(project.uiSettings.playerView)
   };
 };
 
