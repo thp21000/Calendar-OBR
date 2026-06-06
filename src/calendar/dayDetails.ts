@@ -7,7 +7,23 @@ import { getSeasonForDate } from "./seasonsLogic";
 import { generateWeatherForTime } from "./weatherLogic";
 import { getDailyWeatherSummary } from "./weatherDaily";
 import { getHourlyWindForDay } from "./weatherWind";
-import type { CalendarDate, CalendarProject, WeatherTrendKind, WindDirection, WeatherState } from "../domain/types";
+import type { CalendarDate, CalendarProject, DisplayDate, WeatherTrendKind, WindDirection, WeatherState } from "../domain/types";
+
+export type DailyWeatherSummaryForDisplay = {
+  dominantState: WeatherState;
+  averageTemperature: number;
+  averageWindSpeed: number;
+  dominantWindDirection: WindDirection;
+  rainTotal24h: number;
+  trendKind?: WeatherTrendKind;
+};
+
+export type DailyWeatherForecastEntry = {
+  offsetDays: number;
+  absoluteDay: number;
+  date: DisplayDate;
+  dailyWeather?: DailyWeatherSummaryForDisplay;
+};
 
 export type DayDetails = {
   date: CalendarDate;
@@ -15,18 +31,47 @@ export type DayDetails = {
   seasonName?: string;
   seasonIcon?: string;
   weather?: ReturnType<typeof generateWeatherForTime>;
-  dailyWeather?: {
-    dominantState: WeatherState;
-    averageTemperature: number;
-    averageWindSpeed: number;
-    dominantWindDirection: WindDirection;
-    rainTotal24h: number;
-    trendKind?: WeatherTrendKind;
-  };
+  dailyWeather?: DailyWeatherSummaryForDisplay;
   moonPhases: Array<{ moonId: string; moonName: string; moonIcon?: string; phaseId: string; phaseIcon: string; illumination: number }>;
   events: ReturnType<typeof getEventsForDay>;
   playerVisibleEvents: ReturnType<typeof getPlayerVisibleEventsForDay>;
   moonEvents: NonNullable<CalendarProject["moonEvents"]>;
+};
+
+const getDailyWeatherForAbsoluteDay = (project: CalendarProject, absoluteDay: number): DailyWeatherSummaryForDisplay | undefined => {
+  const dailySummary = getDailyWeatherSummary(project, absoluteDay);
+  const windPlan = dailySummary ? getHourlyWindForDay(project, absoluteDay, dailySummary) : [];
+  const averageWindSpeed = windPlan.length > 0
+    ? Math.round((windPlan.reduce((sum, hour) => sum + hour.windSpeed, 0) / windPlan.length) * 10) / 10
+    : 0;
+
+  return dailySummary
+    ? {
+        dominantState: dailySummary.dominantState,
+        averageTemperature: dailySummary.averageTemperature,
+        averageWindSpeed,
+        dominantWindDirection: dailySummary.dominantWindDirection,
+        rainTotal24h: dailySummary.rainTotal24h,
+        trendKind: dailySummary.trendKind
+      }
+    : undefined;
+};
+
+export const getDailyWeatherForecastEntries = (
+  project: CalendarProject,
+  count = 5,
+  startAbsoluteDay = project.currentTime.absoluteDay
+): DailyWeatherForecastEntry[] => {
+  const safeCount = Math.max(0, Math.floor(count));
+  return Array.from({ length: safeCount }, (_, offsetDays) => {
+    const absoluteDay = startAbsoluteDay + offsetDays;
+    return {
+      offsetDays,
+      absoluteDay,
+      date: absoluteDayToCalendarDate({ absoluteDay, hour: 0, minute: 0 }, project.calendarSystem),
+      dailyWeather: getDailyWeatherForAbsoluteDay(project, absoluteDay)
+    };
+  });
 };
 
 export const getDayDetails = (project: CalendarProject, date: CalendarDate): DayDetails => {
@@ -34,11 +79,7 @@ export const getDayDetails = (project: CalendarProject, date: CalendarDate): Day
   const absolute = calendarDateToAbsoluteDay(normalizedDate, project.calendarSystem);
   const displayDate = absoluteDayToCalendarDate({ absoluteDay: absolute.absoluteDay, hour: 0, minute: 0 }, project.calendarSystem);
   const season = getSeasonForDate(project, normalizedDate);
-  const dailySummary = getDailyWeatherSummary(project, absolute.absoluteDay);
-  const windPlan = dailySummary ? getHourlyWindForDay(project, absolute.absoluteDay, dailySummary) : [];
-  const averageWindSpeed = windPlan.length > 0
-    ? Math.round((windPlan.reduce((sum, hour) => sum + hour.windSpeed, 0) / windPlan.length) * 10) / 10
-    : 0;
+  const dailyWeather = getDailyWeatherForAbsoluteDay(project, absolute.absoluteDay);
 
   return {
     date: displayDate,
@@ -46,16 +87,7 @@ export const getDayDetails = (project: CalendarProject, date: CalendarDate): Day
     seasonName: season?.name,
     seasonIcon: season?.icon,
     weather: generateWeatherForTime(project, absolute.absoluteDay, 12),
-    dailyWeather: dailySummary
-      ? {
-          dominantState: dailySummary.dominantState,
-          averageTemperature: dailySummary.averageTemperature,
-          averageWindSpeed,
-          dominantWindDirection: dailySummary.dominantWindDirection,
-          rainTotal24h: dailySummary.rainTotal24h,
-          trendKind: dailySummary.trendKind
-        }
-      : undefined,
+    dailyWeather,
     moonPhases: project.moons.map((moon) => {
       const phase = getMoonPhaseForDate(moon, absolute.absoluteDay);
       return {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
-import { getDayDetails } from "../calendar/dayDetails";
+import { getDailyWeatherForecastEntries, getDayDetails } from "../calendar/dayDetails";
 import { getDayNotesForDay } from "../calendar/dayNotesLogic";
 import { addCalendarEvent, updateCalendarEvent } from "../calendar/eventsLogic";
 import { getAdjacentMonthLabels, getMonthViewTimeForDate, getNextMonthViewTime, getPreviousMonthViewTime } from "../calendar/monthNavigation";
@@ -11,6 +11,7 @@ import { EventCreatePopup } from "./events/EventCreatePopup";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
 import { MoonEventDetailsPopup } from "./events/MoonEventDetailsPopup";
 import { MonthGrid } from "./month/MonthGrid";
+import { MonthWeatherForecastCard } from "./month/MonthWeatherForecastCard";
 import { SecondaryButton } from "./ui";
 
 export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { project: CalendarProject; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null }) => {
@@ -30,6 +31,7 @@ export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { p
     setSelectedDate(initialSelectedDate);
   }, [initialSelectedDate]);
   const dayDetails = selectedDate ? getDayDetails(project, selectedDate) : null;
+  const dailyWeatherForecast = getDailyWeatherForecastEntries(project, 5);
   const notes = selectedDate ? getDayNotesForDay(project, selectedDate) : [];
   const labels = getAdjacentMonthLabels(project, viewedTime);
   const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
@@ -58,6 +60,7 @@ export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { p
         </SecondaryButton>
       </div>
       <MonthGrid project={project} viewedTime={viewedTime} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+      <MonthWeatherForecastCard project={project} forecast={dailyWeatherForecast} />
       {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={setCreateEventDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} onOpenMoonEvent={setSelectedMoonEventId} /> : null}
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={onProjectUpdate ? (updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent)) : undefined} /> : null}
       {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={selectedMoonEventDateLabel} /> : null}

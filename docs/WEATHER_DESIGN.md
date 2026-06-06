@@ -1355,3 +1355,9 @@ Le moteur météo conserve une unité interne canonique afin d’éviter les dou
 - pluie : millimètres.
 
 Le réglage `project.units` ne modifie pas les valeurs stockées. Il choisit seulement les unités affichées et saisies dans l’interface : métrique (`°C`, `km/h`, `mm`) ou impérial (`°F`, `mph`, `in`). Les champs de configuration convertissent les valeurs affichées vers l’unité interne au moment de la sauvegarde. Les exports restent donc en unités internes, avec la préférence d’affichage conservée séparément.
+
+## Prévision journalière dans la page Mois
+
+La page Mois affiche un bloc repliable de prévision 5 jours placé sous le calendrier mensuel et avant le détail du jour sélectionné. Cette prévision part toujours de `project.currentTime.absoluteDay` et reste indépendante du jour sélectionné dans la grille du mois.
+
+Chaque entrée utilise la synthèse journalière (`getDailyWeatherSummary` et le plan de vent horaire) afin d'afficher une moyenne/synthèse globale de la journée : état dominant, température moyenne, vent moyen, direction dominante, cumul de pluie 24 h et tendance éventuelle.

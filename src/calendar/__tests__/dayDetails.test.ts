@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CalendarProject } from "../../domain/types";
-import { getDayDetails } from "../dayDetails";
+import { getDailyWeatherForecastEntries, getDayDetails } from "../dayDetails";
 
 const makeProject = (): CalendarProject => ({
   schemaVersion: 1,
@@ -47,5 +47,32 @@ describe("getDayDetails", () => {
     const details = getDayDetails(makeProject(), { year: 1000, monthId: "m1", dayOfMonth: 2, hour: 0, minute: 0 });
     expect(details.playerVisibleEvents.some((e) => e.id === "reveal-active")).toBe(false);
     expect(details.playerVisibleEvents.some((e) => e.id === "reveal-triggered")).toBe(true);
+  });
+});
+
+describe("getDailyWeatherForecastEntries", () => {
+  it("builds a 5-day daily forecast from the current project day", () => {
+    const project = makeProject();
+    project.currentTime = { absoluteDay: 4, hour: 18, minute: 30 };
+    const forecast = getDailyWeatherForecastEntries(project, 5);
+
+    expect(forecast).toHaveLength(5);
+    expect(forecast.map((entry) => entry.offsetDays)).toEqual([0, 1, 2, 3, 4]);
+    expect(forecast.map((entry) => entry.absoluteDay)).toEqual([4, 5, 6, 7, 8]);
+    expect(forecast[0]?.dailyWeather?.averageTemperature).toBeDefined();
+    expect(forecast[0]?.dailyWeather?.averageWindSpeed).toBeDefined();
+    expect(forecast[0]?.dailyWeather?.rainTotal24h).toBeDefined();
+  });
+
+  it("keeps the daily forecast independent from a selected month day", () => {
+    const project = makeProject();
+    project.currentTime = { absoluteDay: 4, hour: 18, minute: 30 };
+    const beforeSelection = getDailyWeatherForecastEntries(project, 5);
+
+    getDayDetails(project, { year: 1000, monthId: "m1", dayOfMonth: 20, hour: 0, minute: 0 });
+    const afterSelection = getDailyWeatherForecastEntries(project, 5);
+
+    expect(afterSelection.map((entry) => entry.absoluteDay)).toEqual(beforeSelection.map((entry) => entry.absoluteDay));
+    expect(afterSelection.map((entry) => entry.dailyWeather?.dominantState)).toEqual(beforeSelection.map((entry) => entry.dailyWeather?.dominantState));
   });
 });
