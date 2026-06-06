@@ -94,9 +94,13 @@ export const getActiveWeatherEventsWithDuration = (
 ): WeatherEvent[] => {
   const nowMinutes = toAbsoluteMinutes(currentTime);
   return project.weatherEvents.filter((event) => {
-    const chance = normalizeTriggerChancePercent(event.triggerChancePercent);
-    if (chance >= 100 && isWeatherEventTriggered(weather, event, { project, time: currentTime })) return true;
     if (event.enabled === false || event.status === "archived" || event.status === "disabled") return false;
+    
+    const conditionsMetNow = isWeatherEventTriggered(weather, event, { project, time: currentTime });
+    if (conditionsMetNow) return true;
+
+    if ((event.kind ?? "informational") !== "weatherEffect") return false;
+
     const lastTriggeredAt = typeof event.lastTriggeredAtMinutes === "number" ? event.lastTriggeredAtMinutes : lastTriggeredAtMinutesByEventId?.[event.id];
     if (typeof lastTriggeredAt !== "number") return false;
     return isWithinDurationWindow(lastTriggeredAt, nowMinutes, getWeatherEventDurationHours(event));

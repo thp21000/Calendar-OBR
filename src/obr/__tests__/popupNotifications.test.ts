@@ -8,7 +8,7 @@ obrMock.obr.modal.open = obrMock.modalOpen;
 
 vi.mock("@owlbear-rodeo/sdk", () => ({ default: obrMock.obr }));
 
-import { clearPopupNotificationPayload, readPopupNotificationPayload, savePopupNotificationPayload, sendPopupNotification } from "../popupNotifications";
+import { clearPopupNotificationPayload, estimateNotificationModalHeight, readPopupNotificationPayload, savePopupNotificationPayload, sendPopupNotification } from "../popupNotifications";
 
 const createLocalStorageMock = () => {
   const store = new Map<string, string>();
@@ -38,6 +38,17 @@ describe("popupNotifications", () => {
     expect(readPopupNotificationPayload(id)).toBeUndefined();
   });
 
+  it("estimates compact and long modal heights", () => {
+    expect(estimateNotificationModalHeight({ type: "event", audience: "gm", title: "Hi", body: "Short", date: "Today" })).toBe(260);
+    expect(estimateNotificationModalHeight({
+      type: "event",
+      audience: "gm",
+      title: "Long",
+      body: "x".repeat(650),
+      date: "Today"
+    })).toBe(520);
+  });
+
   it("opens an OBR notification modal when OBR is available", async () => {
     obrMock.obr.isAvailable = true;
     await sendPopupNotification({ type: "weather", audience: "players", title: "Storm", body: "Heavy rain", date: "Today" });
@@ -46,7 +57,7 @@ describe("popupNotifications", () => {
       id: expect.stringContaining("calendar-obr-notification-modal-notification-"),
       url: expect.stringContaining("view=notification"),
       width: 460,
-      height: 380
+      height: 260
     }));
   });
 });

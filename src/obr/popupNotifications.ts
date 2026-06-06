@@ -23,7 +23,10 @@ export type PopupNotificationPayload = {
 export const POPUP_NOTIFICATION_STORAGE_PREFIX = "calendar-obr.popupNotification.";
 export const POPUP_NOTIFICATION_MODAL_ID_PREFIX = "calendar-obr-notification-modal";
 const NOTIFICATION_MODAL_WIDTH = 460;
-const NOTIFICATION_MODAL_HEIGHT = 380;
+const MIN_NOTIFICATION_MODAL_HEIGHT = 260;
+const SHORT_NOTIFICATION_MODAL_HEIGHT = 320;
+const MEDIUM_NOTIFICATION_MODAL_HEIGHT = 400;
+const MAX_NOTIFICATION_MODAL_HEIGHT = 520;
 
 const getStorage = (): Storage | undefined => {
   try {
@@ -77,6 +80,22 @@ const getNotificationModalUrl = (notificationId: string, modalId: string): strin
   return url.href;
 };
 
+export const estimateNotificationModalHeight = (payload: PopupNotificationPayload): number => {
+  const textLength = [
+    payload.title,
+    payload.summary,
+    payload.body,
+    payload.playerDescription,
+    payload.gmDescription,
+    payload.link
+  ].filter(Boolean).join(" ").length;
+
+  if (textLength < 120) return MIN_NOTIFICATION_MODAL_HEIGHT;
+  if (textLength < 300) return SHORT_NOTIFICATION_MODAL_HEIGHT;
+  if (textLength < 600) return MEDIUM_NOTIFICATION_MODAL_HEIGHT;
+  return MAX_NOTIFICATION_MODAL_HEIGHT;
+};
+
 export const sendPopupNotification = async (payload: PopupNotificationPayload): Promise<void> => {
   const notificationId = savePopupNotificationPayload(payload);
   const modalId = `${POPUP_NOTIFICATION_MODAL_ID_PREFIX}-${notificationId}`;
@@ -90,7 +109,7 @@ export const sendPopupNotification = async (payload: PopupNotificationPayload): 
     id: modalId,
     url: getNotificationModalUrl(notificationId, modalId),
     width: NOTIFICATION_MODAL_WIDTH,
-    height: NOTIFICATION_MODAL_HEIGHT
+    height: estimateNotificationModalHeight(payload)
   });
 };
 
