@@ -81,6 +81,7 @@ export const enMessages = {
   "player.publicMonthNotes": "Public notes",
   "player.fiveDayForecast": "Next days forecast",
   "player.monthHidden": "The public month view is disabled.",
+  "player.monthUnavailable": "No public month view is available.",
   "notifications.title": "Notifications",
   "notifications.empty": "No notifications",
   "notifications.dismiss": "Dismiss",

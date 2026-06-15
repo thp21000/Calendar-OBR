@@ -81,6 +81,7 @@ export const frMessages = {
   "player.publicMonthNotes": "Notes publiques",
   "player.fiveDayForecast": "Prévision des prochains jours",
   "player.monthHidden": "La vue mensuelle publique est désactivée.",
+  "player.monthUnavailable": "Aucune vue mensuelle publique n’est disponible.",
   "notifications.title": "Notifications",
   "notifications.empty": "Aucune notification",
   "notifications.dismiss": "Ignorer",

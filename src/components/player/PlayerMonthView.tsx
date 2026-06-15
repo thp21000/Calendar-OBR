@@ -8,46 +8,61 @@ import { PlayerPublicEventButton } from "./PlayerPublicEventsCard";
 
 export const PlayerMonthView = ({
   project,
-  month,
+  snapshotMonth,
+  isSnapshotMode,
   settings,
   locale,
   onSelectEvent
 }: {
   project?: CalendarProject;
-  month?: PublicMonthSnapshot;
+  snapshotMonth?: PublicMonthSnapshot;
+  isSnapshotMode: boolean;
   settings: PlayerViewSettings;
   locale: LocaleCode;
   onSelectEvent: (event: PublicEventDetails) => void;
 }) => {
-  const [viewedTime, setViewedTime] = useState<InternalTime | undefined>(month?.viewedTime);
-  const displayedMonth = useMemo(
-    () => project ? buildPublicMonthSnapshot(project, settings, viewedTime) : month,
-    [month, project, settings, viewedTime]
+  const [viewedTime, setViewedTime] = useState<InternalTime | undefined>(snapshotMonth?.viewedTime);
+  const month = useMemo(
+    () => isSnapshotMode
+      ? snapshotMonth
+      : project
+        ? buildPublicMonthSnapshot(project, settings, viewedTime)
+        : undefined,
+    [isSnapshotMode, project, settings, snapshotMonth, viewedTime]
   );
-  const [selectedAbsoluteDay, setSelectedAbsoluteDay] = useState<number | null>(displayedMonth?.days.find((day) => day.isToday)?.absoluteDay ?? displayedMonth?.days[0]?.absoluteDay ?? null);
-  const selectedDay = useMemo(() => displayedMonth?.days.find((day) => day.absoluteDay === selectedAbsoluteDay) ?? displayedMonth?.days.find((day) => day.isToday) ?? displayedMonth?.days[0], [displayedMonth, selectedAbsoluteDay]);
+  const [selectedAbsoluteDay, setSelectedAbsoluteDay] = useState<number | null>(month?.days.find((day) => day.isToday)?.absoluteDay ?? month?.days[0]?.absoluteDay ?? null);
+  const selectedDay = useMemo(() => month?.days.find((day) => day.absoluteDay === selectedAbsoluteDay) ?? month?.days.find((day) => day.isToday) ?? month?.days[0], [month, selectedAbsoluteDay]);
   const monthHasAnyBlock = settings.month.showMonthGrid || settings.month.showPublicEvents || settings.month.showWeatherEvents || settings.month.showMoonEvents || settings.month.showDayNotes || settings.month.showWeatherSummary || settings.month.showFiveDayForecast;
 
   if (!monthHasAnyBlock) return <SectionCard><EmptyState text={t(locale, "player.noVisibleContent")} /></SectionCard>;
-  if (!displayedMonth) return <SectionCard><EmptyState text={t(locale, "player.monthHidden")} /></SectionCard>;
+  if (!month) return <SectionCard><EmptyState text={t(locale, "player.monthUnavailable")} /></SectionCard>;
 
   const selectMonth = (nextViewedTime: InternalTime) => {
-    const nextMonth = project ? buildPublicMonthSnapshot(project, settings, nextViewedTime) : displayedMonth;
+    const nextMonth = project ? buildPublicMonthSnapshot(project, settings, nextViewedTime) : month;
     setViewedTime(nextViewedTime);
     setSelectedAbsoluteDay(nextMonth.days.find((day) => day.isToday)?.absoluteDay ?? nextMonth.days[0]?.absoluteDay ?? null);
+  };
+  const todayInPublishedMonth = month.days.find((day) => day.isToday);
+  const showTodayButton = !isSnapshotMode || Boolean(todayInPublishedMonth);
+  const selectToday = () => {
+    if (isSnapshotMode) {
+      setSelectedAbsoluteDay(todayInPublishedMonth?.absoluteDay ?? null);
+      return;
+    }
+    if (project) selectMonth(project.currentTime);
   };
 
   return <div style={{ display: "grid", gap: 8 }}>
     <SectionCard>
-      <SectionHeader title={t(locale, "player.monthTitle")} subtitle={displayedMonth.monthLabel} />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 6, alignItems: "center", marginBottom: 8 }}>
-        <SecondaryButton type="button" onClick={() => selectMonth(displayedMonth.previousViewedTime)} style={{ justifySelf: "start", padding: "5px 8px", fontSize: 11 }}>‹ {displayedMonth.previousMonthLabel}</SecondaryButton>
-        <SecondaryButton type="button" onClick={() => selectMonth(project?.currentTime ?? displayedMonth.viewedTime)} style={{ padding: "3px 8px", fontSize: 11 }}>{t(locale, "common.today")}</SecondaryButton>
-        <SecondaryButton type="button" onClick={() => selectMonth(displayedMonth.nextViewedTime)} style={{ justifySelf: "end", padding: "5px 8px", fontSize: 11 }}>{displayedMonth.nextMonthLabel} ›</SecondaryButton>
-      </div>
-      {settings.month.showMonthGrid ? <PlayerMonthGrid month={displayedMonth} selectedAbsoluteDay={selectedDay?.absoluteDay ?? null} onSelectDay={setSelectedAbsoluteDay} /> : <EmptyState text={t(locale, "player.monthHidden")} />}
+      <SectionHeader title={t(locale, "player.monthTitle")} subtitle={month.monthLabel} />
+      {!isSnapshotMode || showTodayButton ? <div style={{ display: "grid", gridTemplateColumns: isSnapshotMode ? "1fr" : "1fr auto 1fr", gap: 6, alignItems: "center", marginBottom: 8 }}>
+        {!isSnapshotMode ? <SecondaryButton type="button" onClick={() => selectMonth(month.previousViewedTime)} style={{ justifySelf: "start", padding: "5px 8px", fontSize: 11 }}>‹ {month.previousMonthLabel}</SecondaryButton> : null}
+        {showTodayButton ? <SecondaryButton type="button" onClick={selectToday} style={{ justifySelf: "center", padding: "3px 8px", fontSize: 11 }}>{t(locale, "common.today")}</SecondaryButton> : null}
+        {!isSnapshotMode ? <SecondaryButton type="button" onClick={() => selectMonth(month.nextViewedTime)} style={{ justifySelf: "end", padding: "5px 8px", fontSize: 11 }}>{month.nextMonthLabel} ›</SecondaryButton> : null}
+      </div> : null}
+      {settings.month.showMonthGrid ? <PlayerMonthGrid month={month} selectedAbsoluteDay={selectedDay?.absoluteDay ?? null} onSelectDay={setSelectedAbsoluteDay} /> : <EmptyState text={t(locale, "player.monthHidden")} />}
     </SectionCard>
-    {settings.month.showFiveDayForecast && displayedMonth.dailyForecast && displayedMonth.dailyForecast.length > 0 ? <PlayerFiveDayForecastCard month={displayedMonth} detailLevel={settings.month.forecastDetailLevel} locale={locale} /> : null}
+    {settings.month.showFiveDayForecast && month.dailyForecast && month.dailyForecast.length > 0 ? <PlayerFiveDayForecastCard month={month} detailLevel={settings.month.forecastDetailLevel} locale={locale} /> : null}
     {selectedDay ? <PlayerMonthDayDetails day={selectedDay} settings={settings} locale={locale} onSelectEvent={onSelectEvent} /> : null}
   </div>;
 };
