@@ -3,13 +3,13 @@ import type { CSSProperties } from "react";
 import type { LocaleCode, PlayerViewSettings } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
-import { Badge, EmptyState, Panel, SectionCard } from "../ui";
+import { EmptyState, Panel, SectionCard } from "../ui";
 import { ui } from "../ui/styles";
 import type { PublicEventDetails } from "./PublicEventDetailsPopup";
 import type { PlayerHourlyForecastEntry, PlayerViewModel } from "./playerViewModel";
 
 export const PlayerTodayStatusSummary = ({ locale, model, settings, onSelectEvent }: { locale: LocaleCode; model: PlayerViewModel; settings: PlayerViewSettings; onSelectEvent: (event: PublicEventDetails) => void }) => {
-  const showTopLine = settings.today.showHeader || settings.today.showDate || settings.today.showSeason || settings.today.showMoons;
+  const showTopLine = settings.today.showDate || settings.today.showSeason || settings.today.showMoons;
   const showBiome = settings.today.showBiome && model.biome;
   const showWeather = settings.today.showWeather;
   const showWeatherEvents = settings.today.showWeatherEvents && model.weatherEvents.length > 0;
@@ -18,11 +18,9 @@ export const PlayerTodayStatusSummary = ({ locale, model, settings, onSelectEven
 
   return <SectionCard style={{ background: ui.colors.surfaceElevated, borderColor: "#475569", boxShadow: "0 2px 10px rgba(2,6,23,0.22)" }}>
     {showTopLine ? <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 18, fontWeight: 800, lineHeight: 1.25 }}>
-      {settings.today.showHeader ? <span style={{ whiteSpace: "nowrap" }}>{model.calendarName}</span> : null}
-      {settings.today.showDate ? <span style={{ whiteSpace: "nowrap" }}>{model.formattedDate}</span> : null}
+      {settings.today.showDate ? model.dateParts.map((part, index) => <span key={`${part}:${index}`} style={{ whiteSpace: "nowrap" }}>{part}</span>) : null}
       {settings.today.showSeason && model.season ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{model.season.icon ?? "🍃"} {model.season.name}</span> : null}
       {settings.today.showMoons ? model.moons.map((moon) => <span key={moon.id} title={`${moon.name} — ${moon.phaseLabel}`} style={{ whiteSpace: "nowrap" }}>{moon.icon}</span>) : null}
-      {settings.today.showHeader ? <Badge>{t(locale, "player.readOnly")}</Badge> : null}
     </div> : null}
 
     {showBiome ? <div style={{ marginTop: 8, fontSize: 13, color: ui.colors.textPrimary, display: "grid", gridTemplateColumns: "30px minmax(0, 1fr)", columnGap: 8, alignItems: "center" }}>
@@ -91,12 +89,12 @@ export const PlayerTodayForecastCard = ({ locale, forecast, settings }: { locale
     </button>
     {open ? forecast.length === 0 ? <EmptyState text={t(locale, "calendar.noWeather")} /> : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(74px, 1fr))", gap: 6, width: "100%" }}>
       {forecast.map((entry) => <Panel key={`${entry.offsetHours}:${entry.timeLabel}`} style={{ background: ui.colors.surfaceSoft, minHeight: 96, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
-        <div style={{ fontSize: 12, fontWeight: 800 }}>{entry.timeLabel}</div>
+        <div style={{ fontSize: 12, fontWeight: 800 }}>+{entry.offsetHours} h</div>
         <div>{entry.stateIcon} {entry.stateLabel}</div>
         {entry.detailLevel === "precise" ? <>
           {entry.temperature ? <div>{entry.temperature}</div> : null}
           {entry.wind ? <div>{entry.wind}</div> : null}
-          {entry.rain ? <div>{entry.rain}</div> : null}
+          {entry.trend ? <div>{entry.trend}</div> : null}
         </> : <>
           {entry.broadTemperature ? <div>{entry.broadTemperature}</div> : null}
           {entry.broadWind ? <div>{entry.broadWind}</div> : null}

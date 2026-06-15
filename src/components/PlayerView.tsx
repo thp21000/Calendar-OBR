@@ -20,7 +20,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
     () => snapshot ? buildPlayerViewModelFromSnapshot(project, snapshot, settings) : buildPlayerViewModelFromProject(project, settings),
     [project, settings, snapshot]
   );
-  const hasVisibleTodayContent = settings.today.showHeader || settings.today.showDate || settings.today.showSeason || settings.today.showWeather || settings.today.showBiome || settings.today.showMoons || settings.today.showEvents || settings.today.showWeatherEvents || settings.today.showMoonEvents || settings.today.showDayNotes || settings.today.showHourlyForecast;
+  const hasVisibleTodayContent = settings.today.showDate || settings.today.showSeason || settings.today.showWeather || settings.today.showBiome || settings.today.showMoons || settings.today.showEvents || settings.today.showWeatherEvents || settings.today.showMoonEvents || settings.today.showDayNotes || settings.today.showHourlyForecast;
 
   return (
     <>

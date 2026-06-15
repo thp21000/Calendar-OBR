@@ -43,6 +43,7 @@ export type PlayerHourlyForecastEntry = {
   temperature?: string;
   wind?: string;
   rain?: string;
+  trend?: string;
   broadTemperature?: string;
   broadWind?: string;
   broadRain?: string;
@@ -52,6 +53,7 @@ export type PlayerViewModel = {
   locale: LocaleCode;
   calendarName: string;
   formattedDate: string;
+  dateParts: string[];
   season?: { name: string; icon?: string };
   biome?: { name: string; icon: string; description: string };
   weather?: PlayerWeatherViewModel;
@@ -203,7 +205,8 @@ const buildHourlyForecastEntry = (
     ...(effectiveDetailLevel === "precise" ? {
       temperature: formatTemperature(weather.temperature, project.units, project.locale),
       wind: `${weather.windDirection} · ${formatWindSpeed(weather.windSpeed, project.units, project.locale)}`,
-      rain: formatRain(weather.rain, project.units, project.locale)
+      rain: formatRain(weather.rain, project.units, project.locale),
+      trend: weather.trendKind ? getWeatherTrendLabel(project, weather.trendKind, project.locale) : undefined
     } : buildBroadLabels(project.locale, weather))
   };
 };
@@ -234,6 +237,17 @@ const buildHourlyForecastEntryFromSnapshot = (
   };
 };
 
+const buildDateParts = (project: CalendarProject, time = project.currentTime): string[] => {
+  const date = absoluteDayToCalendarDate(time, project.calendarSystem);
+  return [
+    date.weekdayName,
+    String(date.dayOfMonth),
+    date.monthName,
+    String(date.year),
+    `${String(time.hour).padStart(2, "0")}:${String(time.minute).padStart(2, "0")}`
+  ].filter((part): part is string => Boolean(part));
+};
+
 export const buildPlayerViewModelFromSnapshot = (
   project: CalendarProject,
   snapshot: PublicCalendarTodaySnapshot,
@@ -244,6 +258,7 @@ export const buildPlayerViewModelFromSnapshot = (
     locale: snapshot.locale,
     calendarName: snapshot.calendarName,
     formattedDate: snapshot.formattedDate,
+    dateParts: buildDateParts(project, snapshot.currentTime),
     season: settings.today.showSeason ? snapshot.season : undefined,
     biome: settings.today.showBiome ? snapshot.weatherBiome : undefined,
     weather: settings.today.showWeather ? buildWeatherViewModelFromSnapshot(project, snapshot, settings.today.weatherDetailLevel) : undefined,
@@ -287,6 +302,7 @@ export const buildPlayerViewModelFromProject = (project: CalendarProject, rawSet
     locale: project.locale,
     calendarName: project.name,
     formattedDate: formatDisplayDate(displayDate, project.locale, project.uiSettings.dateFormat, project.uiSettings.timeFormat),
+    dateParts: buildDateParts(project),
     season: settings.today.showSeason && currentSeason ? { name: currentSeason.name, icon: currentSeason.icon } : undefined,
     biome: settings.today.showBiome ? {
       name: t(project.locale, currentBiome.nameKey),
