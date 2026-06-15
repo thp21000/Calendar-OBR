@@ -7,26 +7,15 @@ import { ui } from "../ui/styles";
 import type { PublicEventDetails } from "../player/PublicEventDetailsPopup";
 
 export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], onSelectEvent, onSelectMoonEvent, mode = "gm", events, moonEvents, weatherEvents, dayNotes, onSelectPublicEvent }: { project: CalendarProject; eventsToday: CalendarProject["events"]; moonEventsToday?: NonNullable<CalendarProject["moonEvents"]>; onSelectEvent?: (eventId: string) => void; onSelectMoonEvent?: (eventId: string) => void; mode?: "gm" | "player"; readonly?: boolean; events?: PublicEventDetails[]; moonEvents?: PublicEventDetails[]; weatherEvents?: PublicEventDetails[]; dayNotes?: Array<{ id: string; playerNote: string }>; onSelectPublicEvent?: (event: PublicEventDetails) => void }) => {
-  if (mode === "player") {
-    const publicEvents = events ?? [];
-    const publicWeatherEvents = weatherEvents ?? [];
-    const publicMoonEvents = moonEvents ?? [];
-    const publicNotes = (dayNotes ?? []).filter((note) => note.playerNote?.trim());
-    return <SectionCard>
-      <SectionHeader title={t(project.locale, "events.eventsToday")} />
-      {publicEvents.length === 0 && publicWeatherEvents.length === 0 && publicMoonEvents.length === 0 && publicNotes.length === 0 ? <EmptyState text={t(project.locale, "events.noEventsToday")} /> : <div style={{ display: "grid", gap: 6 }}>
-        {publicEvents.map((event) => <PublicEventRow key={event.id} project={project} event={event} background="#111827" onSelectPublicEvent={onSelectPublicEvent} />)}
-        {publicWeatherEvents.map((event) => <PublicEventRow key={event.id} project={project} event={event} background="#0f172a" onSelectPublicEvent={onSelectPublicEvent} />)}
-        {publicMoonEvents.map((event) => <PublicEventRow key={event.id} project={project} event={event} background="#0f172a" onSelectPublicEvent={onSelectPublicEvent} />)}
-        {publicNotes.map((note) => <div key={note.id} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a", fontSize: 12, color: "#e5e7eb", whiteSpace: "pre-wrap" }}>📝 {note.playerNote}</div>)}
-      </div>}
-    </SectionCard>;
-  }
-
-  return <SectionCard>
-    <SectionHeader title={t(project.locale, "events.eventsToday")} />
-    {eventsToday.length === 0 && moonEventsToday.length === 0 ? <EmptyState text={t(project.locale, "events.noEventsToday")} /> : <div style={{ display: "grid", gap: 6 }}>
-      {eventsToday.map((event) => <button key={event.id} type="button" onClick={onSelectEvent ? () => onSelectEvent(event.id) : undefined} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827", width: "100%", textAlign: "left", cursor: onSelectEvent ? "pointer" : "default" }}>
+  const rows = mode === "player"
+    ? [
+      ...(events ?? []).map((event) => <PublicEventRow key={`event-${event.id}`} project={project} event={event} background="#111827" onSelectPublicEvent={onSelectPublicEvent} />),
+      ...(weatherEvents ?? []).map((event) => <PublicEventRow key={`weather-${event.id}`} project={project} event={event} background="#0f172a" onSelectPublicEvent={onSelectPublicEvent} />),
+      ...(moonEvents ?? []).map((event) => <PublicEventRow key={`moon-${event.id}`} project={project} event={event} background="#0f172a" onSelectPublicEvent={onSelectPublicEvent} />),
+      ...(dayNotes ?? []).filter((note) => note.playerNote?.trim()).map((note) => <div key={`note-${note.id}`} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a", fontSize: 12, color: "#e5e7eb", whiteSpace: "pre-wrap" }}>📝 {note.playerNote}</div>)
+    ]
+    : [
+      ...eventsToday.map((event) => <button key={`event-${event.id}`} type="button" onClick={onSelectEvent ? () => onSelectEvent(event.id) : undefined} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827", width: "100%", textAlign: "left", cursor: onSelectEvent ? "pointer" : "default" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
           <EventIcon icon={event.icon} locale={project.locale} />
           <strong style={{ color: ui.colors.textPrimary, fontWeight: 800 }}>{event.name}</strong>
@@ -34,8 +23,8 @@ export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], on
         </div>
         {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
         <div style={{ marginTop: 4, opacity: 0.86 }}><Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge></div>
-      </button>)}
-      {moonEventsToday.map((event) => <button key={event.id} type="button" onClick={onSelectMoonEvent ? () => onSelectMoonEvent(event.id) : undefined} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a", width: "100%", textAlign: "left", cursor: onSelectMoonEvent ? "pointer" : "default" }}>
+      </button>),
+      ...moonEventsToday.map((event) => <button key={`moon-${event.id}`} type="button" onClick={onSelectMoonEvent ? () => onSelectMoonEvent(event.id) : undefined} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a", width: "100%", textAlign: "left", cursor: onSelectMoonEvent ? "pointer" : "default" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
           <span>{event.icon ?? "🌕"}</span>
           <strong style={{ color: ui.colors.textPrimary, fontWeight: 800 }}>{event.name}</strong>
@@ -46,8 +35,11 @@ export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], on
           <Badge>{t(project.locale, "moonEvents.eventKind")}</Badge>
           <Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge>
         </div>
-      </button>)}
-    </div>}
+      </button>)
+    ];
+  return <SectionCard>
+    <SectionHeader title={t(project.locale, "events.eventsToday")} />
+    {rows.length === 0 ? <EmptyState text={t(project.locale, "events.noEventsToday")} /> : <div style={{ display: "grid", gap: 6 }}>{rows}</div>}
   </SectionCard>
 };
 

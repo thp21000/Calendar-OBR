@@ -22,6 +22,30 @@ const getForecastDateLabel = (project: CalendarProject, entry: DailyWeatherForec
 export const MonthWeatherForecastCard = ({ project, locale, forecast, mode = "gm", detailLevel = "precise", publicMonth }: { project?: CalendarProject; locale?: LocaleCode; forecast: DailyWeatherForecastEntry[]; mode?: "gm" | "player"; detailLevel?: PlayerForecastDetailLevel; readonly?: boolean; publicMonth?: PublicMonthSnapshot }) => {
   const [open, setOpen] = useState(false);
   const displayLocale = project?.locale ?? locale ?? "en";
+  const forecastCards = mode === "player"
+    ? (publicMonth?.dailyForecast ?? []).map((entry) => ({
+      key: String(entry.absoluteDay),
+      title: entry.dateLabel,
+      rows: [
+        `${entry.stateIcon} ${entry.stateLabel}`,
+        ...(detailLevel === "precise" ? [
+          entry.averageTemperature !== undefined ? `${entry.averageTemperature} ${entry.units.temperature}` : undefined,
+          entry.averageWindSpeed !== undefined ? `${entry.averageWindSpeed} ${entry.units.windSpeed}` : undefined,
+          entry.rainTotal24h !== undefined ? `${t(displayLocale, "weather.rainAccumulation")}: ${entry.rainTotal24h} ${entry.units.rainTotal}` : undefined
+        ] : [entry.broadLabel])
+      ].filter(Boolean) as string[]
+    }))
+    : project ? forecast.map((entry) => ({
+      key: String(entry.absoluteDay),
+      title: getForecastDateLabel(project, entry),
+      rows: entry.dailyWeather ? [
+        `${getConfiguredWeatherStateIcon(project, entry.dailyWeather.dominantState)} ${getWeatherStateLabel(project, entry.dailyWeather.dominantState)}`,
+        `${getTemperatureIcon(entry.dailyWeather.averageTemperature)} ${formatTemperature(entry.dailyWeather.averageTemperature, project.units, project.locale)}`,
+        <span key="wind">{getWindSpeedIcon(entry.dailyWeather.averageWindSpeed)} {formatWindSpeed(entry.dailyWeather.averageWindSpeed, project.units, project.locale)}{entry.dailyWeather.dominantWindDirection ? <span title={entry.dailyWeather.dominantWindDirection}> {getWindDirectionIcon(entry.dailyWeather.dominantWindDirection)}</span> : null}</span>,
+        `${t(project.locale, "weather.rainAccumulation")}: ${formatRainTotal(entry.dailyWeather.rainTotal24h, project.units, project.locale)}`,
+        entry.dailyWeather.trendKind ? `${getConfiguredWeatherTrendIcon(project, entry.dailyWeather.trendKind)} ${getWeatherTrendLabel(project, entry.dailyWeather.trendKind)}` : undefined
+      ].filter(Boolean) as React.ReactNode[] : [<span key="empty" style={{ color: ui.colors.textMuted }}>{t(project.locale, "calendar.noWeather")}</span>]
+    })) : [];
 
   return (
     <SectionCard style={{ marginTop: 8 }}>
@@ -29,45 +53,16 @@ export const MonthWeatherForecastCard = ({ project, locale, forecast, mode = "gm
         <span>{t(displayLocale, "weather.forecast5d")}</span>
         <span aria-hidden="true">{open ? "▾" : "▸"}</span>
       </button>
-      {open ? (
-        mode === "player" ? ((publicMonth?.dailyForecast ?? []).length === 0 ? <EmptyState text={t(displayLocale, "calendar.noForecast")} /> : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))", gap: 6, width: "100%" }}>
-            {(publicMonth?.dailyForecast ?? []).map((entry) => (
-              <Panel key={entry.absoluteDay} style={{ background: ui.colors.surfaceSoft, minHeight: 110, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
-                <div style={{ fontSize: 12, fontWeight: 800 }}>{entry.dateLabel}</div>
-                <div>{entry.stateIcon} {entry.stateLabel}</div>
-                {detailLevel === "precise" ? (
-                  <>
-                    {entry.averageTemperature !== undefined ? <div>{entry.averageTemperature} {entry.units.temperature}</div> : null}
-                    {entry.averageWindSpeed !== undefined ? <div>{entry.averageWindSpeed} {entry.units.windSpeed}</div> : null}
-                    {entry.rainTotal24h !== undefined ? <div>{t(displayLocale, "weather.rainAccumulation")}: {entry.rainTotal24h} {entry.units.rainTotal}</div> : null}
-                  </>
-                ) : entry.broadLabel ? <div>{entry.broadLabel}</div> : null}
-              </Panel>
-            ))}
-          </div>
-        )) : !project || forecast.length === 0 ? <EmptyState text={t(displayLocale, "calendar.noForecast")} /> : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))", gap: 6, width: "100%" }}>
-            {forecast.map((entry) => (
-              <Panel key={entry.absoluteDay} style={{ background: ui.colors.surfaceSoft, minHeight: 110, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
-                <div style={{ fontSize: 12, fontWeight: 800 }}>{getForecastDateLabel(project, entry)}</div>
-                {entry.dailyWeather ? (
-                  <>
-                    <div>{getConfiguredWeatherStateIcon(project, entry.dailyWeather.dominantState)} {getWeatherStateLabel(project, entry.dailyWeather.dominantState)}</div>
-                    <div>{getTemperatureIcon(entry.dailyWeather.averageTemperature)} {formatTemperature(entry.dailyWeather.averageTemperature, project.units, project.locale)}</div>
-                    <div>
-                      {getWindSpeedIcon(entry.dailyWeather.averageWindSpeed)} {formatWindSpeed(entry.dailyWeather.averageWindSpeed, project.units, project.locale)}
-                      {entry.dailyWeather.dominantWindDirection ? <span title={entry.dailyWeather.dominantWindDirection}> {getWindDirectionIcon(entry.dailyWeather.dominantWindDirection)}</span> : null}
-                    </div>
-                    <div>{t(project.locale, "weather.rainAccumulation")}: {formatRainTotal(entry.dailyWeather.rainTotal24h, project.units, project.locale)}</div>
-                    {entry.dailyWeather.trendKind ? <div>{getConfiguredWeatherTrendIcon(project, entry.dailyWeather.trendKind)} {getWeatherTrendLabel(project, entry.dailyWeather.trendKind)}</div> : null}
-                  </>
-                ) : <div style={{ color: ui.colors.textMuted }}>{t(project.locale, "calendar.noWeather")}</div>}
-              </Panel>
-            ))}
-          </div>
-        )
-      ) : null}
+      {open ? (forecastCards.length === 0 ? <EmptyState text={t(displayLocale, "calendar.noForecast")} /> : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))", gap: 6, width: "100%" }}>
+          {forecastCards.map((entry) => (
+            <Panel key={entry.key} style={{ background: ui.colors.surfaceSoft, minHeight: 110, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
+              <div style={{ fontSize: 12, fontWeight: 800 }}>{entry.title}</div>
+              {entry.rows.map((row, index) => <div key={index}>{row}</div>)}
+            </Panel>
+          ))}
+        </div>
+      )) : null}
     </SectionCard>
   );
 };

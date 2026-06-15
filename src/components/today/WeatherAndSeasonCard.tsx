@@ -69,56 +69,9 @@ export const TodayStatusSummary = ({
   playerModel?: PlayerViewModel;
   onSelectPublicWeatherEvent?: (event: PublicEventDetails) => void;
 }) => {
-  if (mode === "player" && playerModel) {
-    const showTopLine = Boolean(visibility?.showDate || visibility?.showSeason || visibility?.showMoons);
-    const showBiome = Boolean(visibility?.showBiome && playerModel.biome);
-    const showWeather = Boolean(visibility?.showWeather);
-    const showWeatherEvents = Boolean(visibility?.showWeatherEvents && playerModel.weatherEvents.length > 0);
-    if (!showTopLine && !showBiome && !showWeather && !showWeatherEvents) return null;
-
-    return <SectionCard style={{ background: ui.colors.surfaceElevated, borderColor: "#475569", boxShadow: "0 2px 10px rgba(2,6,23,0.22)" }}>
-      {showTopLine ? <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 18, fontWeight: 800, lineHeight: 1.25 }}>
-        {visibility?.showDate ? playerModel.dateParts.map((part, index) => <span key={`${part}:${index}`} style={{ whiteSpace: "nowrap" }}>{part}</span>) : null}
-        {visibility?.showSeason && playerModel.season ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{playerModel.season.icon ?? "🍃"} {playerModel.season.name}</span> : null}
-        {visibility?.showMoons ? playerModel.moons.map((moon) => <span key={moon.id} title={`${moon.name} — ${moon.phaseLabel}`} style={{ whiteSpace: "nowrap" }}>{moon.icon}</span>) : null}
-      </div> : null}
-
-      {showBiome ? <div style={biomeInlineStyle}>
-        <span style={biomeIconStyle}>{playerModel.biome?.icon}</span>
-        <div style={biomeTextStyle}>
-          <strong>{t(playerModel.locale, "weatherBiome.label")} {playerModel.biome?.name}</strong>
-          <span style={biomeDescriptionStyle}>{playerModel.biome?.description}</span>
-        </div>
-      </div> : null}
-
-      {showWeather ? <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, rowGap: 6, fontSize: 13 }}>
-        {playerModel.weather ? <>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{playerModel.weather.stateIcon} {playerModel.weather.stateLabel}</span>
-          {playerModel.weather.detailLevel === "precise" ? <>
-            {playerModel.weather.temperature ? <span style={{ whiteSpace: "nowrap" }}>{playerModel.weather.temperature}</span> : null}
-            {playerModel.weather.wind ? <span style={{ whiteSpace: "nowrap" }}>{playerModel.weather.wind}</span> : null}
-            {playerModel.weather.rain ? <span style={{ whiteSpace: "nowrap" }}>{playerModel.weather.rain}</span> : null}
-            {playerModel.weather.dailyRainTotal ? <span style={{ whiteSpace: "nowrap" }}>{t(playerModel.locale, "weather.rainAccumulation")}: {playerModel.weather.dailyRainTotal}</span> : null}
-          </> : <>
-            {playerModel.weather.broadTemperature ? <span style={{ whiteSpace: "nowrap" }}>{playerModel.weather.broadTemperature}</span> : null}
-            {playerModel.weather.broadWind ? <span style={{ whiteSpace: "nowrap" }}>{playerModel.weather.broadWind}</span> : null}
-            {playerModel.weather.broadRain ? <span style={{ whiteSpace: "nowrap" }}>{playerModel.weather.broadRain}</span> : null}
-          </>}
-        </> : <span style={{ fontSize: 12, color: "#94a3b8" }}>{t(playerModel.locale, "calendar.noWeather")}</span>}
-      </div> : null}
-
-      {showWeather && playerModel.weather?.detailLevel === "precise" && (playerModel.weather.trend || playerModel.weather.dominantState) ? <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>
-        {playerModel.weather.trend ? `${t(playerModel.locale, "weather.trend")}: ${playerModel.weather.trend}` : ""}
-        {playerModel.weather.trend && playerModel.weather.dominantState ? " · " : ""}
-        {playerModel.weather.dominantState ? `${t(playerModel.locale, "weather.dominantState")}: ${playerModel.weather.dominantState}` : ""}
-      </div> : null}
-
-      {showWeatherEvents ? <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-        {playerModel.weatherEvents.map((event) => <PublicWeatherEventRow key={event.id} locale={playerModel.locale} event={event} onSelectEvent={onSelectPublicWeatherEvent} />)}
-      </div> : null}
-    </SectionCard>;
-  }
-  const activeOverride = getWeatherOverrideForTime(project, project.currentTime.absoluteDay, project.currentTime.hour, project.currentTime.minute);
+  const isPlayer = mode === "player" && Boolean(playerModel);
+  const locale = playerModel?.locale ?? project.locale;
+  const activeOverride = isPlayer ? undefined : getWeatherOverrideForTime(project, project.currentTime.absoluteDay, project.currentTime.hour, project.currentTime.minute);
   const sceneWeatherOverride = activeOverride?.source === "sceneWeather" ? activeOverride : undefined;
   const override = activeOverride?.source === "sceneWeather" ? undefined : activeOverride;
   const forcedOverrideValues = override ? getForcedOverrideValues(project, override, weatherUnits) : [];
@@ -132,107 +85,79 @@ export const TodayStatusSummary = ({
   const sceneWeatherName = sceneWeatherNameParts.length > 0 ? sceneWeatherNameParts.join(" ") : sceneWeatherLabel;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const biome = getCurrentWeatherBiomeDefinition(project);
+  const showDate = isPlayer ? Boolean(visibility?.showDate) : true;
+  const showSeason = isPlayer ? Boolean(visibility?.showSeason) : true;
+  const showWeather = isPlayer ? Boolean(visibility?.showWeather) : true;
+  const showBiome = isPlayer ? Boolean(visibility?.showBiome) : true;
+  const showMoons = isPlayer ? Boolean(visibility?.showMoons) : true;
+  const showWeatherEvents = isPlayer ? Boolean(visibility?.showWeatherEvents) : true;
+
+  const topLineItems = [
+    ...(showDate ? (isPlayer && playerModel ? playerModel.dateParts.map((part, index) => <span key={`date-${index}`} style={{ whiteSpace: "nowrap" }}>{part}</span>) : [
+      <span key="weekday" style={{ whiteSpace: "nowrap" }}>{displayDate.weekdayName}</span>,
+      <span key="day" style={{ whiteSpace: "nowrap" }}>{displayDate.dayOfMonth}</span>,
+      <span key="month" style={{ whiteSpace: "nowrap" }}>{displayDate.monthName}</span>,
+      <span key="year" style={{ whiteSpace: "nowrap" }}>{displayDate.year}</span>,
+      <span key="time" style={{ whiteSpace: "nowrap" }}>{String(project.currentTime.hour).padStart(2, "0")}:{String(project.currentTime.minute).padStart(2, "0")}</span>
+    ]) : []),
+    showSeason && (isPlayer ? playerModel?.season : currentSeason) ? <span key="season" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{isPlayer ? (playerModel?.season?.icon ?? "🍃") : (currentSeason?.icon ?? "🍃")} {isPlayer ? playerModel?.season?.name : currentSeason?.name}</span> : undefined,
+    ...(showMoons ? (isPlayer && playerModel ? playerModel.moons.map((moon) => <span key={moon.id} title={`${moon.name} — ${moon.phaseLabel}`} style={{ whiteSpace: "nowrap" }}>{moon.icon}</span>) : currentMoonPhases.map(({ moon, phase }) => <span key={moon.id} title={t(project.locale, `moon.phase.${phase.id}`)} style={{ whiteSpace: "nowrap" }}>{moon.icon ?? phase.icon}</span>)) : [])
+  ].filter((item): item is JSX.Element => Boolean(item));
+
+  const biomeView = showBiome ? (isPlayer && playerModel?.biome ? {
+    icon: playerModel.biome.icon,
+    label: `${t(locale, "weatherBiome.label")} ${playerModel.biome.name}`,
+    description: playerModel.biome.description
+  } : !isPlayer ? {
+    icon: biome.icon,
+    label: `${t(project.locale, "weatherBiome.label")} ${t(project.locale, biome.nameKey)}`,
+    description: t(project.locale, biome.descriptionKey)
+  } : undefined) : undefined;
+
+  const weatherNodes = showWeather ? (isPlayer && playerModel ? (playerModel.weather ? [
+    <span key="state" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{playerModel.weather.stateIcon} {playerModel.weather.stateLabel}</span>,
+    ...(playerModel.weather.detailLevel === "precise" ? [
+      playerModel.weather.temperature ? <span key="temp" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.temperature}</span> : undefined,
+      playerModel.weather.wind ? <span key="wind" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.wind}</span> : undefined,
+      playerModel.weather.rain ? <span key="rain" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.rain}</span> : undefined,
+      playerModel.weather.dailyRainTotal ? <span key="rain-total" style={{ whiteSpace: "nowrap" }}>{t(locale, "weather.rainAccumulation")}: {playerModel.weather.dailyRainTotal}</span> : undefined
+    ] : [
+      playerModel.weather.broadTemperature ? <span key="broad-temp" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.broadTemperature}</span> : undefined,
+      playerModel.weather.broadWind ? <span key="broad-wind" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.broadWind}</span> : undefined,
+      playerModel.weather.broadRain ? <span key="broad-rain" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.broadRain}</span> : undefined
+    ])
+  ].filter((item): item is JSX.Element => Boolean(item)) : [<span key="empty" style={{ fontSize: 12, color: "#94a3b8" }}>{t(locale, "calendar.noWeather")}</span>]) : currentWeather ? [
+    currentWeather.state ? <span key="state" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getConfiguredWeatherStateIcon(project, currentWeather.state)} {getWeatherStateLabel(project, currentWeather.state)}</span> : undefined,
+    <span key="temp" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getTemperatureIcon(currentWeather.temperature)} {formatTemperature(currentWeather.temperature, project.units, project.locale)}</span>,
+    <span key="wind" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getWindSpeedIcon(currentWeather.windSpeed)} {formatWindSpeed(currentWeather.windSpeed, project.units, project.locale)}{currentWeather.windDirection ? <span title={currentWeather.windDirection}>{getWindDirectionIcon(currentWeather.windDirection)}</span> : null}</span>,
+    <span key="rain" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getRainIcon(currentWeather)} {formatRain(currentWeather.rain, project.units, project.locale)}</span>,
+    currentWeather.dailyRainTotal !== undefined ? <span key="rain-total" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{t(project.locale, "weather.rainAccumulation")}: {formatRainTotal(currentWeather.dailyRainTotal, project.units, project.locale)}</span> : undefined
+  ].filter((item): item is JSX.Element => Boolean(item)) : [<span key="empty" style={{ fontSize: 12, color: "#94a3b8" }}>{t(project.locale, "calendar.noWeather")}</span>]) : [];
+
+  const trendText = showWeather ? (isPlayer && playerModel?.weather?.detailLevel === "precise" && (playerModel.weather.trend || playerModel.weather.dominantState)
+    ? `${playerModel.weather.trend ? `${t(locale, "weather.trend")}: ${playerModel.weather.trend}` : ""}${playerModel.weather.trend && playerModel.weather.dominantState ? " · " : ""}${playerModel.weather.dominantState ? `${t(locale, "weather.dominantState")}: ${playerModel.weather.dominantState}` : ""}`
+    : !isPlayer && (currentWeather?.trendKind || currentWeather?.dominantState)
+      ? `${currentWeather?.trendKind ? `${getConfiguredWeatherTrendIcon(project, currentWeather.trendKind)} ${t(project.locale, "weather.trend")}: ${getWeatherTrendLabel(project, currentWeather.trendKind)}` : ""}${currentWeather?.trendKind && currentWeather?.dominantState ? " · " : ""}${currentWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${getWeatherStateLabel(project, currentWeather.dominantState)}` : ""}`
+      : "") : "";
+
+  const weatherEventRows = showWeatherEvents ? [
+    ...(!isPlayer && sceneWeatherOverride ? [<div key="scene" style={{ background: ui.colors.surface, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={sceneWeatherIcon} locale={project.locale} /><strong>{sceneWeatherName}</strong></div><div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{t(project.locale, "sceneWeather.activeAlert")}</div></div>] : []),
+    ...(isPlayer && playerModel ? playerModel.weatherEvents.map((event) => <PublicWeatherEventRow key={event.id} locale={playerModel.locale} event={event} onSelectEvent={onSelectPublicWeatherEvent} />) : triggeredWeatherEvents.map((event) => <div key={event.id} role={onSelectWeatherEvent ? "button" : undefined} tabIndex={onSelectWeatherEvent ? 0 : undefined} onClick={() => onSelectWeatherEvent?.(event.id)} onKeyDown={(keyEvent) => { if (!onSelectWeatherEvent || (keyEvent.key !== "Enter" && keyEvent.key !== " ")) return; keyEvent.preventDefault(); onSelectWeatherEvent(event.id); }} style={{ background: ui.colors.surface, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm, cursor: onSelectWeatherEvent ? "pointer" : undefined }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>{event.summary ? <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{event.summary}</div> : null}<div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 4 }} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>{event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: ui.colors.accent }}>{t(project.locale, "common.openLink")}</a> : null}</div></div>))
+  ] : [];
+
+  if (topLineItems.length === 0 && !biomeView && weatherNodes.length === 0 && !trendText && !override && weatherEventRows.length === 0) return null;
 
   return (
     <SectionCard style={{ background: ui.colors.surfaceElevated, borderColor: "#475569", boxShadow: "0 2px 10px rgba(2,6,23,0.22)" }}>
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 18, fontWeight: 800, lineHeight: 1.25 }}>
-        <span style={{ whiteSpace: "nowrap" }}>{displayDate.weekdayName}</span>
-        <span style={{ whiteSpace: "nowrap" }}>{displayDate.dayOfMonth}</span>
-        <span style={{ whiteSpace: "nowrap" }}>{displayDate.monthName}</span>
-        <span style={{ whiteSpace: "nowrap" }}>{displayDate.year}</span>
-        <span style={{ whiteSpace: "nowrap" }}>{String(project.currentTime.hour).padStart(2, "0")}:{String(project.currentTime.minute).padStart(2, "0")}</span>
-        {currentSeason ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{currentSeason.icon ?? "🍃"} {currentSeason.name}</span> : null}
-        {currentMoonPhases.map(({ moon, phase }) => <span key={moon.id} title={t(project.locale, `moon.phase.${phase.id}`)} style={{ whiteSpace: "nowrap" }}>{moon.icon ?? phase.icon}</span>)}
-      </div>
-
-      <div style={biomeInlineStyle}>
-        <span style={biomeIconStyle}>{biome.icon}</span>
-        <div style={biomeTextStyle}>
-          <strong>{t(project.locale, "weatherBiome.label")} {t(project.locale, biome.nameKey)}</strong>
-          <span style={biomeDescriptionStyle}>{t(project.locale, biome.descriptionKey)}</span>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, rowGap: 6, fontSize: 13 }}>
-        {currentWeather ? (
-          <>
-            {currentWeather.state ? (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
-                {getConfiguredWeatherStateIcon(project, currentWeather.state)} {getWeatherStateLabel(project, currentWeather.state)}
-              </span>
-            ) : null}
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
-              {getTemperatureIcon(currentWeather.temperature)} {formatTemperature(currentWeather.temperature, project.units, project.locale)}
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>
-              {getWindSpeedIcon(currentWeather.windSpeed)} {formatWindSpeed(currentWeather.windSpeed, project.units, project.locale)}
-              {currentWeather.windDirection ? (
-                <span title={currentWeather.windDirection}>{getWindDirectionIcon(currentWeather.windDirection)}</span>
-              ) : null}
-            </span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getRainIcon(currentWeather)} {formatRain(currentWeather.rain, project.units, project.locale)}</span>
-            {currentWeather.dailyRainTotal !== undefined ? <span style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{t(project.locale, "weather.rainAccumulation")}: {formatRainTotal(currentWeather.dailyRainTotal, project.units, project.locale)}</span> : null}
-          </>
-        ) : <span style={{ fontSize: 12, color: "#94a3b8" }}>{t(project.locale, "calendar.noWeather")}</span>}
-      </div>
-
-      {currentWeather?.trendKind || currentWeather?.dominantState ? (
-        <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>
-          {currentWeather?.trendKind ? `${getConfiguredWeatherTrendIcon(project, currentWeather.trendKind)} ${t(project.locale, "weather.trend")}: ${getWeatherTrendLabel(project, currentWeather.trendKind)}` : ""}
-          {currentWeather?.trendKind && currentWeather?.dominantState ? " · " : ""}
-          {currentWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${getWeatherStateLabel(project, currentWeather.dominantState)}` : ""}
-        </div>
-      ) : null}
-
-      {override ? (
-        <div style={{ marginTop: 6, display: "grid", gap: 4 }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            <Badge tone="warning">{overrideLabel}</Badge>
-            {overrideIsTimed ? <Badge>{t(project.locale, "weatherOverride.activeTimedEffect")}</Badge> : null}
-          </div>
-          {forcedOverrideValues.length > 0 ? (
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>
-              {t(project.locale, "weatherOverride.forcedValues")}: {forcedOverrideValues.join(" · ")}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {sceneWeatherOverride || triggeredWeatherEvents.length > 0 ? <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-        {sceneWeatherOverride ? (
-          <div style={{ background: ui.colors.surface, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <EventIcon icon={sceneWeatherIcon} locale={project.locale} />
-              <strong>{sceneWeatherName}</strong>
-            </div>
-            <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{t(project.locale, "sceneWeather.activeAlert")}</div>
-          </div>
-        ) : null}
-        {triggeredWeatherEvents.map((event) => (
-          <div
-            key={event.id}
-            role={onSelectWeatherEvent ? "button" : undefined}
-            tabIndex={onSelectWeatherEvent ? 0 : undefined}
-            onClick={() => onSelectWeatherEvent?.(event.id)}
-            onKeyDown={(keyEvent) => {
-              if (!onSelectWeatherEvent || (keyEvent.key !== "Enter" && keyEvent.key !== " ")) return;
-              keyEvent.preventDefault();
-              onSelectWeatherEvent(event.id);
-            }}
-            style={{ background: ui.colors.surface, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm, cursor: onSelectWeatherEvent ? "pointer" : undefined }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>
-            {event.summary ? <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{event.summary}</div> : null}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 4 }} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>
-              {event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: ui.colors.accent }}>{t(project.locale, "common.openLink")}</a> : null}
-            </div>
-          </div>
-        ))}
-      </div> : null}
+      {topLineItems.length > 0 ? <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 18, fontWeight: 800, lineHeight: 1.25 }}>{topLineItems}</div> : null}
+      {biomeView ? <div style={biomeInlineStyle}><span style={biomeIconStyle}>{biomeView.icon}</span><div style={biomeTextStyle}><strong>{biomeView.label}</strong><span style={biomeDescriptionStyle}>{biomeView.description}</span></div></div> : null}
+      {weatherNodes.length > 0 ? <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, rowGap: 6, fontSize: 13 }}>{weatherNodes}</div> : null}
+      {trendText ? <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>{trendText}</div> : null}
+      {override ? <div style={{ marginTop: 6, display: "grid", gap: 4 }}><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}><Badge tone="warning">{overrideLabel}</Badge>{overrideIsTimed ? <Badge>{t(project.locale, "weatherOverride.activeTimedEffect")}</Badge> : null}</div>{forcedOverrideValues.length > 0 ? <div style={{ fontSize: 11, color: "#94a3b8" }}>{t(project.locale, "weatherOverride.forcedValues")}: {forcedOverrideValues.join(" · ")}</div> : null}</div> : null}
+      {weatherEventRows.length > 0 ? <div style={{ marginTop: 8, display: "grid", gap: 6 }}>{weatherEventRows}</div> : null}
     </SectionCard>
   );
 };
-
 const biomeInlineStyle: React.CSSProperties = {
   marginTop: 8,
   fontSize: 13,
@@ -280,6 +205,26 @@ const forecastHeaderButtonStyle: React.CSSProperties = {
 
 export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits, mode = "gm", detailLevel = "precise", playerForecast = [] }: Pick<Props, "project"|"hourlyForecast"|"weatherUnits"> & { mode?: "gm" | "player"; detailLevel?: "precise" | "broad" | "narrative"; readonly?: boolean; playerForecast?: PlayerHourlyForecastEntry[] }) => {
   const [open, setOpen] = useState(true);
+  const forecastCards = mode === "player"
+    ? playerForecast.map((entry) => ({
+      key: `${entry.offsetHours}:${entry.timeLabel}`,
+      title: `+${entry.offsetHours} h`,
+      rows: [
+        `${entry.stateIcon} ${entry.stateLabel}`,
+        ...(detailLevel === "precise" ? [entry.temperature, entry.wind, entry.rain, entry.trend] : [entry.broadTemperature, entry.broadWind, entry.broadRain])
+      ].filter(Boolean) as string[]
+    }))
+    : hourlyForecast.map((entry) => ({
+      key: String(entry.offsetHours),
+      title: `+${entry.offsetHours} h`,
+      rows: [
+        `${getTemperatureIcon(entry.weather.temperature)} ${formatTemperature(entry.weather.temperature, project.units, project.locale)}`,
+        <span key="wind">{getWindSpeedIcon(entry.weather.windSpeed)} {formatWindSpeed(entry.weather.windSpeed, project.units, project.locale)}{entry.weather.windDirection ? <span title={entry.weather.windDirection}> {getWindDirectionIcon(entry.weather.windDirection)}</span> : null}</span>,
+        `${getRainIcon(entry.weather)} ${formatRain(entry.weather.rain, project.units, project.locale)}`,
+        entry.weather.trendKind ? `${getConfiguredWeatherTrendIcon(project, entry.weather.trendKind)} ${getWeatherTrendLabel(project, entry.weather.trendKind)}` : undefined
+      ].filter(Boolean) as React.ReactNode[]
+    }));
+
   return (
     <SectionCard>
       <button type="button" onClick={() => setOpen((value) => !value)} style={forecastHeaderButtonStyle}>
@@ -287,31 +232,10 @@ export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits, mod
         <span aria-hidden="true">{open ? "▾" : "▸"}</span>
       </button>
       {open ? <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(74px, 1fr))", gap: 6, width: "100%" }}>
-        {mode === "player" ? playerForecast.map((entry) => (
-          <Panel key={`${entry.offsetHours}:${entry.timeLabel}`} style={{ background: ui.colors.surfaceSoft, minHeight: 96, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
-            <div style={{ fontSize: 12, fontWeight: 800 }}>+{entry.offsetHours} h</div>
-            <div>{entry.stateIcon} {entry.stateLabel}</div>
-            {detailLevel === "precise" ? <>
-              {entry.temperature ? <div>{entry.temperature}</div> : null}
-              {entry.wind ? <div>{entry.wind}</div> : null}
-              {entry.rain ? <div>{entry.rain}</div> : null}
-              {entry.trend ? <div>{entry.trend}</div> : null}
-            </> : <>
-              {entry.broadTemperature ? <div>{entry.broadTemperature}</div> : null}
-              {entry.broadWind ? <div>{entry.broadWind}</div> : null}
-              {entry.broadRain ? <div>{entry.broadRain}</div> : null}
-            </>}
-          </Panel>
-        )) : hourlyForecast.map((entry) => (
-          <Panel key={entry.offsetHours} style={{ background: ui.colors.surfaceSoft, minHeight: 96, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
-            <div style={{ fontSize: 12, fontWeight: 800 }}>+{entry.offsetHours} h</div>
-            <div>{getTemperatureIcon(entry.weather.temperature)} {formatTemperature(entry.weather.temperature, project.units, project.locale)}</div>
-            <div>
-              {getWindSpeedIcon(entry.weather.windSpeed)} {formatWindSpeed(entry.weather.windSpeed, project.units, project.locale)}
-              {entry.weather.windDirection ? <span title={entry.weather.windDirection}> {getWindDirectionIcon(entry.weather.windDirection)}</span> : null}
-            </div>
-            <div>{getRainIcon(entry.weather)} {formatRain(entry.weather.rain, project.units, project.locale)}</div>
-            {entry.weather.trendKind ? <div>{getConfiguredWeatherTrendIcon(project, entry.weather.trendKind)} {getWeatherTrendLabel(project, entry.weather.trendKind)}</div> : null}
+        {forecastCards.map((entry) => (
+          <Panel key={entry.key} style={{ background: ui.colors.surfaceSoft, minHeight: 96, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
+            <div style={{ fontSize: 12, fontWeight: 800 }}>{entry.title}</div>
+            {entry.rows.map((row, index) => <div key={index}>{row}</div>)}
           </Panel>
         ))}
       </div> : null}
