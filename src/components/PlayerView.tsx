@@ -25,7 +25,14 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
     () => snapshot ? buildPlayerViewModelFromSnapshot(project, snapshot, settings) : buildPlayerViewModelFromProject(project, settings),
     [project, settings, snapshot]
   );
-  const hasVisibleTodayContent = settings.today.showHeader || settings.today.showDate || model.season || model.biome || model.weather || model.moons.length > 0 || model.hourlyForecast.length > 0 || model.events.length > 0 || model.weatherEvents.length > 0 || model.moonEvents.length > 0 || model.dayNotes.length > 0;
+  const overviewBlocks = {
+    season: settings.today.showSeason,
+    weather: settings.today.showWeather,
+    biome: settings.today.showBiome,
+    moons: settings.today.showMoons
+  };
+  const shouldShowOverview = overviewBlocks.season || overviewBlocks.weather || overviewBlocks.biome || overviewBlocks.moons;
+  const hasVisibleTodayContent = settings.today.showHeader || settings.today.showDate || shouldShowOverview || model.hourlyForecast.length > 0 || model.events.length > 0 || model.weatherEvents.length > 0 || model.moonEvents.length > 0 || model.dayNotes.length > 0;
 
   return (
     <>
@@ -36,7 +43,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
 
       {activeTab === "month" ? <SectionCard><EmptyState text={t(model.locale, "player.monthPlaceholder")} /></SectionCard> : <>
         {settings.today.showHeader || settings.today.showDate ? <PlayerHeaderCard locale={model.locale} calendarName={model.calendarName} formattedDate={model.formattedDate} showHeader={settings.today.showHeader} showDate={settings.today.showDate} /> : null}
-        {(model.season || model.biome || model.weather || model.moons.length > 0) ? <PlayerOverviewCard locale={model.locale} model={model} /> : null}
+        {shouldShowOverview ? <PlayerOverviewCard locale={model.locale} model={model} visibleBlocks={overviewBlocks} /> : null}
         {model.weather ? <PlayerWeatherCard locale={model.locale} model={{ weather: model.weather, biome: model.biome }} /> : null}
         {model.hourlyForecast.length > 0 ? <PlayerHourlyForecastCard locale={model.locale} forecast={model.hourlyForecast} /> : null}
         {settings.today.showEvents ? <PlayerPublicEventsCard locale={model.locale} events={model.events} onSelectEvent={setSelectedPublicEvent} /> : null}
