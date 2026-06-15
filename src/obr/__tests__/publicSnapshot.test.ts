@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_PLAYER_VIEW_SETTINGS } from "../../calendar/playerViewSettings";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
-import { createPublicCalendarTodaySnapshot } from "../publicSnapshot";
+import { buildPublicMonthSnapshot, createPublicCalendarTodaySnapshot } from "../publicSnapshot";
 
 describe("publicSnapshot moon events", () => {
   it("includes players moon event", () => {
@@ -138,5 +139,86 @@ it("does not leak weather overrides internals and keeps final weather", () => {
     expect(raw).not.toContain("triggerHistory");
     expect(raw).not.toContain("cooldownHours");
     expect(raw).not.toContain("durationHours");
+  });
+it("builds a public month snapshot without GM-only events or notes", () => {
+    const project = createDefaultCalendarProject();
+    project.events = [
+      {
+        id: "public-event",
+        name: "Public event",
+        summary: "Visible summary",
+        playerDescription: "Visible player text",
+        gmDescription: "secret event text",
+        date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 10, minute: 0 },
+        visibility: "players",
+        status: "active",
+        recurrence: { type: "none" },
+        notifyOnTrigger: true,
+        deleteAfterTrigger: false,
+        archiveAfterTrigger: false
+      },
+      {
+        id: "gm-event",
+        name: "GM event",
+        summary: "Hidden summary",
+        gmDescription: "secret gm event",
+        date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 11, minute: 0 },
+        visibility: "gm",
+        status: "active",
+        recurrence: { type: "none" },
+        notifyOnTrigger: true,
+        deleteAfterTrigger: false,
+        archiveAfterTrigger: false
+      }
+    ];
+    project.dayNotes = [
+      { id: "player-note", date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 0, minute: 0 }, playerNote: "public note", gmNote: "secret note text", visibility: "players", updatedAt: 1 },
+      { id: "gm-note", date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 0, minute: 0 }, gmNote: "secret gm note", visibility: "gm", updatedAt: 1 }
+    ];
+
+    const month = buildPublicMonthSnapshot(project, DEFAULT_PLAYER_VIEW_SETTINGS);
+    const today = month.days.find((day) => day.isToday);
+    const raw = JSON.stringify(month);
+
+    expect(today?.events.map((event) => event.id)).toEqual(["public-event"]);
+    expect(today?.dayNotes).toEqual([{ id: "player-note", playerNote: "public note" }]);
+    expect(raw).not.toContain("gm-event");
+    expect(raw).not.toContain("secret event text");
+    expect(raw).not.toContain("secret note text");
+    expect(raw).not.toContain("secret gm note");
+  });
+
+  it("respects public month visibility settings", () => {
+    const project = createDefaultCalendarProject();
+    project.events = [{
+      id: "public-event",
+      name: "Public event",
+      summary: "Visible summary",
+      date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 10, minute: 0 },
+      visibility: "players",
+      status: "active",
+      recurrence: { type: "none" },
+      notifyOnTrigger: true,
+      deleteAfterTrigger: false,
+      archiveAfterTrigger: false
+    }];
+    project.dayNotes = [{ id: "player-note", date: { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 0, minute: 0 }, playerNote: "public note", visibility: "players", updatedAt: 1 }];
+
+    const month = buildPublicMonthSnapshot(project, {
+      ...DEFAULT_PLAYER_VIEW_SETTINGS,
+      month: {
+        ...DEFAULT_PLAYER_VIEW_SETTINGS.month,
+        showPublicEvents: false,
+        showDayNotes: false,
+        showWeatherSummary: false,
+        showFiveDayForecast: false
+      }
+    });
+    const today = month.days.find((day) => day.isToday);
+
+    expect(today?.events).toEqual([]);
+    expect(today?.dayNotes).toEqual([]);
+    expect(today?.weatherSummary).toBeUndefined();
+    expect(month.dailyForecast).toEqual([]);
   });
 });

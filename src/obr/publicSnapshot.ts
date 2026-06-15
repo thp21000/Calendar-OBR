@@ -1,18 +1,22 @@
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
-import { getPlayerVisibleEventsForCurrentDay } from "../calendar/eventsLogic";
+import { getPlayerVisibleEventsForCurrentDay, getPlayerVisibleEventsForDay } from "../calendar/eventsLogic";
 import { getPlayerVisibleDayNotesForDay } from "../calendar/dayNotesLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../calendar/formatEvent";
 import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
-import { getCurrentSeason } from "../calendar/seasonsLogic";
-import { getCurrentWeather, getHourlyWeatherForecast } from "../calendar/weatherLogic";
+import { getCurrentSeason, getSeasonForDate } from "../calendar/seasonsLogic";
+import { generateWeatherForTime, getCurrentWeather, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
-import { getWeatherUnitLabels, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../calendar/weatherUnits";
-import type { CalendarCurrentTime, CalendarProject, LocaleCode, MoonPhaseId, PlayerViewSettings, WeatherSnapshot, WeatherState, WindDirection } from "../domain/types";
+import { formatTemperature, getWeatherUnitLabels, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../calendar/weatherUnits";
+import type { CalendarCurrentTime, CalendarDate, CalendarProject, InternalTime, LocaleCode, MoonPhaseId, PlayerViewSettings, WeatherSnapshot, WeatherState, WindDirection } from "../domain/types";
 import { t } from "../i18n/messages";
 import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
+import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex, getCurrentMonthWeekdayNames } from "../calendar/monthView";
+import { getDailyWeatherForecastEntries } from "../calendar/dayDetails";
+import { getWeatherStateLabel, getConfiguredWeatherStateIcon } from "../calendar/weatherAdvancedSettings";
+import { getAdjacentMonthLabels, getMonthViewTimeForDate, getNextMonthViewTime, getPreviousMonthViewTime } from "../calendar/monthNavigation";
 
 export type PublicCalendarIndex = {
   schemaVersion: 1;
@@ -79,6 +83,62 @@ export type PublicCalendarMoonSnapshot = {
   illumination: number;
 };
 
+export type PublicMonthMarkerSnapshot = {
+  id: string;
+  icon: string;
+  label: string;
+  type: "event" | "weather" | "moon" | "note" | "season" | "weatherSummary";
+};
+
+export type PublicMonthWeatherSummarySnapshot = {
+  stateIcon: string;
+  stateLabel: string;
+  temperatureLabel?: string;
+  broadLabel?: string;
+};
+
+export type PublicMonthDaySnapshot = {
+  key: string;
+  absoluteDay: number;
+  dayOfMonth: number;
+  dateLabel: string;
+  isToday: boolean;
+  season?: PublicCalendarSeasonSnapshot;
+  weatherSummary?: PublicMonthWeatherSummarySnapshot;
+  events: PublicCalendarEventSnapshot[];
+  weatherEvents: Array<{ id: string; name: string; icon?: string; summary?: string; playerDescription?: string; link?: string }>;
+  moonEvents: Array<{ id: string; name: string; icon?: string; summary?: string; playerDescription?: string; moonName: string; phaseId: MoonPhaseId }>;
+  dayNotes: Array<{ id: string; playerNote: string }>;
+  markers: PublicMonthMarkerSnapshot[];
+};
+
+export type PublicDailyForecastSnapshot = {
+  offsetDays: number;
+  absoluteDay: number;
+  dateLabel: string;
+  stateIcon: string;
+  stateLabel: string;
+  averageTemperature?: number;
+  averageWindSpeed?: number;
+  dominantWindDirection?: WindDirection;
+  rainTotal24h?: number;
+  broadLabel?: string;
+  units: { temperature: string; windSpeed: string; rainTotal: string };
+};
+
+export type PublicMonthSnapshot = {
+  viewedTime: InternalTime;
+  previousViewedTime: InternalTime;
+  nextViewedTime: InternalTime;
+  monthLabel: string;
+  previousMonthLabel: string;
+  nextMonthLabel: string;
+  weekdays: string[];
+  leadingEmptyDays: number;
+  days: PublicMonthDaySnapshot[];
+  dailyForecast?: PublicDailyForecastSnapshot[];
+};
+
 export type PublicCalendarTodaySnapshot = {
   schemaVersion: 1;
   revision: number;
@@ -111,6 +171,7 @@ export type PublicCalendarTodaySnapshot = {
   }>;
   dayNotesToday: Array<{ id: string; playerNote?: string }>;
   hourlyForecast?: PublicHourlyForecastSnapshot[];
+  month?: PublicMonthSnapshot;
   playerView: PlayerViewSettings;
 };
 
@@ -153,6 +214,113 @@ const buildPublicHourlyForecast = (project: CalendarProject, settings: PlayerVie
     rain: roundPublicWeatherValue(toDisplayRain(weather.rain, project.units.rain), rainDecimals),
     units: { temperature: weatherUnits.temperature, windSpeed: weatherUnits.windSpeed, rain: weatherUnits.rain }
   }));
+};
+
+const shortDateLabel = (project: CalendarProject, date: CalendarDate): string => {
+  const monthName = project.calendarSystem.months.find((month) => month.id === date.monthId)?.name ?? "";
+  return `${date.dayOfMonth} ${monthName}`.trim();
+};
+
+const broadWeatherLabel = (project: CalendarProject, temperature: number): string => {
+  if (temperature < 0) return t(project.locale, "player.weatherBroad.cold");
+  if (temperature < 10) return t(project.locale, "player.weatherBroad.cool");
+  if (temperature < 22) return t(project.locale, "player.weatherBroad.mild");
+  if (temperature < 32) return t(project.locale, "player.weatherBroad.warm");
+  return t(project.locale, "player.weatherBroad.hot");
+};
+
+const toPublicEventSnapshot = (project: CalendarProject, event: ReturnType<typeof getPlayerVisibleEventsForDay>[number]): PublicCalendarEventSnapshot => ({
+  id: event.id,
+  name: event.name,
+  icon: event.icon,
+  summary: event.summary || undefined,
+  playerDescription: event.playerDescription || undefined,
+  link: event.link || undefined,
+  timeLabel: formatEventTimeShort(project, event)
+});
+
+export const buildPublicMonthSnapshot = (
+  project: CalendarProject,
+  settings: PlayerViewSettings,
+  requestedViewedTime?: InternalTime
+): PublicMonthSnapshot => {
+  const currentMonthDate = absoluteDayToCalendarDate(requestedViewedTime ?? project.currentTime, project.calendarSystem);
+  const viewedTime = getMonthViewTimeForDate(project, currentMonthDate);
+  const adjacentLabels = getAdjacentMonthLabels(project, viewedTime);
+  const previousViewedTime = getPreviousMonthViewTime(project, viewedTime);
+  const nextViewedTime = getNextMonthViewTime(project, viewedTime);
+  const monthDays = getCurrentMonthDays(viewedTime, project.calendarSystem);
+  const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
+  const leadingEmptyDays = getCurrentMonthFirstWeekdayIndex(viewedTime, project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
+  const weatherUnits = getWeatherUnitLabels(project.units);
+  const days = monthDays.map((day) => {
+    const date = absoluteDayToCalendarDate({ absoluteDay: day.absoluteDay, hour: 0, minute: 0 }, project.calendarSystem);
+    const eventDate = { ...date, hour: 0, minute: 0 };
+    const events = settings.month.showPublicEvents ? getPlayerVisibleEventsForDay(project, eventDate).map((event) => toPublicEventSnapshot(project, event)) : [];
+    const weather = settings.month.showWeatherSummary || settings.month.showWeatherEvents
+      ? generateWeatherForTime(project, day.absoluteDay, 12)
+      : undefined;
+    const weatherEvents = settings.month.showWeatherEvents && weather ? getPlayerVisibleWeatherEvents(project, weather, { absoluteDay: day.absoluteDay, hour: 12, minute: 0 }).map((event) => ({
+      id: event.id, name: event.name, icon: event.icon, summary: event.summary || undefined, playerDescription: event.playerDescription || undefined, link: event.link || undefined
+    })) : [];
+    const moonEvents = settings.month.showMoonEvents ? getPlayerVisibleMoonEvents(project, day.absoluteDay).map((event) => ({
+      id: event.id, name: event.name, icon: event.icon, summary: event.summary || undefined, playerDescription: event.playerDescription || undefined, moonName: project.moons.find((moon) => moon.id === event.moonId)?.name ?? "?", phaseId: event.phaseId
+    })) : [];
+    const dayNotes = settings.month.showDayNotes ? getPlayerVisibleDayNotesForDay(project, eventDate).filter((note) => Boolean(note.playerNote?.trim())).map((note) => ({ id: note.id, playerNote: note.playerNote?.trim() ?? "" })) : [];
+    const season = settings.month.showWeatherSummary ? getSeasonForDate(project, eventDate) : undefined;
+    const weatherSummary = settings.month.showWeatherSummary && weather ? {
+      stateIcon: getConfiguredWeatherStateIcon(project, weather.state ?? "clear"),
+      stateLabel: getWeatherStateLabel(project, weather.state ?? "clear", project.locale),
+      ...(settings.month.weatherDetailLevel === "precise" ? { temperatureLabel: formatTemperature(weather.temperature, project.units, project.locale) } : { broadLabel: broadWeatherLabel(project, weather.temperature) })
+    } : undefined;
+    const markers: PublicMonthMarkerSnapshot[] = [
+      ...events.map((event) => ({ id: `event:${event.id}`, icon: event.icon ?? "📌", label: event.name, type: "event" as const })),
+      ...weatherEvents.map((event) => ({ id: `weather:${event.id}`, icon: event.icon ?? "⛈️", label: event.name, type: "weather" as const })),
+      ...moonEvents.map((event) => ({ id: `moon:${event.id}`, icon: event.icon ?? "🌕", label: event.name, type: "moon" as const })),
+      ...dayNotes.map((note) => ({ id: `note:${note.id}`, icon: "📝", label: t(project.locale, "player.publicMonthNotes"), type: "note" as const })),
+      ...(season ? [{ id: `season:${day.absoluteDay}`, icon: season.icon ?? "🍂", label: season.name, type: "season" as const }] : []),
+      ...(weatherSummary ? [{ id: `weatherSummary:${day.absoluteDay}`, icon: weatherSummary.stateIcon, label: weatherSummary.stateLabel, type: "weatherSummary" as const }] : [])
+    ];
+    return {
+      key: `${date.year}:${date.monthId}:${date.dayOfMonth}`,
+      absoluteDay: day.absoluteDay,
+      dayOfMonth: day.dayOfMonth,
+      dateLabel: shortDateLabel(project, date),
+      isToday: day.absoluteDay === project.currentTime.absoluteDay,
+      season: season ? { name: season.name, icon: season.icon } : undefined,
+      weatherSummary,
+      events,
+      weatherEvents,
+      moonEvents,
+      dayNotes,
+      markers
+    };
+  });
+  const forecast = settings.month.showFiveDayForecast ? getDailyWeatherForecastEntries(project, 5).map((entry) => ({
+    offsetDays: entry.offsetDays,
+    absoluteDay: entry.absoluteDay,
+    dateLabel: entry.offsetDays === 0 ? t(project.locale, "common.today") : shortDateLabel(project, entry.date),
+    stateIcon: entry.dailyWeather ? getConfiguredWeatherStateIcon(project, entry.dailyWeather.dominantState) : "☁️",
+    stateLabel: entry.dailyWeather ? getWeatherStateLabel(project, entry.dailyWeather.dominantState, project.locale) : t(project.locale, "calendar.noWeather"),
+    averageTemperature: entry.dailyWeather ? Math.round(toDisplayTemperature(entry.dailyWeather.averageTemperature, project.units.temperature)) : undefined,
+    averageWindSpeed: entry.dailyWeather ? Math.round(toDisplayWindSpeed(entry.dailyWeather.averageWindSpeed, project.units.windSpeed)) : undefined,
+    dominantWindDirection: entry.dailyWeather?.dominantWindDirection,
+    rainTotal24h: entry.dailyWeather ? roundPublicWeatherValue(toDisplayRain(entry.dailyWeather.rainTotal24h, project.units.rain), project.units.rain === "inch" ? 2 : 1) : undefined,
+    broadLabel: entry.dailyWeather ? broadWeatherLabel(project, entry.dailyWeather.averageTemperature) : undefined,
+    units: { temperature: weatherUnits.temperature, windSpeed: weatherUnits.windSpeed, rainTotal: weatherUnits.rainTotal }
+  })) : [];
+  return {
+    viewedTime,
+    previousViewedTime,
+    nextViewedTime,
+    monthLabel: adjacentLabels.current,
+    previousMonthLabel: adjacentLabels.previous,
+    nextMonthLabel: adjacentLabels.next,
+    weekdays,
+    leadingEmptyDays,
+    days,
+    dailyForecast: forecast
+  };
 };
 
 export const createPublicCalendarTodaySnapshot = (
@@ -230,6 +398,7 @@ export const createPublicCalendarTodaySnapshot = (
     })),
     dayNotesToday: getPlayerVisibleDayNotesForDay(project, displayDate).map((note) => ({ id: note.id, playerNote: note.playerNote || undefined })),
     hourlyForecast: buildPublicHourlyForecast(project, playerView),
+    month: buildPublicMonthSnapshot(project, playerView),
     playerView
   };
 };

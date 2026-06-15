@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
 import type { CalendarProject, PlayerViewTab } from "../domain/types";
 import { t } from "../i18n/messages";
-import type { PublicCalendarTodaySnapshot } from "../obr/publicSnapshot";
+import { buildPublicMonthSnapshot, type PublicCalendarTodaySnapshot } from "../obr/publicSnapshot";
 import type { PublicEventDetails } from "./player/PublicEventDetailsPopup";
 import { PublicEventDetailsPopup } from "./player/PublicEventDetailsPopup";
 import { PlayerDayNotesCard } from "./player/PlayerDayNotesCard";
@@ -12,6 +12,7 @@ import { PlayerPublicEventsCard } from "./player/PlayerPublicEventsCard";
 import { PlayerPublicMoonEventsCard } from "./player/PlayerPublicMoonEventsCard";
 import { PlayerWeatherCard } from "./player/PlayerWeatherCard";
 import { PlayerHourlyForecastCard } from "./player/PlayerHourlyForecastCard";
+import { PlayerMonthView } from "./player/PlayerMonthView";
 import { buildPlayerViewModelFromProject, buildPlayerViewModelFromSnapshot } from "./player/playerViewModel";
 import { EmptyState, SectionCard } from "./ui";
 
@@ -33,7 +34,8 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
   };
   const shouldShowOverview = overviewBlocks.season || overviewBlocks.weather || overviewBlocks.biome || overviewBlocks.moons;
   const hasVisibleTodayContent = settings.today.showHeader || settings.today.showDate || shouldShowOverview || model.hourlyForecast.length > 0 || model.events.length > 0 || model.weatherEvents.length > 0 || model.moonEvents.length > 0 || model.dayNotes.length > 0;
-
+  const monthModel = useMemo(() => snapshot?.month ?? buildPublicMonthSnapshot(project, settings), [project, settings, snapshot?.month]);
+  
   return (
     <>
       {showTabSelector ? <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
@@ -41,7 +43,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
         <TabButton active={activeTab === "month"} label={t(model.locale, "player.tab.month")} onClick={() => setSelectedTab("month")} />
       </div> : null}
 
-      {activeTab === "month" ? <SectionCard><EmptyState text={t(model.locale, "player.monthPlaceholder")} /></SectionCard> : <>
+      {activeTab === "month" ? <PlayerMonthView project={project} month={monthModel} settings={settings} locale={model.locale} onSelectEvent={setSelectedPublicEvent} /> : <>
         {settings.today.showHeader || settings.today.showDate ? <PlayerHeaderCard locale={model.locale} calendarName={model.calendarName} formattedDate={model.formattedDate} showHeader={settings.today.showHeader} showDate={settings.today.showDate} /> : null}
         {shouldShowOverview ? <PlayerOverviewCard locale={model.locale} model={model} visibleBlocks={overviewBlocks} /> : null}
         {model.weather ? <PlayerWeatherCard locale={model.locale} model={{ weather: model.weather, biome: model.biome }} /> : null}
