@@ -2,11 +2,13 @@ import { useState } from "react";
 import type { DailyWeatherForecastEntry } from "../../calendar/dayDetails";
 import { getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { formatRainTotal, formatTemperature, formatWindSpeed } from "../../calendar/weatherUnits";
-import type { CalendarProject } from "../../domain/types";
+import type { CalendarProject, LocaleCode } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EmptyState, Panel, SectionCard } from "../ui";
 import { ui } from "../ui/styles";
 import { getTemperatureIcon, getWindDirectionIcon, getWindSpeedIcon } from "../today/weatherIcons";
+import type { PublicMonthSnapshot } from "../../obr/publicSnapshot";
+import type { PlayerForecastDetailLevel } from "../../domain/types";
 
 const getForecastDateLabel = (project: CalendarProject, entry: DailyWeatherForecastEntry): string => {
   if (entry.offsetDays === 0) return t(project.locale, "common.today");
@@ -17,17 +19,34 @@ const getForecastDateLabel = (project: CalendarProject, entry: DailyWeatherForec
   return `${compactWeekday} ${entry.date.dayOfMonth}${compactMonth ? ` ${compactMonth}` : ""}`.trim();
 };
 
-export const MonthWeatherForecastCard = ({ project, forecast }: { project: CalendarProject; forecast: DailyWeatherForecastEntry[] }) => {
+export const MonthWeatherForecastCard = ({ project, locale, forecast, mode = "gm", detailLevel = "precise", publicMonth }: { project?: CalendarProject; locale?: LocaleCode; forecast: DailyWeatherForecastEntry[]; mode?: "gm" | "player"; detailLevel?: PlayerForecastDetailLevel; readonly?: boolean; publicMonth?: PublicMonthSnapshot }) => {
   const [open, setOpen] = useState(false);
+  const displayLocale = project?.locale ?? locale ?? "en";
 
   return (
     <SectionCard style={{ marginTop: 8 }}>
       <button type="button" onClick={() => setOpen((value) => !value)} style={forecastHeaderButtonStyle}>
-        <span>{t(project.locale, "weather.forecast5d")}</span>
+        <span>{t(displayLocale, "weather.forecast5d")}</span>
         <span aria-hidden="true">{open ? "▾" : "▸"}</span>
       </button>
       {open ? (
-        forecast.length === 0 ? <EmptyState text={t(project.locale, "calendar.noForecast")} /> : (
+        mode === "player" ? ((publicMonth?.dailyForecast ?? []).length === 0 ? <EmptyState text={t(displayLocale, "calendar.noForecast")} /> : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))", gap: 6, width: "100%" }}>
+            {(publicMonth?.dailyForecast ?? []).map((entry) => (
+              <Panel key={entry.absoluteDay} style={{ background: ui.colors.surfaceSoft, minHeight: 110, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
+                <div style={{ fontSize: 12, fontWeight: 800 }}>{entry.dateLabel}</div>
+                <div>{entry.stateIcon} {entry.stateLabel}</div>
+                {detailLevel === "precise" ? (
+                  <>
+                    {entry.averageTemperature !== undefined ? <div>{entry.averageTemperature} {entry.units.temperature}</div> : null}
+                    {entry.averageWindSpeed !== undefined ? <div>{entry.averageWindSpeed} {entry.units.windSpeed}</div> : null}
+                    {entry.rainTotal24h !== undefined ? <div>{t(displayLocale, "weather.rainAccumulation")}: {entry.rainTotal24h} {entry.units.rainTotal}</div> : null}
+                  </>
+                ) : entry.broadLabel ? <div>{entry.broadLabel}</div> : null}
+              </Panel>
+            ))}
+          </div>
+        )) : !project || forecast.length === 0 ? <EmptyState text={t(displayLocale, "calendar.noForecast")} /> : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))", gap: 6, width: "100%" }}>
             {forecast.map((entry) => (
               <Panel key={entry.absoluteDay} style={{ background: ui.colors.surfaceSoft, minHeight: 110, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>

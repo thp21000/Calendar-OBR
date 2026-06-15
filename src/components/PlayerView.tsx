@@ -6,9 +6,10 @@ import type { PublicCalendarTodaySnapshot } from "../obr/publicSnapshot";
 import type { PublicEventDetails } from "./player/PublicEventDetailsPopup";
 import { PublicEventDetailsPopup } from "./player/PublicEventDetailsPopup";
 import { PlayerMonthView } from "./player/PlayerMonthView";
-import { PlayerTodayEventsCard, PlayerTodayForecastCard, PlayerTodayStatusSummary } from "./player/PlayerTodayCards";
 import { buildPlayerViewModelFromProject, buildPlayerViewModelFromSnapshot } from "./player/playerViewModel";
+import { TodayEventsCard } from "./today/TodayEventsCard";
 import { TodayLayout } from "./today/TodayLayout";
+import { TodayStatusSummary, WeatherForecastCard } from "./today/WeatherAndSeasonCard";
 import { EmptyState, SectionCard } from "./ui";
 
 export const PlayerView = ({ project, snapshot }: { project: CalendarProject; snapshot?: PublicCalendarTodaySnapshot | null }) => {
@@ -55,9 +56,46 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
             canReset: false,
             canOpenGmDetails: false
           }}
-          status={<PlayerTodayStatusSummary locale={model.locale} model={model} settings={settings} onSelectEvent={setSelectedPublicEvent} />}
-          events={<PlayerTodayEventsCard locale={model.locale} model={model} settings={settings} onSelectEvent={setSelectedPublicEvent} />}
-          forecast={<PlayerTodayForecastCard locale={model.locale} forecast={model.hourlyForecast} settings={settings} />}
+          status={<TodayStatusSummary
+            project={project}
+            mode="player"
+            readonly
+            visibility={{
+              showDate: settings.today.showDate,
+              showSeason: settings.today.showSeason,
+              showWeather: settings.today.showWeather,
+              showBiome: settings.today.showBiome,
+              showMoons: settings.today.showMoons,
+              showWeatherEvents: settings.today.showWeatherEvents
+            }}
+            playerModel={model}
+            currentSeason={undefined}
+            currentWeather={undefined}
+            triggeredWeatherEvents={[]}
+            weatherUnits={{ temperature: "", windSpeed: "", rain: "", rainTotal: "" }}
+            currentMoonPhases={[]}
+            onSelectPublicWeatherEvent={setSelectedPublicEvent}
+          />}
+          events={<TodayEventsCard
+            project={project}
+            mode="player"
+            readonly
+            events={settings.today.showEvents ? model.events : []}
+            weatherEvents={settings.today.showWeatherEvents ? model.weatherEvents : []}
+            moonEvents={settings.today.showMoonEvents ? model.moonEvents : []}
+            dayNotes={settings.today.showDayNotes ? model.dayNotes : []}
+            eventsToday={[]}
+            onSelectPublicEvent={setSelectedPublicEvent}
+          />}
+          forecast={<WeatherForecastCard
+            project={project}
+            mode="player"
+            readonly
+            detailLevel={settings.today.forecastDetailLevel}
+            playerForecast={model.hourlyForecast}
+            hourlyForecast={[]}
+            weatherUnits={{ temperature: "", windSpeed: "", rain: "", rainTotal: "" }}
+          />}
         />
         {!hasVisibleTodayContent ? <SectionCard><EmptyState text={t(model.locale, "player.noVisibleContent")} /></SectionCard> : null}
       </>}

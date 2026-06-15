@@ -1,18 +1,60 @@
+import { lazy, Suspense } from "react";
 import { t } from "../../i18n/messages";
 import { getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { absoluteDayToCalendarDate, calendarDateToAbsoluteDay } from "../../calendar/dateEngine";
-import type { CalendarDate, CalendarProject, DayNote } from "../../domain/types";
+import type { CalendarDate, CalendarProject, DayNote, LocaleCode } from "../../domain/types";
 import type { DayDetails } from "../../calendar/dayDetails";
 import { EventIcon } from "../EventIcon";
-import { DayNotesEditor } from "./DayNotesEditor";
 import { getTemperatureIcon, getWindDirectionIcon, getWindSpeedIcon } from "../today/weatherIcons";
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
 import { formatEventTimeShort, formatEventVisibility } from "../../calendar/formatEvent";
-import { sendPopupNotification } from "../../obr/popupNotifications";
 import { getMoonEventRemainingDurationDays } from "../../calendar/moonEventsLogic";
 import { formatRainTotal, formatTemperature, formatWindSpeed } from "../../calendar/weatherUnits";
+import type { PublicMonthDaySnapshot } from "../../obr/publicSnapshot";
+import type { PublicEventDetails } from "../player/PublicEventDetailsPopup";
+import type { MonthLayoutVisibility } from "./MonthLayout";
 
-export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent, onOpenMoonEvent }: { project: CalendarProject; dayDetails: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void; onOpenMoonEvent?: (eventId: string) => void }) => {
+const DayNotesEditor = lazy(() => import("./DayNotesEditor").then((module) => ({ default: module.DayNotesEditor })));
+
+export const DayDetailsPanel = ({ project, locale, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent, onOpenMoonEvent, mode = "gm", publicDay, visibility, onOpenPublicEvent }: { project?: CalendarProject; locale?: LocaleCode; dayDetails?: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void; onOpenMoonEvent?: (eventId: string) => void; mode?: "gm" | "player"; readonly?: boolean; publicDay?: PublicMonthDaySnapshot; visibility?: Partial<MonthLayoutVisibility>; onOpenPublicEvent?: (event: PublicEventDetails) => void }) => {
+  const displayLocale = project?.locale ?? locale ?? "en";
+  if (mode === "player" && publicDay) {
+    const hasContent = Boolean(publicDay.season || publicDay.weatherSummary || publicDay.events.length || publicDay.weatherEvents.length || publicDay.moonEvents.length || publicDay.dayNotes.length);
+    const hasEventContent = Boolean(
+      (visibility?.showPublicEvents && publicDay.events.length) ||
+      (visibility?.showWeatherEvents && publicDay.weatherEvents.length) ||
+      (visibility?.showMoonEvents && publicDay.moonEvents.length)
+    );
+    return (
+      <div style={{ marginTop: 10, border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", minWidth: 0 }}>
+            <span>{publicDay.dateLabel}</span>
+            {visibility?.showWeatherSummary && publicDay.season ? <span>{publicDay.season.icon ?? "🍃"} {publicDay.season.name}</span> : null}
+          </div>
+          <button type="button" onClick={onClose} title={t(displayLocale, "month.closeDayDetails")} style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid #374151", background: "#1f2937", color: "#e5e7eb", fontSize: 18, lineHeight: 1, cursor: "pointer", flexShrink: 0 }}>×</button>
+        </div>
+        {visibility?.showWeatherSummary && publicDay.weatherSummary ? <div style={{ fontSize: 12, marginBottom: 4, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+          <span>{publicDay.weatherSummary.stateIcon} {publicDay.weatherSummary.stateLabel}</span>
+          {publicDay.weatherSummary.temperatureLabel ? <span>{publicDay.weatherSummary.temperatureLabel}</span> : null}
+          {publicDay.weatherSummary.broadLabel ? <span>{publicDay.weatherSummary.broadLabel}</span> : null}
+        </div> : null}
+        <SectionCard style={{ marginTop: 8 }}>
+          <SectionHeader title={t(displayLocale, "month.dayEvents")} />
+          {!hasEventContent ? <EmptyState text={hasContent ? t(displayLocale, "month.noEventsForDay") : t(displayLocale, "player.noPublicDayDetails")} /> : <div style={{ display: "grid", gap: 4 }}>
+            {visibility?.showPublicEvents ? <PublicEventSection title={t(displayLocale, "player.publicMonthEvents")} events={publicDay.events} locale={displayLocale} onOpenPublicEvent={onOpenPublicEvent} /> : null}
+            {visibility?.showWeatherEvents && publicDay.weatherEvents.length > 0 ? <PublicEventSection title={t(displayLocale, "player.publicMonthWeatherEvents")} events={publicDay.weatherEvents} locale={displayLocale} onOpenPublicEvent={onOpenPublicEvent} /> : null}
+            {visibility?.showMoonEvents && publicDay.moonEvents.length > 0 ? <PublicEventSection title={t(displayLocale, "player.publicMonthMoonEvents")} events={publicDay.moonEvents.map((event) => ({ ...event, subtitle: `${event.moonName} · ${t(displayLocale, `moon.phase.${event.phaseId}`)}` }))} locale={displayLocale} onOpenPublicEvent={onOpenPublicEvent} /> : null}
+          </div>}
+        </SectionCard>
+        {visibility?.showDayNotes && publicDay.dayNotes.length > 0 ? <SectionCard style={{ marginTop: 8 }}>
+          <SectionHeader title={t(displayLocale, "player.publicMonthNotes")} />
+          <div style={{ display: "grid", gap: 6 }}>{publicDay.dayNotes.map((note) => <div key={note.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", fontSize: 12, whiteSpace: "pre-wrap" }}>{note.playerNote}</div>)}</div>
+        </SectionCard> : null}
+      </div>
+    );
+  }
+  if (!project || !dayDetails) return null;
   const dayInternal = calendarDateToAbsoluteDay(dayDetails.date, project.calendarSystem);
   const displayDate = absoluteDayToCalendarDate(dayInternal, project.calendarSystem);
   return (
@@ -71,7 +113,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                 style={{ padding: "4px 8px", fontSize: 11 }}
                 onClick={(clickEvent) => {
                   clickEvent.stopPropagation();
-                  sendPopupNotification({
+                  void import("../../obr/popupNotifications").then(({ sendPopupNotification }) => sendPopupNotification({
                     type: "event",
                     audience: "players",
                     title: event.name,
@@ -81,7 +123,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                     summary: event.summary,
                     playerDescription: event.playerDescription,
                     timeLabel: formatEventTimeShort(project, event)
-                  });
+                  }));
                 }}
               >
                 {t(project.locale, "common.send")}
@@ -121,7 +163,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                   style={{ padding: "4px 8px", fontSize: 11 }}
                   onClick={(clickEvent) => {
                     clickEvent.stopPropagation();
-                    sendPopupNotification({
+                    void import("../../obr/popupNotifications").then(({ sendPopupNotification }) => sendPopupNotification({
                       type: "moon",
                       audience: "players",
                       title: event.name,
@@ -131,7 +173,7 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
                       summary: event.summary,
                       playerDescription: event.playerDescription,
                       timeLabel: durationLabel
-                    });
+                    }));
                   }}
                 >
                   {t(project.locale, "common.send")}
@@ -155,8 +197,25 @@ export const DayDetailsPanel = ({ project, dayDetails, notes, onClose, onCreateE
 
     <SectionCard style={{ marginTop: 8 }}>
       <SectionHeader title={t(project.locale, "dayNotes.title")} />
-    <DayNotesEditor project={project} date={dayDetails.date} notes={notes} onProjectUpdate={onProjectUpdate} />
+    <Suspense fallback={null}>
+      <DayNotesEditor project={project} date={dayDetails.date} notes={notes} onProjectUpdate={onProjectUpdate} />
+    </Suspense>
     </SectionCard>
   </div>
 );
 };
+
+const PublicEventSection = ({ title, events, locale, onOpenPublicEvent }: { title: string; events: PublicEventDetails[]; locale: LocaleCode; onOpenPublicEvent?: (event: PublicEventDetails) => void }) => (
+  <div>
+    <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{title}</div>
+    {events.length === 0 ? <EmptyState text={t(locale, "player.noPublicEvents")} /> : <div style={{ display: "grid", gap: 4 }}>{events.map((event) => <button key={event.id} type="button" onClick={onOpenPublicEvent ? () => onOpenPublicEvent(event) : undefined} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a", cursor: onOpenPublicEvent ? "pointer" : undefined, width: "100%", textAlign: "left" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <EventIcon icon={event.icon} locale={locale} size={14} />
+        <strong style={{ color: "#f3f4f6" }}>{event.name}</strong>
+        {event.timeLabel ? <span style={{ marginLeft: "auto", color: "#cbd5e1", fontSize: 11 }}>{event.timeLabel}</span> : null}
+      </div>
+      {event.subtitle ? <div style={{ color: "#cbd5e1", marginTop: 4 }}>{event.subtitle}</div> : null}
+      {event.summary ? <div style={{ color: "#cbd5e1", marginTop: 4 }}>{event.summary}</div> : null}
+    </button>)}</div>}
+  </div>
+);

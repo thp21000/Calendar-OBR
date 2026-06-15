@@ -4,9 +4,26 @@ import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
 import { Badge, EmptyState, SectionCard, SectionHeader } from "../ui";
 import { ui } from "../ui/styles";
+import type { PublicEventDetails } from "../player/PublicEventDetailsPopup";
 
-export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], onSelectEvent, onSelectMoonEvent }: { project: CalendarProject; eventsToday: CalendarProject["events"]; moonEventsToday?: NonNullable<CalendarProject["moonEvents"]>; onSelectEvent?: (eventId: string) => void; onSelectMoonEvent?: (eventId: string) => void }) => (
-  <SectionCard>
+export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], onSelectEvent, onSelectMoonEvent, mode = "gm", events, moonEvents, weatherEvents, dayNotes, onSelectPublicEvent }: { project: CalendarProject; eventsToday: CalendarProject["events"]; moonEventsToday?: NonNullable<CalendarProject["moonEvents"]>; onSelectEvent?: (eventId: string) => void; onSelectMoonEvent?: (eventId: string) => void; mode?: "gm" | "player"; readonly?: boolean; events?: PublicEventDetails[]; moonEvents?: PublicEventDetails[]; weatherEvents?: PublicEventDetails[]; dayNotes?: Array<{ id: string; playerNote: string }>; onSelectPublicEvent?: (event: PublicEventDetails) => void }) => {
+  if (mode === "player") {
+    const publicEvents = events ?? [];
+    const publicWeatherEvents = weatherEvents ?? [];
+    const publicMoonEvents = moonEvents ?? [];
+    const publicNotes = (dayNotes ?? []).filter((note) => note.playerNote?.trim());
+    return <SectionCard>
+      <SectionHeader title={t(project.locale, "events.eventsToday")} />
+      {publicEvents.length === 0 && publicWeatherEvents.length === 0 && publicMoonEvents.length === 0 && publicNotes.length === 0 ? <EmptyState text={t(project.locale, "events.noEventsToday")} /> : <div style={{ display: "grid", gap: 6 }}>
+        {publicEvents.map((event) => <PublicEventRow key={event.id} project={project} event={event} background="#111827" onSelectPublicEvent={onSelectPublicEvent} />)}
+        {publicWeatherEvents.map((event) => <PublicEventRow key={event.id} project={project} event={event} background="#0f172a" onSelectPublicEvent={onSelectPublicEvent} />)}
+        {publicMoonEvents.map((event) => <PublicEventRow key={event.id} project={project} event={event} background="#0f172a" onSelectPublicEvent={onSelectPublicEvent} />)}
+        {publicNotes.map((note) => <div key={note.id} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a", fontSize: 12, color: "#e5e7eb", whiteSpace: "pre-wrap" }}>📝 {note.playerNote}</div>)}
+      </div>}
+    </SectionCard>;
+  }
+
+  return <SectionCard>
     <SectionHeader title={t(project.locale, "events.eventsToday")} />
     {eventsToday.length === 0 && moonEventsToday.length === 0 ? <EmptyState text={t(project.locale, "events.noEventsToday")} /> : <div style={{ display: "grid", gap: 6 }}>
       {eventsToday.map((event) => <button key={event.id} type="button" onClick={onSelectEvent ? () => onSelectEvent(event.id) : undefined} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#111827", width: "100%", textAlign: "left", cursor: onSelectEvent ? "pointer" : "default" }}>
@@ -32,10 +49,22 @@ export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], on
       </button>)}
     </div>}
   </SectionCard>
-);
+};
 
 
 const formatMoonEventMeta = (project: CalendarProject, event: NonNullable<CalendarProject["moonEvents"]>[number]): string => {
   const moon = project.moons.find((moonItem) => moonItem.id === event.moonId);
   return `${moon?.name ?? t(project.locale, "moonEvents.unknownMoon")} · ${t(project.locale, `moon.phase.${event.phaseId}`)}`;
 };
+
+const PublicEventRow = ({ project, event, background, onSelectPublicEvent }: { project: CalendarProject; event: PublicEventDetails; background: string; onSelectPublicEvent?: (event: PublicEventDetails) => void }) => (
+  <button type="button" onClick={onSelectPublicEvent ? () => onSelectPublicEvent(event) : undefined} style={{ border: "1px solid #374151", borderRadius: 6, padding: 6, background, width: "100%", textAlign: "left", cursor: onSelectPublicEvent ? "pointer" : "default" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "hidden" }}>
+      <EventIcon icon={event.icon} locale={project.locale} />
+      <strong style={{ color: ui.colors.textPrimary, fontWeight: 800 }}>{event.name}</strong>
+      {event.timeLabel ? <span style={{ marginLeft: "auto", fontSize: 12, color: "#cbd5e1" }}>{event.timeLabel}</span> : null}
+    </div>
+    {event.subtitle ? <div style={{ marginTop: 4, fontSize: 12, color: "#cbd5e1" }}>{event.subtitle}</div> : null}
+    {event.summary ? <div style={{ marginTop: 4, fontSize: 12, color: "#d1d5db" }}>{event.summary}</div> : null}
+  </button>
+);
