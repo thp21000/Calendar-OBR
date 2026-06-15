@@ -137,6 +137,7 @@ export type UiSettings = {
   dateFormat?: DateFormatPreference;
   timeFormat?: TimeFormatPreference;
   defaultMoonSystemInitialized?: boolean;
+  playerView?: PlayerViewSettings;
 };
 
 export type WeatherSettings = {
