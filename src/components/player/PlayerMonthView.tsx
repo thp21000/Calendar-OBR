@@ -3,8 +3,9 @@ import type { CalendarProject, InternalTime, LocaleCode, PlayerViewSettings } fr
 import { t } from "../../i18n/messages";
 import { buildPublicMonthSnapshot, type PublicMonthDaySnapshot, type PublicMonthSnapshot } from "../../obr/publicSnapshot";
 import type { PublicEventDetails } from "./PublicEventDetailsPopup";
-import { EmptyState, SecondaryButton, SectionCard, SectionHeader } from "../ui";
-import { PlayerPublicEventButton } from "./PlayerPublicEventsCard";
+import { EmptyState, Panel, SecondaryButton, SectionCard, SectionHeader } from "../ui";
+import { ui } from "../ui/styles";
+import { EventIcon } from "../EventIcon";
 
 export const PlayerMonthView = ({
   project,
@@ -66,8 +67,8 @@ export const PlayerMonthView = ({
       </SecondaryButton> : null}
     </div>
     {settings.month.showMonthGrid ? <PlayerMonthGrid month={month} selectedAbsoluteDay={selectedDay?.absoluteDay ?? null} onSelectDay={setSelectedAbsoluteDay} /> : <SectionCard><EmptyState text={t(locale, "player.monthHidden")} /></SectionCard>}
-    {settings.month.showFiveDayForecast && month.dailyForecast && month.dailyForecast.length > 0 ? <PlayerFiveDayForecastCard month={month} detailLevel={settings.month.forecastDetailLevel} locale={locale} /> : null}
-    {selectedDay ? <PlayerMonthDayDetails day={selectedDay} settings={settings} locale={locale} onSelectEvent={onSelectEvent} /> : null}
+    {settings.month.showFiveDayForecast ? <PlayerMonthWeatherForecastCard month={month} detailLevel={settings.month.forecastDetailLevel} locale={locale} /> : null}
+    {selectedDay ? <PlayerDayDetailsPanel day={selectedDay} settings={settings} locale={locale} onSelectEvent={onSelectEvent} /> : null}
   </div>;
 };
 
@@ -96,45 +97,88 @@ const PlayerMonthGrid = ({ month, selectedAbsoluteDay, onSelectDay }: { month: P
   </>
 );
 
-const PlayerMonthDayDetails = ({ day, settings, locale, onSelectEvent }: { day: PublicMonthDaySnapshot; settings: PlayerViewSettings; locale: LocaleCode; onSelectEvent: (event: PublicEventDetails) => void }) => {
+const PlayerDayDetailsPanel = ({ day, settings, locale, onSelectEvent }: { day: PublicMonthDaySnapshot; settings: PlayerViewSettings; locale: LocaleCode; onSelectEvent: (event: PublicEventDetails) => void }) => {
   const hasContent = Boolean(day.season || day.weatherSummary || day.events.length || day.weatherEvents.length || day.moonEvents.length || day.dayNotes.length);
-  return <SectionCard>
-    <SectionHeader title={t(locale, "player.monthDayDetails")} subtitle={day.dateLabel} />
-    {!hasContent ? <EmptyState text={t(locale, "player.noPublicDayDetails")} /> : <div style={{ display: "grid", gap: 8 }}>
-      {settings.month.showWeatherSummary && day.season ? <InfoLine label={t(locale, "calendar.season")} value={`${day.season.icon ?? ""}${day.season.icon ? " " : ""}${day.season.name}`} /> : null}
-      {settings.month.showWeatherSummary && day.weatherSummary ? <InfoLine label={t(locale, "player.weatherSummary")} value={`${day.weatherSummary.stateIcon} ${day.weatherSummary.stateLabel}${day.weatherSummary.temperatureLabel ? ` · ${day.weatherSummary.temperatureLabel}` : day.weatherSummary.broadLabel ? ` · ${day.weatherSummary.broadLabel}` : ""}`} /> : null}
-      {settings.month.showPublicEvents ? <EventSection title={t(locale, "player.publicMonthEvents")} events={day.events} locale={locale} onSelectEvent={onSelectEvent} /> : null}
-      {settings.month.showWeatherEvents && day.weatherEvents.length > 0 ? <EventSection title={t(locale, "player.publicMonthWeatherEvents")} events={day.weatherEvents} locale={locale} onSelectEvent={onSelectEvent} /> : null}
-      {settings.month.showMoonEvents && day.moonEvents.length > 0 ? <EventSection title={t(locale, "player.publicMonthMoonEvents")} events={day.moonEvents.map((event) => ({ ...event, subtitle: `${event.moonName} · ${t(locale, `moon.phase.${event.phaseId}`)}` }))} locale={locale} onSelectEvent={onSelectEvent} /> : null}
-      {settings.month.showDayNotes && day.dayNotes.length > 0 ? <div><div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{t(locale, "player.publicMonthNotes")}</div>{day.dayNotes.map((note) => <div key={note.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", fontSize: 12, whiteSpace: "pre-wrap" }}>{note.playerNote}</div>)}</div> : null}
-    </div>}
-  </SectionCard>;
+  const hasEventContent = Boolean(
+    (settings.month.showPublicEvents && day.events.length) ||
+    (settings.month.showWeatherEvents && day.weatherEvents.length) ||
+    (settings.month.showMoonEvents && day.moonEvents.length)
+  );
+  return <div style={{ marginTop: 10, border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }}>
+    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", minWidth: 0 }}>
+        <span>{day.dateLabel}</span>
+        {settings.month.showWeatherSummary && day.season ? <span>{day.season.icon ?? "🍃"} {day.season.name}</span> : null}
+      </div>
+    </div>
+    {settings.month.showWeatherSummary && day.weatherSummary ? <div style={{ fontSize: 12, marginBottom: 4, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+      <span>{day.weatherSummary.stateIcon} {day.weatherSummary.stateLabel}</span>
+      {day.weatherSummary.temperatureLabel ? <span>{day.weatherSummary.temperatureLabel}</span> : null}
+      {day.weatherSummary.broadLabel ? <span>{day.weatherSummary.broadLabel}</span> : null}
+    </div> : null}
+    <SectionCard style={{ marginTop: 8 }}>
+      <SectionHeader title={t(locale, "month.dayEvents")} />
+      {!hasEventContent ? <EmptyState text={hasContent ? t(locale, "month.noEventsForDay") : t(locale, "player.noPublicDayDetails")} /> : <div style={{ display: "grid", gap: 4 }}>
+        {settings.month.showPublicEvents ? <EventSection title={t(locale, "player.publicMonthEvents")} events={day.events} locale={locale} onSelectEvent={onSelectEvent} /> : null}
+        {settings.month.showWeatherEvents && day.weatherEvents.length > 0 ? <EventSection title={t(locale, "player.publicMonthWeatherEvents")} events={day.weatherEvents} locale={locale} onSelectEvent={onSelectEvent} /> : null}
+        {settings.month.showMoonEvents && day.moonEvents.length > 0 ? <EventSection title={t(locale, "player.publicMonthMoonEvents")} events={day.moonEvents.map((event) => ({ ...event, subtitle: `${event.moonName} · ${t(locale, `moon.phase.${event.phaseId}`)}` }))} locale={locale} onSelectEvent={onSelectEvent} /> : null}
+      </div>}
+    </SectionCard>
+    {settings.month.showDayNotes && day.dayNotes.length > 0 ? <SectionCard style={{ marginTop: 8 }}>
+      <SectionHeader title={t(locale, "player.publicMonthNotes")} />
+      <div style={{ display: "grid", gap: 6 }}>{day.dayNotes.map((note) => <div key={note.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", fontSize: 12, whiteSpace: "pre-wrap" }}>{note.playerNote}</div>)}</div>
+    </SectionCard> : null}
+  </div>;
 };
 
-const PlayerFiveDayForecastCard = ({ month, detailLevel, locale }: { month: PublicMonthSnapshot; detailLevel: PlayerViewSettings["month"]["forecastDetailLevel"]; locale: LocaleCode }) => (
-  <SectionCard>
-    <SectionHeader title={t(locale, "player.fiveDayForecast")} />
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))", gap: 6 }}>
-      {(month.dailyForecast ?? []).map((entry) => <div key={entry.absoluteDay} style={{ border: "1px solid #374151", borderRadius: 8, padding: 6, background: "#111827", fontSize: 11, textAlign: "center", display: "grid", gap: 3 }}>
-        <strong>{entry.dateLabel}</strong>
-        <span>{entry.stateIcon} {entry.stateLabel}</span>
+const PlayerMonthWeatherForecastCard = ({ month, detailLevel, locale }: { month: PublicMonthSnapshot; detailLevel: PlayerViewSettings["month"]["forecastDetailLevel"]; locale: LocaleCode }) => {
+  const [open, setOpen] = useState(false);
+  return <SectionCard style={{ marginTop: 8 }}>
+    <button type="button" onClick={() => setOpen((value) => !value)} style={monthForecastHeaderButtonStyle}>
+      <span>{t(locale, "weather.forecast5d")}</span>
+      <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+    </button>
+    {open ? (month.dailyForecast ?? []).length === 0 ? <EmptyState text={t(locale, "calendar.noForecast")} /> : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))", gap: 6, width: "100%" }}>
+      {(month.dailyForecast ?? []).map((entry) => <Panel key={entry.absoluteDay} style={{ background: ui.colors.surfaceSoft, minHeight: 110, padding: "6px 4px", textAlign: "center", fontSize: 11, display: "grid", alignContent: "center", gap: 3 }}>
+        <div style={{ fontSize: 12, fontWeight: 800 }}>{entry.dateLabel}</div>
+        <div>{entry.stateIcon} {entry.stateLabel}</div>
         {detailLevel === "precise" ? <>
-          {entry.averageTemperature !== undefined ? <span>{entry.averageTemperature} {entry.units.temperature}</span> : null}
-          {entry.averageWindSpeed !== undefined ? <span>{entry.averageWindSpeed} {entry.units.windSpeed}</span> : null}
-          {entry.rainTotal24h !== undefined ? <span>{entry.rainTotal24h} {entry.units.rainTotal}</span> : null}
-        </> : entry.broadLabel ? <span>{entry.broadLabel}</span> : null}
-      </div>)}
-    </div>
-  </SectionCard>
-);
+          {entry.averageTemperature !== undefined ? <div>{entry.averageTemperature} {entry.units.temperature}</div> : null}
+          {entry.averageWindSpeed !== undefined ? <div>{entry.averageWindSpeed} {entry.units.windSpeed}</div> : null}
+          {entry.rainTotal24h !== undefined ? <div>{t(locale, "weather.rainAccumulation")}: {entry.rainTotal24h} {entry.units.rainTotal}</div> : null}
+        </> : entry.broadLabel ? <div>{entry.broadLabel}</div> : null}
+      </Panel>)}
+    </div> : null}
+  </SectionCard>;
+};
 
 const EventSection = ({ title, events, locale, onSelectEvent }: { title: string; events: PublicEventDetails[]; locale: LocaleCode; onSelectEvent: (event: PublicEventDetails) => void }) => (
   <div>
     <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>{title}</div>
-    {events.length === 0 ? <EmptyState text={t(locale, "player.noPublicEvents")} /> : <div style={{ display: "grid", gap: 6 }}>{events.map((event) => <PlayerPublicEventButton key={event.id} event={event} onSelectEvent={onSelectEvent} />)}</div>}
+    {events.length === 0 ? <EmptyState text={t(locale, "player.noPublicEvents")} /> : <div style={{ display: "grid", gap: 4 }}>{events.map((event) => <button key={event.id} type="button" onClick={() => onSelectEvent(event)} style={{ fontSize: 12, border: "1px solid #374151", borderRadius: 6, padding: 6, background: "#0f172a", cursor: "pointer", width: "100%", textAlign: "left" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <EventIcon icon={event.icon} locale={locale} size={14} />
+        <strong style={{ color: "#f3f4f6" }}>{event.name}</strong>
+        {event.timeLabel ? <span style={{ marginLeft: "auto", color: "#cbd5e1", fontSize: 11 }}>{event.timeLabel}</span> : null}
+      </div>
+      {event.subtitle ? <div style={{ color: "#cbd5e1", marginTop: 4 }}>{event.subtitle}</div> : null}
+      {event.summary ? <div style={{ color: "#cbd5e1", marginTop: 4 }}>{event.summary}</div> : null}
+    </button>)}</div>}
   </div>
 );
 
-const InfoLine = ({ label, value }: { label: string; value: string }) => (
-  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12 }}><span style={{ color: "#9ca3af" }}>{label}</span><strong style={{ textAlign: "right" }}>{value}</strong></div>
-);
+const monthForecastHeaderButtonStyle = {
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+  border: 0,
+  background: "transparent",
+  color: ui.colors.textPrimary,
+  fontWeight: 800,
+  cursor: "pointer",
+  padding: 0,
+  marginBottom: 4,
+  textAlign: "left" as const
+};

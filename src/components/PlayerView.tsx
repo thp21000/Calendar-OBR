@@ -5,14 +5,8 @@ import { t } from "../i18n/messages";
 import type { PublicCalendarTodaySnapshot } from "../obr/publicSnapshot";
 import type { PublicEventDetails } from "./player/PublicEventDetailsPopup";
 import { PublicEventDetailsPopup } from "./player/PublicEventDetailsPopup";
-import { PlayerDayNotesCard } from "./player/PlayerDayNotesCard";
-import { PlayerHeaderCard } from "./player/PlayerHeaderCard";
-import { PlayerOverviewCard } from "./player/PlayerOverviewCard";
-import { PlayerPublicEventsCard } from "./player/PlayerPublicEventsCard";
-import { PlayerPublicMoonEventsCard } from "./player/PlayerPublicMoonEventsCard";
-import { PlayerWeatherCard } from "./player/PlayerWeatherCard";
-import { PlayerHourlyForecastCard } from "./player/PlayerHourlyForecastCard";
 import { PlayerMonthView } from "./player/PlayerMonthView";
+import { PlayerTodayEventsCard, PlayerTodayForecastCard, PlayerTodayStatusSummary } from "./player/PlayerTodayCards";
 import { buildPlayerViewModelFromProject, buildPlayerViewModelFromSnapshot } from "./player/playerViewModel";
 import { EmptyState, SectionCard } from "./ui";
 
@@ -26,15 +20,8 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
     () => snapshot ? buildPlayerViewModelFromSnapshot(project, snapshot, settings) : buildPlayerViewModelFromProject(project, settings),
     [project, settings, snapshot]
   );
-  const overviewBlocks = {
-    season: settings.today.showSeason,
-    weather: settings.today.showWeather,
-    biome: settings.today.showBiome,
-    moons: settings.today.showMoons
-  };
-  const shouldShowOverview = overviewBlocks.season || overviewBlocks.weather || overviewBlocks.biome || overviewBlocks.moons;
-  const hasVisibleTodayContent = settings.today.showHeader || settings.today.showDate || shouldShowOverview || model.hourlyForecast.length > 0 || model.events.length > 0 || model.weatherEvents.length > 0 || model.moonEvents.length > 0 || model.dayNotes.length > 0;
-  
+  const hasVisibleTodayContent = settings.today.showHeader || settings.today.showDate || settings.today.showSeason || settings.today.showWeather || settings.today.showBiome || settings.today.showMoons || settings.today.showEvents || settings.today.showWeatherEvents || settings.today.showMoonEvents || settings.today.showDayNotes || settings.today.showHourlyForecast;
+
   return (
     <>
       {showTabSelector ? <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
@@ -43,22 +30,9 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
       </div> : null}
 
       {activeTab === "month" ? <PlayerMonthView project={snapshot ? undefined : project} snapshotMonth={snapshot?.month} isSnapshotMode={Boolean(snapshot)} settings={settings} locale={model.locale} onSelectEvent={setSelectedPublicEvent} /> : <>
-        {settings.today.showHeader || settings.today.showDate ? <PlayerHeaderCard locale={model.locale} calendarName={model.calendarName} formattedDate={model.formattedDate} showHeader={settings.today.showHeader} showDate={settings.today.showDate} /> : null}
-        {shouldShowOverview ? <PlayerOverviewCard locale={model.locale} model={model} visibleBlocks={overviewBlocks} /> : null}
-        {model.weather ? <PlayerWeatherCard locale={model.locale} model={{ weather: model.weather, biome: model.biome }} /> : null}
-        {model.hourlyForecast.length > 0 ? <PlayerHourlyForecastCard locale={model.locale} forecast={model.hourlyForecast} /> : null}
-        {settings.today.showEvents ? <PlayerPublicEventsCard locale={model.locale} events={model.events} onSelectEvent={setSelectedPublicEvent} /> : null}
-        {model.weatherEvents.length > 0 ? (
-          <PlayerPublicEventsCard
-            locale={model.locale}
-            title={t(model.locale, "player.publicWeatherEvents")}
-            emptyText={t(model.locale, "player.noPublicWeatherEvents")}
-            events={model.weatherEvents}
-            onSelectEvent={setSelectedPublicEvent}
-          />
-        ) : null}
-        {settings.today.showMoonEvents ? <PlayerPublicMoonEventsCard locale={model.locale} events={model.moonEvents} onSelectEvent={setSelectedPublicEvent} /> : null}
-        {settings.today.showDayNotes ? <PlayerDayNotesCard locale={model.locale} notes={model.dayNotes} /> : null}
+        <PlayerTodayStatusSummary locale={model.locale} model={model} settings={settings} onSelectEvent={setSelectedPublicEvent} />
+        <PlayerTodayEventsCard locale={model.locale} model={model} settings={settings} onSelectEvent={setSelectedPublicEvent} />
+        <PlayerTodayForecastCard locale={model.locale} forecast={model.hourlyForecast} settings={settings} />
         {!hasVisibleTodayContent ? <SectionCard><EmptyState text={t(model.locale, "player.noVisibleContent")} /></SectionCard> : null}
       </>}
 
