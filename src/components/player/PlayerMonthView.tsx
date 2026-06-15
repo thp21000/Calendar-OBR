@@ -53,26 +53,28 @@ export const PlayerMonthView = ({
     if (project) selectMonth(project.currentTime);
   };
 
-  return <div style={{ display: "grid", gap: 8 }}>
-    <div style={{ display: "grid", gridTemplateColumns: isSnapshotMode ? "1fr" : "1fr auto 1fr", alignItems: "center", gap: 6, marginBottom: 8 }}>
+  return <>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 6, marginBottom: 8 }}>
       {!isSnapshotMode ? <SecondaryButton type="button" title={t(locale, "month.previousMonth")} onClick={() => selectMonth(month.previousViewedTime)} style={{ justifySelf: "start", padding: "6px 8px", fontSize: 12 }}>
         ‹ {month.previousMonthLabel}
-      </SecondaryButton> : null}
+      </SecondaryButton> : <div />}
       <div style={{ textAlign: "center", display: "grid", justifyItems: "center", gap: 4 }}>
         <div style={{ fontWeight: 800, fontSize: 14, whiteSpace: "nowrap" }}>{month.monthLabel}</div>
         {showTodayButton ? <SecondaryButton type="button" onClick={selectToday} style={{ padding: "2px 8px", fontSize: 11, lineHeight: 1.2 }}>{t(locale, "common.today")}</SecondaryButton> : null}
       </div>
       {!isSnapshotMode ? <SecondaryButton type="button" title={t(locale, "month.nextMonth")} onClick={() => selectMonth(month.nextViewedTime)} style={{ justifySelf: "end", padding: "6px 8px", fontSize: 12 }}>
         {month.nextMonthLabel} ›
-      </SecondaryButton> : null}
+      </SecondaryButton> : <div />}
     </div>
-    {settings.month.showMonthGrid ? <PlayerMonthGrid month={month} selectedAbsoluteDay={selectedDay?.absoluteDay ?? null} onSelectDay={setSelectedAbsoluteDay} /> : <SectionCard><EmptyState text={t(locale, "player.monthHidden")} /></SectionCard>}
+    {settings.month.showMonthGrid ? <PlayerMonthGrid month={month} locale={locale} selectedAbsoluteDay={selectedDay?.absoluteDay ?? null} onSelectDay={setSelectedAbsoluteDay} /> : null}
     {settings.month.showFiveDayForecast ? <PlayerMonthWeatherForecastCard month={month} detailLevel={settings.month.forecastDetailLevel} locale={locale} /> : null}
     {selectedDay ? <PlayerDayDetailsPanel day={selectedDay} settings={settings} locale={locale} onSelectEvent={onSelectEvent} /> : null}
-  </div>;
+  </>;
 };
 
-const PlayerMonthGrid = ({ month, selectedAbsoluteDay, onSelectDay }: { month: PublicMonthSnapshot; selectedAbsoluteDay: number | null; onSelectDay: (absoluteDay: number) => void }) => (
+const FALLBACK_EVENT_ICON = "◆";
+
+const PlayerMonthGrid = ({ month, locale, selectedAbsoluteDay, onSelectDay }: { month: PublicMonthSnapshot; locale: LocaleCode; selectedAbsoluteDay: number | null; onSelectDay: (absoluteDay: number) => void }) => (
   <>
     <div style={{ display: "grid", gridTemplateColumns: `repeat(${month.weekdays.length}, 1fr)`, gap: 4, marginBottom: 4 }}>
       {month.weekdays.map((weekday) => <div key={weekday} style={{ fontSize: 11, color: "#9ca3af", textAlign: "center" }}>{weekday}</div>)}
@@ -83,13 +85,19 @@ const PlayerMonthGrid = ({ month, selectedAbsoluteDay, onSelectDay }: { month: P
         const isSelected = day.absoluteDay === selectedAbsoluteDay;
         const border = day.isToday && isSelected ? "2px solid #8b7cf6" : day.isToday ? "1px solid #94a3b8" : isSelected ? "1px solid #8b7cf6" : "1px solid rgba(255,255,255,0.14)";
         const background = day.isToday && isSelected ? "rgba(139,124,246,0.22)" : day.isToday ? "rgba(148,163,184,0.18)" : isSelected ? "rgba(139,124,246,0.12)" : "rgba(255,255,255,0.04)";
-        const visibleMarkers = day.markers.slice(0, 2);
-        const hiddenMarkers = Math.max(0, day.markers.length - visibleMarkers.length);
+        const firstPublicEvent = day.events[0] ?? day.weatherEvents[0];
+        const firstMoonEvent = day.moonEvents[0];
+        const hasDayNotes = day.dayNotes.length > 0;
+        const markerCount = day.events.length + day.weatherEvents.length + day.moonEvents.length + (day.season ? 1 : 0) + (hasDayNotes ? 1 : 0);
+        const extraMarkers = markerCount > 2 ? markerCount - 2 : 0;
         return <button key={day.key} type="button" title={[day.dateLabel, ...day.markers.map((marker) => marker.label)].join(" — ")} onClick={() => onSelectDay(day.absoluteDay)} style={{ minHeight: 44, borderRadius: 8, border, background, display: "flex", flexDirection: "column", justifyContent: "space-between", alignItems: "center", fontSize: 12, padding: "4px 2px", width: "100%", cursor: "pointer", color: "#f3f4f6" }}>
           <span style={{ fontWeight: 700, lineHeight: 1 }}>{day.dayOfMonth}</span>
           <div style={{ display: "flex", alignItems: "center", gap: 2, minHeight: 16 }}>
-            {visibleMarkers.map((marker) => <span key={marker.id} title={marker.label} style={{ fontSize: 12, lineHeight: 1 }}>{marker.icon}</span>)}
-            {hiddenMarkers > 0 ? <span style={{ fontSize: 10, lineHeight: 1, color: "#cbd5e1" }}>+{hiddenMarkers}</span> : null}
+            {firstPublicEvent ? <EventIcon icon={firstPublicEvent.icon || FALLBACK_EVENT_ICON} locale={locale} size={14} /> : null}
+            {!firstPublicEvent && firstMoonEvent ? <EventIcon icon={firstMoonEvent.icon || "🌕"} locale={locale} size={14} /> : null}
+            {day.season ? <EventIcon icon={day.season.icon ?? "🍃"} locale={locale} size={14} /> : null}
+            {hasDayNotes ? <span style={{ fontSize: 11, lineHeight: 1 }}>📝</span> : null}
+            {extraMarkers > 0 ? <span style={{ fontSize: 10, lineHeight: 1, color: "#cbd5e1", opacity: 0.9 }}>+{extraMarkers}</span> : null}
           </div>
         </button>;
       })}
