@@ -6,11 +6,11 @@ import { formatEventTimeShort } from "../calendar/formatEvent";
 import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
-import { getCurrentWeather } from "../calendar/weatherLogic";
+import { getCurrentWeather, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
 import { getWeatherUnitLabels, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../calendar/weatherUnits";
-import type { CalendarCurrentTime, CalendarProject, LocaleCode, MoonPhaseId, PlayerViewSettings, WeatherSnapshot } from "../domain/types";
+import type { CalendarCurrentTime, CalendarProject, LocaleCode, MoonPhaseId, PlayerViewSettings, WeatherSnapshot, WeatherState, WindDirection } from "../domain/types";
 import { t } from "../i18n/messages";
 import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
 
@@ -53,6 +53,24 @@ export type PublicCalendarWeatherSnapshot = WeatherSnapshot & {
   };
 };
 
+
+export type PublicHourlyForecastSnapshot = {
+  offsetHours: number;
+  timeLabel: string;
+  state?: WeatherState;
+  stateLabel?: string;
+  stateIcon?: string;
+  temperature?: number;
+  windSpeed?: number;
+  windDirection?: WindDirection;
+  rain?: number;
+  units: {
+    temperature: string;
+    windSpeed: string;
+    rain: string;
+  };
+};
+
 export type PublicCalendarMoonSnapshot = {
   name: string;
   icon: string;
@@ -92,6 +110,7 @@ export type PublicCalendarTodaySnapshot = {
     phaseId: MoonPhaseId;
   }>;
   dayNotesToday: Array<{ id: string; playerNote?: string }>;
+  hourlyForecast?: PublicHourlyForecastSnapshot[];
   playerView: PlayerViewSettings;
 };
 
@@ -104,9 +123,36 @@ export const buildPublicCalendarIndex = (project: CalendarProject, revision: num
   currentTime: project.currentTime
 });
 
+
 const roundPublicWeatherValue = (value: number, decimals: number): number => {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
+};
+
+
+const publicForecastTimeLabel = (project: CalendarProject, offsetHours: number): string => {
+  const totalMinutes = project.currentTime.absoluteDay * 1440 + project.currentTime.hour * 60 + project.currentTime.minute + offsetHours * 60;
+  const hour = Math.floor((((totalMinutes % 1440) + 1440) % 1440) / 60);
+  const minute = ((totalMinutes % 60) + 60) % 60;
+  return project.uiSettings.timeFormat === "12h"
+    ? new Intl.DateTimeFormat(project.locale === "fr" ? "fr-FR" : "en-US", { hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(Date.UTC(2000, 0, 1, hour, minute)))
+    : `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+};
+
+const buildPublicHourlyForecast = (project: CalendarProject, settings: PlayerViewSettings): PublicHourlyForecastSnapshot[] => {
+  if (!settings.today.showHourlyForecast) return [];
+  const weatherUnits = getWeatherUnitLabels(project.units);
+  const rainDecimals = project.units.rain === "inch" ? 2 : 1;
+  return getHourlyWeatherForecast(project, 5).map(({ offsetHours, weather }) => ({
+    offsetHours,
+    timeLabel: publicForecastTimeLabel(project, offsetHours),
+    state: weather.state,
+    temperature: roundPublicWeatherValue(toDisplayTemperature(weather.temperature, project.units.temperature), 0),
+    windSpeed: roundPublicWeatherValue(toDisplayWindSpeed(weather.windSpeed, project.units.windSpeed), 0),
+    windDirection: weather.windDirection,
+    rain: roundPublicWeatherValue(toDisplayRain(weather.rain, project.units.rain), rainDecimals),
+    units: { temperature: weatherUnits.temperature, windSpeed: weatherUnits.windSpeed, rain: weatherUnits.rain }
+  }));
 };
 
 export const createPublicCalendarTodaySnapshot = (
@@ -117,6 +163,7 @@ export const createPublicCalendarTodaySnapshot = (
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
   const currentBiome = getCurrentWeatherBiomeDefinition(project);
+  const playerView = normalizePlayerViewSettings(project.uiSettings.playerView);
   const weatherUnits = getWeatherUnitLabels(project.units);
   const rainDecimals = project.units.rain === "inch" ? 2 : 1;
   const publicWeather = currentWeather ? {
@@ -163,7 +210,7 @@ export const createPublicCalendarTodaySnapshot = (
       playerDescription: event.playerDescription || undefined,
       link: event.link || undefined,
       timeLabel: formatEventTimeShort(project, event)
-      })),
+    })),
     weatherEventsToday: visibleWeatherEvents.map((event) => ({
       id: event.id,
       name: event.name,
@@ -182,7 +229,8 @@ export const createPublicCalendarTodaySnapshot = (
       phaseId: event.phaseId
     })),
     dayNotesToday: getPlayerVisibleDayNotesForDay(project, displayDate).map((note) => ({ id: note.id, playerNote: note.playerNote || undefined })),
-    playerView: normalizePlayerViewSettings(project.uiSettings.playerView)
+    hourlyForecast: buildPublicHourlyForecast(project, playerView),
+    playerView
   };
 };
 

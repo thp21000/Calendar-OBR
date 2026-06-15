@@ -114,3 +114,119 @@ describe("playerViewModel", () => {
     expect(model.weather?.dailyRainTotal).toBe("2 in");
   });
 });
+
+it("applique les réglages Aujourd’hui aux données du snapshot", () => {
+  const project = baseProject();
+  const snapshot: PublicCalendarTodaySnapshot = {
+    schemaVersion: 1,
+    revision: 1,
+    updatedAt: 1,
+    calendarName: "Snapshot Calendar",
+    locale: "fr",
+    currentTime: project.currentTime,
+    formattedDate: "Lundi 1 janvier 1000, 08:00",
+    weatherBiome: { name: "Forêt", icon: "🌲", description: "Bois" },
+    moons: [{ name: "Lune", icon: "🌙", phaseId: "full", phaseIcon: "🌕", illumination: 1 }],
+    eventsToday: [{ id: "event", name: "Public", timeLabel: "08:00", summary: "visible" }],
+    weatherEventsToday: [],
+    moonEventsToday: [],
+    dayNotesToday: [{ id: "note", playerNote: "note visible" }],
+    playerView: {
+      ...DEFAULT_PLAYER_VIEW_SETTINGS,
+      today: { ...DEFAULT_PLAYER_VIEW_SETTINGS.today, showWeather: false, showEvents: false, showMoons: false, showDayNotes: false }
+    },
+    weather: {
+      temperature: 20,
+      windSpeed: 10,
+      windDirection: "N",
+      rain: 0,
+      state: "clear",
+      units: { temperature: "°C", windSpeed: "km/h", rain: "mm/h", rainTotal: "mm" }
+    }
+  };
+
+  const model = buildPlayerViewModelFromSnapshot(project, snapshot);
+
+  expect(model.weather).toBeUndefined();
+  expect(model.events).toEqual([]);
+  expect(model.moons).toEqual([]);
+  expect(model.dayNotes).toEqual([]);
+});
+
+it("masque les chiffres météo en niveau large", () => {
+  const project = baseProject();
+  const snapshot: PublicCalendarTodaySnapshot = {
+    schemaVersion: 1,
+    revision: 1,
+    updatedAt: 1,
+    calendarName: "Snapshot Calendar",
+    locale: "fr",
+    currentTime: project.currentTime,
+    formattedDate: "Lundi 1 janvier 1000, 08:00",
+    weatherBiome: { name: "Forêt", icon: "🌲", description: "Bois" },
+    moons: [],
+    eventsToday: [],
+    weatherEventsToday: [],
+    moonEventsToday: [],
+    dayNotesToday: [],
+    playerView: {
+      ...DEFAULT_PLAYER_VIEW_SETTINGS,
+      today: { ...DEFAULT_PLAYER_VIEW_SETTINGS.today, weatherDetailLevel: "broad" }
+    },
+    weather: {
+      temperature: 68,
+      windSpeed: 31,
+      windDirection: "NE",
+      rain: 1,
+      state: "clear",
+      units: { temperature: "°F", windSpeed: "mph", rain: "in/h", rainTotal: "in" }
+    }
+  };
+
+  const model = buildPlayerViewModelFromSnapshot(project, snapshot);
+
+  expect(model.weather?.temperature).toBeUndefined();
+  expect(model.weather?.wind).toBeUndefined();
+  expect(model.weather?.rain).toBeUndefined();
+  expect(model.weather?.broadTemperature).toBe("doux");
+});
+
+it("conserve la prévision snapshot déjà convertie", () => {
+  const project = baseProject();
+  const snapshot: PublicCalendarTodaySnapshot = {
+    schemaVersion: 1,
+    revision: 1,
+    updatedAt: 1,
+    calendarName: "Snapshot Calendar",
+    locale: "en",
+    currentTime: project.currentTime,
+    formattedDate: "Monday 1 January 1000, 08:00",
+    weatherBiome: { name: "Forest", icon: "🌲", description: "Woods" },
+    moons: [],
+    eventsToday: [],
+    weatherEventsToday: [],
+    moonEventsToday: [],
+    dayNotesToday: [],
+    playerView: {
+      ...DEFAULT_PLAYER_VIEW_SETTINGS,
+      today: { ...DEFAULT_PLAYER_VIEW_SETTINGS.today, showHourlyForecast: true, forecastDetailLevel: "precise" }
+    },
+    hourlyForecast: [{
+      offsetHours: 1,
+      timeLabel: "09:00",
+      state: "clear",
+      temperature: 68,
+      windSpeed: 31,
+      windDirection: "NE",
+      rain: 1,
+      units: { temperature: "°F", windSpeed: "mph", rain: "in/h" }
+    }]
+  };
+
+  const model = buildPlayerViewModelFromSnapshot(project, snapshot);
+
+  expect(model.hourlyForecast).toHaveLength(1);
+  expect(model.hourlyForecast[0].temperature).toBe("68 °F");
+  expect(model.hourlyForecast[0].wind).toBe("NE · 31 mph");
+  expect(model.hourlyForecast[0].rain).toBe("1 in/h");
+});

@@ -1,7 +1,7 @@
 import type { LocaleCode } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { EmptyState, InfoRow, SectionCard, SectionHeader } from "../ui";
-import type { PlayerViewModel } from "./playerViewModel";
+import type { PlayerViewModel, PlayerWeatherViewModel } from "./playerViewModel";
 
 export const PlayerWeatherCard = ({ locale, model }: { locale: LocaleCode; model: Pick<PlayerViewModel, "weather" | "biome"> }) => (
   <SectionCard>
@@ -14,22 +14,39 @@ export const PlayerWeatherCard = ({ locale, model }: { locale: LocaleCode; model
           <div style={{ fontSize: 12, color: "#9ca3af" }}>{t(locale, "player.visibleToPlayers")}</div>
         </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, marginBottom: 10 }}>
-        <Metric label={t(locale, "weather.temperature")} value={model.weather.temperature} />
-        <Metric label={t(locale, "calendar.wind")} value={model.weather.wind} />
-        <Metric label={t(locale, "calendar.rain")} value={model.weather.rain} />
-      </div>
+      <WeatherMetrics locale={locale} weather={model.weather} />
       {model.biome ? <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginBottom: 8, background: "#0f172a" }}>
         <div style={{ fontSize: 12, fontWeight: 700 }}>{model.biome.icon} {t(locale, "player.currentBiome")}: {model.biome.name}</div>
         <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 3 }}>{model.biome.description}</div>
       </div> : null}
-      <InfoRow label={t(locale, "weather.dailyMinMax")} value={model.weather.dailyMinMax} />
-      <InfoRow label={t(locale, "weather.rainAccumulation")} value={model.weather.dailyRainTotal} />
-      <InfoRow label={t(locale, "weather.trend")} value={model.weather.trend} />
-      <InfoRow label={t(locale, "weather.dominantState")} value={model.weather.dominantState} />
+      {model.weather.detailLevel === "precise" ? <>
+        <InfoRow label={t(locale, "weather.dailyMinMax")} value={model.weather.dailyMinMax} />
+        <InfoRow label={t(locale, "weather.rainAccumulation")} value={model.weather.dailyRainTotal} />
+        <InfoRow label={t(locale, "weather.trend")} value={model.weather.trend} />
+        <InfoRow label={t(locale, "weather.dominantState")} value={model.weather.dominantState} />
+      </> : null}
     </>}
   </SectionCard>
 );
+
+const WeatherMetrics = ({ locale, weather }: { locale: LocaleCode; weather: PlayerWeatherViewModel }) => {
+  if (weather.detailLevel !== "precise") {
+    return <div style={{ display: "grid", gap: 6, marginBottom: 10 }}>
+      {weather.narrativeLabel ? <div style={{ fontSize: 12, color: "#cbd5e1" }}>{weather.narrativeLabel}</div> : null}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 }}>
+        <Metric label={t(locale, "weather.temperature")} value={weather.broadTemperature ?? "—"} />
+        <Metric label={t(locale, "calendar.wind")} value={weather.broadWind ?? "—"} />
+        <Metric label={t(locale, "calendar.rain")} value={weather.broadRain ?? "—"} />
+      </div>
+    </div>;
+  }
+
+  return <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6, marginBottom: 10 }}>
+    <Metric label={t(locale, "weather.temperature")} value={weather.temperature ?? "—"} />
+    <Metric label={t(locale, "calendar.wind")} value={weather.wind ?? "—"} />
+    <Metric label={t(locale, "calendar.rain")} value={weather.rain ?? "—"} />
+  </div>;
+};
 
 const Metric = ({ label, value }: { label: string; value: string }) => (
   <div style={{ border: "1px solid #374151", borderRadius: 8, padding: 7, background: "#111827", minWidth: 0 }}>

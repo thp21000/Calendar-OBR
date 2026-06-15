@@ -9,7 +9,7 @@ export const PlayerOverviewCard = ({ locale, model }: { locale: LocaleCode; mode
     <div style={{ display: "grid", gap: 8 }}>
       <SummaryLine label={t(locale, "calendar.season")} value={model.season ? `${model.season.icon ?? ""}${model.season.icon ? " " : ""}${model.season.name}` : t(locale, "calendar.noSeason")} />
       <SummaryLine label={t(locale, "player.currentBiome")} value={model.biome ? `${model.biome.icon} ${model.biome.name}` : "—"} />
-      <SummaryLine label={t(locale, "calendar.weather")} value={model.weather ? `${model.weather.stateIcon} ${model.weather.stateLabel} · ${model.weather.temperature}` : t(locale, "calendar.noWeather")} />
+      <SummaryLine label={t(locale, "calendar.weather")} value={model.weather ? `${model.weather.stateIcon} ${model.weather.stateLabel}${model.weather.temperature ? ` · ${model.weather.temperature}` : ""}` : t(locale, "calendar.noWeather")} />
       <div>
         <div style={{ color: "#9ca3af", fontSize: 11, marginBottom: 3 }}>{t(locale, "calendar.moons")}</div>
         {model.moons.length === 0 ? <EmptyState text={t(locale, "calendar.noMoon")} /> : <div style={{ display: "grid", gap: 4 }}>

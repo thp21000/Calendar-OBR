@@ -5,7 +5,7 @@ import type { PublicEventDetails } from "./PublicEventDetailsPopup";
 
 export const PlayerPublicEventsCard = ({ locale, events, onSelectEvent, title, emptyText }: { locale: LocaleCode; events: PublicEventDetails[]; onSelectEvent: (event: PublicEventDetails) => void; title?: string; emptyText?: string }) => (
   <SectionCard>
-    <SectionHeader title={title ?? t(locale, "player.eventsToday")} />
+    <SectionHeader title={title ?? t(locale, "player.publicEvents")} />
     {events.length === 0 ? (
       <EmptyState text={emptyText ?? t(locale, "player.noPublicEvents")} />
     ) : (
