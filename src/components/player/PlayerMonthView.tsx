@@ -3,9 +3,10 @@ import type { CalendarProject, InternalTime, LocaleCode, PlayerViewSettings } fr
 import { t } from "../../i18n/messages";
 import { buildPublicMonthSnapshot, type PublicMonthDaySnapshot, type PublicMonthSnapshot } from "../../obr/publicSnapshot";
 import type { PublicEventDetails } from "./PublicEventDetailsPopup";
-import { EmptyState, Panel, SecondaryButton, SectionCard, SectionHeader } from "../ui";
+import { EmptyState, Panel, SectionCard, SectionHeader } from "../ui";
 import { ui } from "../ui/styles";
 import { EventIcon } from "../EventIcon";
+import { MonthLayout } from "../month/MonthLayout";
 
 export const PlayerMonthView = ({
   project,
@@ -53,23 +54,38 @@ export const PlayerMonthView = ({
     if (project) selectMonth(project.currentTime);
   };
 
-  return <>
-    <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 6, marginBottom: 8 }}>
-      {!isSnapshotMode ? <SecondaryButton type="button" title={t(locale, "month.previousMonth")} onClick={() => selectMonth(month.previousViewedTime)} style={{ justifySelf: "start", padding: "6px 8px", fontSize: 12 }}>
-        ‹ {month.previousMonthLabel}
-      </SecondaryButton> : <div />}
-      <div style={{ textAlign: "center", display: "grid", justifyItems: "center", gap: 4 }}>
-        <div style={{ fontWeight: 800, fontSize: 14, whiteSpace: "nowrap" }}>{month.monthLabel}</div>
-        {showTodayButton ? <SecondaryButton type="button" onClick={selectToday} style={{ padding: "2px 8px", fontSize: 11, lineHeight: 1.2 }}>{t(locale, "common.today")}</SecondaryButton> : null}
-      </div>
-      {!isSnapshotMode ? <SecondaryButton type="button" title={t(locale, "month.nextMonth")} onClick={() => selectMonth(month.nextViewedTime)} style={{ justifySelf: "end", padding: "6px 8px", fontSize: 12 }}>
-        {month.nextMonthLabel} ›
-      </SecondaryButton> : <div />}
-    </div>
-    {settings.month.showMonthGrid ? <PlayerMonthGrid month={month} locale={locale} selectedAbsoluteDay={selectedDay?.absoluteDay ?? null} onSelectDay={setSelectedAbsoluteDay} /> : null}
-    {settings.month.showFiveDayForecast ? <PlayerMonthWeatherForecastCard month={month} detailLevel={settings.month.forecastDetailLevel} locale={locale} /> : null}
-    {selectedDay ? <PlayerDayDetailsPanel day={selectedDay} settings={settings} locale={locale} onSelectEvent={onSelectEvent} /> : null}
-  </>;
+  return <MonthLayout
+    locale={locale}
+    navigation={{
+      currentLabel: month.monthLabel,
+      previousLabel: month.previousMonthLabel,
+      nextLabel: month.nextMonthLabel,
+      showTodayButton,
+      onPrevious: () => selectMonth(month.previousViewedTime),
+      onNext: () => selectMonth(month.nextViewedTime),
+      onToday: selectToday
+    }}
+    visibility={{
+      showMonthGrid: settings.month.showMonthGrid,
+      showPublicEvents: settings.month.showPublicEvents,
+      showWeatherEvents: settings.month.showWeatherEvents,
+      showMoonEvents: settings.month.showMoonEvents,
+      showDayNotes: settings.month.showDayNotes,
+      showWeatherSummary: settings.month.showWeatherSummary,
+      showFiveDayForecast: settings.month.showFiveDayForecast
+    }}
+    actions={{
+      canNavigatePreviousNext: !isSnapshotMode,
+      canGoToday: showTodayButton,
+      canSelectDay: true,
+      canCreateEvent: false,
+      canEditEvent: false,
+      canOpenGmDetails: false
+    }}
+    grid={<PlayerMonthGrid month={month} locale={locale} selectedAbsoluteDay={selectedDay?.absoluteDay ?? null} onSelectDay={setSelectedAbsoluteDay} />}
+    forecast={<PlayerMonthWeatherForecastCard month={month} detailLevel={settings.month.forecastDetailLevel} locale={locale} />}
+    selectedDay={selectedDay ? <PlayerDayDetailsPanel day={selectedDay} settings={settings} locale={locale} onSelectEvent={onSelectEvent} /> : null}
+  />;
 };
 
 const FALLBACK_EVENT_ICON = "◆";

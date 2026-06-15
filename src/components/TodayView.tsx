@@ -18,6 +18,7 @@ import { notificationToPopupPayload, sendPopupNotification } from "../obr/popupN
 import type { CalendarEvent, CalendarProject } from "../domain/types";
 import { t } from "../i18n/messages";
 import { TodayEventsCard } from "./today/TodayEventsCard";
+import { TodayLayout } from "./today/TodayLayout";
 import { TodayStatusSummary, WeatherForecastCard } from "./today/WeatherAndSeasonCard";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
 import { MoonEventDetailsPopup } from "./events/MoonEventDetailsPopup";
@@ -161,23 +162,8 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
     onProjectUpdate({ ...project, currentTime: nextTime });
   };
 
-  return (
-    <>
-      <TodayStatusSummary
-        project={project}
-        currentSeason={currentSeason}
-        currentWeather={currentWeather}
-        triggeredWeatherEvents={triggeredWeatherEvents}
-        weatherUnits={weatherUnits}
-        currentMoonPhases={currentMoonPhases}
-        onSelectWeatherEvent={setSelectedWeatherEventId}
-      />
-
-      <TodayEventsCard project={project} eventsToday={eventsToday} moonEventsToday={triggeredMoonEvents} onSelectEvent={setSelectedEventId} onSelectMoonEvent={setSelectedMoonEventId} />
-
-      <WeatherForecastCard project={project} hourlyForecast={hourlyForecast} weatherUnits={weatherUnits} />
-
-      <SectionCard>
+  const quickActionsCard = (
+    <SectionCard>
         <SectionHeader title={t(project.locale, "time.quickActions")} />
         <div style={quickActionsGridStyle}>
           {quickActions.map((action) => (
@@ -208,6 +194,47 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
           </SecondaryButton>
         </Toolbar>
       </SectionCard>
+    );
+
+  return (
+    <>
+      <TodayLayout
+        locale={project.locale}
+        visibility={{
+          showStatus: true,
+          showDate: true,
+          showSeason: true,
+          showWeather: true,
+          showBiome: true,
+          showMoons: true,
+          showWeatherEvents: true,
+          showEvents: true,
+          showMoonEvents: true,
+          showDayNotes: true,
+          showHourlyForecast: true,
+          showQuickActions: true
+        }}
+        actions={{
+          canEdit: true,
+          canCreate: true,
+          canChangeTime: true,
+          canChangeBiome: true,
+          canReset: true,
+          canOpenGmDetails: true
+        }}
+        status={<TodayStatusSummary
+          project={project}
+          currentSeason={currentSeason}
+          currentWeather={currentWeather}
+          triggeredWeatherEvents={triggeredWeatherEvents}
+          weatherUnits={weatherUnits}
+          currentMoonPhases={currentMoonPhases}
+          onSelectWeatherEvent={setSelectedWeatherEventId}
+        />}
+        events={<TodayEventsCard project={project} eventsToday={eventsToday} moonEventsToday={triggeredMoonEvents} onSelectEvent={setSelectedEventId} onSelectMoonEvent={setSelectedMoonEventId} />}
+        forecast={<WeatherForecastCard project={project} hourlyForecast={hourlyForecast} weatherUnits={weatherUnits} />}
+        quickActions={quickActionsCard}
+      />
 
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={(updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent))} /> : null}
       {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={todayDateLabel} /> : null}

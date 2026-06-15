@@ -5,14 +5,13 @@ import { getDayNotesForDay } from "../calendar/dayNotesLogic";
 import { addCalendarEvent, updateCalendarEvent } from "../calendar/eventsLogic";
 import { getAdjacentMonthLabels, getMonthViewTimeForDate, getNextMonthViewTime, getPreviousMonthViewTime } from "../calendar/monthNavigation";
 import type { CalendarDate, CalendarProject } from "../domain/types";
-import { t } from "../i18n/messages";
 import { DayDetailsPanel } from "./month/DayDetailsPanel";
 import { EventCreatePopup } from "./events/EventCreatePopup";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
 import { MoonEventDetailsPopup } from "./events/MoonEventDetailsPopup";
 import { MonthGrid } from "./month/MonthGrid";
+import { MonthLayout } from "./month/MonthLayout";
 import { MonthWeatherForecastCard } from "./month/MonthWeatherForecastCard";
-import { SecondaryButton } from "./ui";
 
 export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { project: CalendarProject; onProjectUpdate?: (project: CalendarProject) => void; initialSelectedDate?: CalendarDate | null }) => {
   const [viewedTime, setViewedTime] = useState(getMonthViewTimeForDate(project, absoluteDayToCalendarDate(project.currentTime, project.calendarSystem)));
@@ -45,23 +44,38 @@ export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { p
 
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 6, marginBottom: 8 }}>
-        <SecondaryButton type="button" title={t(project.locale, "month.previousMonth")} onClick={() => setViewedTime(getPreviousMonthViewTime(project, viewedTime))} style={{ justifySelf: "start", padding: "6px 8px", fontSize: 12 }}>
-          ‹ {labels.previous}
-        </SecondaryButton>
-        <div style={{ textAlign: "center", display: "grid", justifyItems: "center", gap: 4 }}>
-          <div style={{ fontWeight: 800, fontSize: 14, whiteSpace: "nowrap" }}>{labels.current}</div>
-          <SecondaryButton type="button" onClick={goToToday} style={{ padding: "2px 8px", fontSize: 11, lineHeight: 1.2 }}>
-            {t(project.locale, "common.today")}
-          </SecondaryButton>
-        </div>
-        <SecondaryButton type="button" title={t(project.locale, "month.nextMonth")} onClick={() => setViewedTime(getNextMonthViewTime(project, viewedTime))} style={{ justifySelf: "end", padding: "6px 8px", fontSize: 12 }}>
-          {labels.next} ›
-        </SecondaryButton>
-      </div>
-      <MonthGrid project={project} viewedTime={viewedTime} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-      <MonthWeatherForecastCard project={project} forecast={dailyWeatherForecast} />
-      {dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={setCreateEventDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} onOpenMoonEvent={setSelectedMoonEventId} /> : null}
+      <MonthLayout
+        locale={project.locale}
+        navigation={{
+          currentLabel: labels.current,
+          previousLabel: labels.previous,
+          nextLabel: labels.next,
+          showTodayButton: true,
+          onPrevious: () => setViewedTime(getPreviousMonthViewTime(project, viewedTime)),
+          onNext: () => setViewedTime(getNextMonthViewTime(project, viewedTime)),
+          onToday: goToToday
+        }}
+        visibility={{
+          showMonthGrid: true,
+          showPublicEvents: true,
+          showWeatherEvents: true,
+          showMoonEvents: true,
+          showDayNotes: true,
+          showWeatherSummary: true,
+          showFiveDayForecast: true
+        }}
+        actions={{
+          canNavigatePreviousNext: true,
+          canGoToday: true,
+          canSelectDay: true,
+          canCreateEvent: Boolean(onProjectUpdate),
+          canEditEvent: Boolean(onProjectUpdate),
+          canOpenGmDetails: true
+        }}
+        grid={<MonthGrid project={project} viewedTime={viewedTime} selectedDate={selectedDate} onSelectDate={setSelectedDate} />}
+        forecast={<MonthWeatherForecastCard project={project} forecast={dailyWeatherForecast} />}
+        selectedDay={dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={setCreateEventDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} onOpenMoonEvent={setSelectedMoonEventId} /> : null}
+      />
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={onProjectUpdate ? (updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent)) : undefined} /> : null}
       {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={selectedMoonEventDateLabel} /> : null}
       {createEventDate ? <EventCreatePopup project={project} date={createEventDate} onClose={() => setCreateEventDate(null)} onCreate={(event) => {

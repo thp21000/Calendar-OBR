@@ -8,6 +8,7 @@ import { PublicEventDetailsPopup } from "./player/PublicEventDetailsPopup";
 import { PlayerMonthView } from "./player/PlayerMonthView";
 import { PlayerTodayEventsCard, PlayerTodayForecastCard, PlayerTodayStatusSummary } from "./player/PlayerTodayCards";
 import { buildPlayerViewModelFromProject, buildPlayerViewModelFromSnapshot } from "./player/playerViewModel";
+import { TodayLayout } from "./today/TodayLayout";
 import { EmptyState, SectionCard } from "./ui";
 
 export const PlayerView = ({ project, snapshot }: { project: CalendarProject; snapshot?: PublicCalendarTodaySnapshot | null }) => {
@@ -30,9 +31,34 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
       </div> : null}
 
       {activeTab === "month" ? <PlayerMonthView project={snapshot ? undefined : project} snapshotMonth={snapshot?.month} isSnapshotMode={Boolean(snapshot)} settings={settings} locale={model.locale} onSelectEvent={setSelectedPublicEvent} /> : <>
-        <PlayerTodayStatusSummary locale={model.locale} model={model} settings={settings} onSelectEvent={setSelectedPublicEvent} />
-        <PlayerTodayEventsCard locale={model.locale} model={model} settings={settings} onSelectEvent={setSelectedPublicEvent} />
-        <PlayerTodayForecastCard locale={model.locale} forecast={model.hourlyForecast} settings={settings} />
+        <TodayLayout
+          locale={model.locale}
+          visibility={{
+            showStatus: settings.today.showDate || settings.today.showSeason || settings.today.showWeather || settings.today.showBiome || settings.today.showMoons || settings.today.showWeatherEvents,
+            showDate: settings.today.showDate,
+            showSeason: settings.today.showSeason,
+            showWeather: settings.today.showWeather,
+            showBiome: settings.today.showBiome,
+            showMoons: settings.today.showMoons,
+            showWeatherEvents: settings.today.showWeatherEvents,
+            showEvents: settings.today.showEvents,
+            showMoonEvents: settings.today.showMoonEvents,
+            showDayNotes: settings.today.showDayNotes,
+            showHourlyForecast: settings.today.showHourlyForecast,
+            showQuickActions: false
+          }}
+          actions={{
+            canEdit: false,
+            canCreate: false,
+            canChangeTime: false,
+            canChangeBiome: false,
+            canReset: false,
+            canOpenGmDetails: false
+          }}
+          status={<PlayerTodayStatusSummary locale={model.locale} model={model} settings={settings} onSelectEvent={setSelectedPublicEvent} />}
+          events={<PlayerTodayEventsCard locale={model.locale} model={model} settings={settings} onSelectEvent={setSelectedPublicEvent} />}
+          forecast={<PlayerTodayForecastCard locale={model.locale} forecast={model.hourlyForecast} settings={settings} />}
+        />
         {!hasVisibleTodayContent ? <SectionCard><EmptyState text={t(model.locale, "player.noVisibleContent")} /></SectionCard> : null}
       </>}
 
