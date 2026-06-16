@@ -48,6 +48,8 @@ describe("PlayerMonthView", () => {
 
     expect(html).toContain("Published Snapshot Month");
     expect(html).toContain("Snapshot Event");
+    expect(html).not.toContain("Day events");
+    expect(html).not.toContain("Close details");
     expect(html).not.toContain("Hidden Previous Month");
     expect(html).not.toContain("Hidden Next Month");
   });

@@ -312,9 +312,7 @@ export const buildPublicMonthSnapshot = (
       ...events.map((event) => ({ id: `event:${event.id}`, icon: event.icon ?? "📌", label: event.name, type: "event" as const })),
       ...weatherEvents.map((event) => ({ id: `weather:${event.id}`, icon: event.icon ?? "⛈️", label: event.name, type: "weather" as const })),
       ...moonEvents.map((event) => ({ id: `moon:${event.id}`, icon: event.icon ?? "🌕", label: event.name, type: "moon" as const })),
-      ...dayNotes.map((note) => ({ id: `note:${note.id}`, icon: "📝", label: t(project.locale, "player.publicMonthNotes"), type: "note" as const })),
-      ...(season ? [{ id: `season:${day.absoluteDay}`, icon: season.icon ?? "🍂", label: season.name, type: "season" as const }] : []),
-      ...(weatherSummary ? [{ id: `weatherSummary:${day.absoluteDay}`, icon: weatherSummary.stateIcon, label: weatherSummary.stateLabel, type: "weatherSummary" as const }] : [])
+      ...dayNotes.map((note) => ({ id: `note:${note.id}`, icon: "📝", label: t(project.locale, "player.publicMonthNotes"), type: "note" as const }))
     ];
     return {
       key: `${date.year}:${date.monthId}:${date.dayOfMonth}`,

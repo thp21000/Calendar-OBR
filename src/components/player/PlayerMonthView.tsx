@@ -33,17 +33,16 @@ export const PlayerMonthView = ({
         : undefined,
     [isSnapshotMode, project, settings, snapshotMonth, viewedTime]
   );
-  const [selectedAbsoluteDay, setSelectedAbsoluteDay] = useState<number | null>(month?.days.find((day) => day.isToday)?.absoluteDay ?? month?.days[0]?.absoluteDay ?? null);
-  const selectedDay = useMemo(() => month?.days.find((day) => day.absoluteDay === selectedAbsoluteDay) ?? month?.days.find((day) => day.isToday) ?? month?.days[0], [month, selectedAbsoluteDay]);
+  const [selectedAbsoluteDay, setSelectedAbsoluteDay] = useState<number | null>(null);
+  const selectedDay = useMemo(() => selectedAbsoluteDay === null ? undefined : month?.days.find((day) => day.absoluteDay === selectedAbsoluteDay), [month, selectedAbsoluteDay]);
   const monthHasAnyBlock = settings.month.showMonthGrid || settings.month.showPublicEvents || settings.month.showWeatherEvents || settings.month.showMoonEvents || settings.month.showDayNotes || settings.month.showWeatherSummary || settings.month.showFiveDayForecast;
 
   if (!monthHasAnyBlock) return <SectionCard><EmptyState text={t(locale, "player.noVisibleContent")} /></SectionCard>;
   if (!month) return <SectionCard><EmptyState text={t(locale, "player.monthUnavailable")} /></SectionCard>;
 
   const selectMonth = (nextViewedTime: InternalTime) => {
-    const nextMonth = project ? buildPublicMonthSnapshot(project, settings, nextViewedTime) : month;
     setViewedTime(nextViewedTime);
-    setSelectedAbsoluteDay(nextMonth.days.find((day) => day.isToday)?.absoluteDay ?? nextMonth.days[0]?.absoluteDay ?? null);
+    setSelectedAbsoluteDay(null);
   };
   const todayInPublishedMonth = month.days.find((day) => day.isToday);
   const showTodayButton = !isSnapshotMode || Boolean(todayInPublishedMonth);

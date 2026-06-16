@@ -45,7 +45,7 @@ export const MonthGrid = ({ project, viewedTime, selectedDate, onSelectDate, mod
       const firstPublicEvent = day.events[0] ?? day.weatherEvents[0];
       const firstMoonEvent = day.moonEvents[0];
       const hasDayNotes = day.dayNotes.length > 0;
-      const markerCount = day.events.length + day.weatherEvents.length + day.moonEvents.length + (day.season ? 1 : 0) + (hasDayNotes ? 1 : 0);
+      const markerCount = day.events.length + day.weatherEvents.length + day.moonEvents.length + (hasDayNotes ? 1 : 0);
       const extraMarkers = markerCount > 2 ? markerCount - 2 : 0;
       return {
         key: String(day.absoluteDay),
@@ -57,7 +57,6 @@ export const MonthGrid = ({ project, viewedTime, selectedDate, onSelectDate, mod
         markers: [
           firstPublicEvent ? { key: "event", node: <EventIcon icon={firstPublicEvent.icon || FALLBACK_EVENT_ICON} locale={publicLocale} size={14} /> } : undefined,
           !firstPublicEvent && firstMoonEvent ? { key: "moon", node: <EventIcon icon={firstMoonEvent.icon || "🌕"} locale={publicLocale} size={14} /> } : undefined,
-          day.season ? { key: "season", node: <EventIcon icon={day.season.icon ?? "🍃"} locale={publicLocale} size={14} /> } : undefined,
           hasDayNotes ? { key: "notes", node: <span style={{ fontSize: 11, lineHeight: 1 }}>📝</span> } : undefined,
           extraMarkers > 0 ? { key: "extra", node: <span style={{ fontSize: 10, lineHeight: 1, color: "#cbd5e1", opacity: 0.9 }}>+{extraMarkers}</span> } : undefined
         ].filter(Boolean) as Array<{ key: string; node: React.ReactNode }>
