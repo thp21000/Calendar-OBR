@@ -117,10 +117,10 @@ export const TodayStatusSummary = ({
   const weatherNodes = showWeather ? (isPlayer && playerModel ? (playerModel.weather ? [
     <span key="state" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{playerModel.weather.stateIcon} {playerModel.weather.stateLabel}</span>,
     ...(playerModel.weather.detailLevel === "precise" ? [
-      playerModel.weather.temperature ? <span key="temp" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.temperature}</span> : undefined,
-      playerModel.weather.wind ? <span key="wind" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.wind}</span> : undefined,
-      playerModel.weather.rain ? <span key="rain" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.rain}</span> : undefined,
-      playerModel.weather.dailyRainTotal ? <span key="rain-total" style={{ whiteSpace: "nowrap" }}>{t(locale, "weather.rainAccumulation")}: {playerModel.weather.dailyRainTotal}</span> : undefined
+      playerModel.weather.temperature && playerModel.weather.temperatureCelsius !== undefined ? <span key="temp" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getTemperatureIcon(playerModel.weather.temperatureCelsius)} {playerModel.weather.temperature}</span> : undefined,
+      playerModel.weather.windSpeed && playerModel.weather.windSpeedKmh !== undefined ? <span key="wind" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getWindSpeedIcon(playerModel.weather.windSpeedKmh)} {playerModel.weather.windSpeed}{playerModel.weather.windDirection ? <span title={playerModel.weather.windDirection}>{getWindDirectionIcon(playerModel.weather.windDirection)}</span> : null}</span> : undefined,
+      playerModel.weather.rain && playerModel.weather.rainMm !== undefined ? <span key="rain" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{getRainIcon({ rain: playerModel.weather.rainMm, state: playerModel.weather.state } as Parameters<typeof getRainIcon>[0])} {playerModel.weather.rain}</span> : undefined,
+      playerModel.weather.dailyRainTotal ? <span key="rain-total" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{t(locale, "weather.rainAccumulation")}: {playerModel.weather.dailyRainTotal}</span> : undefined
     ] : [
       playerModel.weather.broadTemperature ? <span key="broad-temp" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.broadTemperature}</span> : undefined,
       playerModel.weather.broadWind ? <span key="broad-wind" style={{ whiteSpace: "nowrap" }}>{playerModel.weather.broadWind}</span> : undefined,
@@ -134,8 +134,8 @@ export const TodayStatusSummary = ({
     currentWeather.dailyRainTotal !== undefined ? <span key="rain-total" style={{ display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}>{t(project.locale, "weather.rainAccumulation")}: {formatRainTotal(currentWeather.dailyRainTotal, project.units, project.locale)}</span> : undefined
   ].filter((item): item is JSX.Element => Boolean(item)) : [<span key="empty" style={{ fontSize: 12, color: "#94a3b8" }}>{t(project.locale, "calendar.noWeather")}</span>]) : [];
 
-  const trendText = showWeather ? (isPlayer && playerModel?.weather?.detailLevel === "precise" && (playerModel.weather.trend || playerModel.weather.dominantState)
-    ? `${playerModel.weather.trend ? `${t(locale, "weather.trend")}: ${playerModel.weather.trend}` : ""}${playerModel.weather.trend && playerModel.weather.dominantState ? " · " : ""}${playerModel.weather.dominantState ? `${t(locale, "weather.dominantState")}: ${playerModel.weather.dominantState}` : ""}`
+  const trendText = showWeather ? (isPlayer && playerModel?.weather?.detailLevel === "precise" && (playerModel.weather.trend || playerModel.weather.dominantStateLabel)
+    ? `${playerModel.weather.trendKind && playerModel.weather.trend ? `${getConfiguredWeatherTrendIcon(project, playerModel.weather.trendKind)} ${t(locale, "weather.trend")}: ${playerModel.weather.trend}` : ""}${playerModel.weather.trend && playerModel.weather.dominantStateLabel ? " · " : ""}${playerModel.weather.dominantStateKind && playerModel.weather.dominantStateLabel ? `${t(locale, "weather.dominantState")}: ${getConfiguredWeatherStateIcon(project, playerModel.weather.dominantStateKind)} ${playerModel.weather.dominantStateLabel}` : ""}`
     : !isPlayer && (currentWeather?.trendKind || currentWeather?.dominantState)
       ? `${currentWeather?.trendKind ? `${getConfiguredWeatherTrendIcon(project, currentWeather.trendKind)} ${t(project.locale, "weather.trend")}: ${getWeatherTrendLabel(project, currentWeather.trendKind)}` : ""}${currentWeather?.trendKind && currentWeather?.dominantState ? " · " : ""}${currentWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${getWeatherStateLabel(project, currentWeather.dominantState)}` : ""}`
       : "") : "";
@@ -211,7 +211,13 @@ export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits, mod
       title: `+${entry.offsetHours} h`,
       rows: [
         `${entry.stateIcon} ${entry.stateLabel}`,
-        ...(detailLevel === "precise" ? [entry.temperature, entry.wind, entry.rain, entry.trend] : [entry.broadTemperature, entry.broadWind, entry.broadRain])
+        ...(detailLevel === "precise" ? [
+          entry.temperature && entry.temperatureCelsius !== undefined ? `${getTemperatureIcon(entry.temperatureCelsius)} ${entry.temperature}` : undefined,
+          entry.windSpeed && entry.windSpeedKmh !== undefined ? <span key="wind">{getWindSpeedIcon(entry.windSpeedKmh)} {entry.windSpeed}{entry.windDirection ? <span title={entry.windDirection}> {getWindDirectionIcon(entry.windDirection)}</span> : null}</span> : undefined,
+          entry.rain && entry.rainMm !== undefined ? `${getRainIcon({ rain: entry.rainMm, state: entry.state } as Parameters<typeof getRainIcon>[0])} ${entry.rain}` : undefined,
+          entry.trendKind && entry.trend ? `${getConfiguredWeatherTrendIcon(project, entry.trendKind)} ${entry.trend}` : undefined
+        ] : [entry.broadTemperature, entry.broadWind, entry.broadRain])
+      ].filter(Boolean) as React.ReactNode[]
       ].filter(Boolean) as string[]
     }))
     : hourlyForecast.map((entry) => ({

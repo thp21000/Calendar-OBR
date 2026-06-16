@@ -10,7 +10,7 @@ import { generateWeatherForTime, getCurrentWeather, getHourlyWeatherForecast } f
 import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
 import { formatTemperature, getWeatherUnitLabels, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../calendar/weatherUnits";
-import type { CalendarCurrentTime, CalendarDate, CalendarProject, InternalTime, LocaleCode, MoonPhaseId, PlayerViewSettings, WeatherSnapshot, WeatherState, WindDirection } from "../domain/types";
+import type { CalendarCurrentTime, CalendarDate, CalendarProject, InternalTime, LocaleCode, MoonPhaseId, PlayerViewSettings, WeatherSnapshot, WeatherState, WeatherTrendKind, WindDirection } from "../domain/types";
 import { t } from "../i18n/messages";
 import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
 import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex, getCurrentMonthWeekdayNames } from "../calendar/monthView";
@@ -68,6 +68,7 @@ export type PublicHourlyForecastSnapshot = {
   windSpeed?: number;
   windDirection?: WindDirection;
   rain?: number;
+  trendKind?: WeatherTrendKind;
   units: {
     temperature: string;
     windSpeed: string;
@@ -212,6 +213,7 @@ const buildPublicHourlyForecast = (project: CalendarProject, settings: PlayerVie
     windSpeed: roundPublicWeatherValue(toDisplayWindSpeed(weather.windSpeed, project.units.windSpeed), 0),
     windDirection: weather.windDirection,
     rain: roundPublicWeatherValue(toDisplayRain(weather.rain, project.units.rain), rainDecimals),
+    trendKind: weather.trendKind,
     units: { temperature: weatherUnits.temperature, windSpeed: weatherUnits.windSpeed, rain: weatherUnits.rain }
   }));
 };

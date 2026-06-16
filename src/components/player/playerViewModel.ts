@@ -12,7 +12,7 @@ import { getCurrentWeatherBiomeDefinition } from "../../calendar/weather/biomes"
 import { getPlayerVisibleWeatherEvents } from "../../calendar/weatherEventsLogic";
 import { getCurrentWeather, getHourlyWeatherForecast } from "../../calendar/weatherLogic";
 import { formatRain, formatRainTotal, formatTemperature, formatWindSpeed } from "../../calendar/weatherUnits";
-import type { CalendarProject, LocaleCode, PlayerForecastDetailLevel, PlayerViewSettings, PlayerWeatherDetailLevel, WeatherSnapshot, WindDirection } from "../../domain/types";
+import type { CalendarProject, LocaleCode, PlayerForecastDetailLevel, PlayerViewSettings, PlayerWeatherDetailLevel, WeatherSnapshot, WeatherState, WeatherTrendKind, WindDirection } from "../../domain/types";
 import type { PublicCalendarTodaySnapshot, PublicHourlyForecastSnapshot } from "../../obr/publicSnapshot";
 import { t } from "../../i18n/messages";
 import type { PublicEventDetails } from "./PublicEventDetailsPopup";
@@ -22,12 +22,21 @@ export type PlayerWeatherViewModel = {
   stateLabel: string;
   detailLevel: PlayerWeatherDetailLevel;
   temperature?: string;
+  temperatureCelsius?: number;
   wind?: string;
+  windSpeed?: string;
+  windSpeedKmh?: number;
+  windDirection?: WindDirection;
   rain?: string;
+  rainMm?: number;
+  state?: WeatherState;
   dailyMinMax?: string;
   dailyRainTotal?: string;
   trend?: string;
+  trendKind?: WeatherTrendKind;
   dominantState?: string;
+  dominantStateKind?: WeatherState;
+  dominantStateLabel?: string;
   broadTemperature?: string;
   broadWind?: string;
   broadRain?: string;
@@ -41,9 +50,16 @@ export type PlayerHourlyForecastEntry = {
   stateLabel: string;
   detailLevel: PlayerForecastDetailLevel;
   temperature?: string;
+  temperatureCelsius?: number;
   wind?: string;
+  windSpeed?: string;
+  windSpeedKmh?: number;
+  windDirection?: WindDirection;
   rain?: string;
+  rainMm?: number;
+  state?: WeatherState;
   trend?: string;
+  trendKind?: WeatherTrendKind;
   broadTemperature?: string;
   broadWind?: string;
   broadRain?: string;
@@ -121,19 +137,28 @@ const buildWeatherViewModel = (
   return {
     stateIcon: getConfiguredWeatherStateIcon(project, state),
     stateLabel: getWeatherStateLabel(project, state, project.locale),
+    state,
     detailLevel: effectiveDetailLevel,
     ...(effectiveDetailLevel === "precise" ? {
       temperature: formatTemperature(weather.temperature, project.units, project.locale),
+      temperatureCelsius: weather.temperature,
       wind: `${weather.windDirection} · ${formatWindSpeed(weather.windSpeed, project.units, project.locale)}`,
+      windSpeed: formatWindSpeed(weather.windSpeed, project.units, project.locale),
+      windSpeedKmh: weather.windSpeed,
+      windDirection: weather.windDirection,
       rain: formatRain(weather.rain, project.units, project.locale),
+      rainMm: weather.rain,
       dailyMinMax: weather.dailyMinTemperature !== undefined && weather.dailyMaxTemperature !== undefined
         ? `${formatTemperature(weather.dailyMinTemperature, project.units, project.locale)} / ${formatTemperature(weather.dailyMaxTemperature, project.units, project.locale)}`
         : undefined,
       dailyRainTotal: weather.dailyRainTotal !== undefined ? formatRainTotal(weather.dailyRainTotal, project.units, project.locale) : undefined,
       trend: weather.trendKind ? getWeatherTrendLabel(project, weather.trendKind, project.locale) : undefined,
+      trendKind: weather.trendKind,
       dominantState: weather.dominantState
         ? `${getConfiguredWeatherStateIcon(project, weather.dominantState)} ${getWeatherStateLabel(project, weather.dominantState, project.locale)}`
-        : undefined
+        : undefined,
+      dominantStateKind: weather.dominantState,
+      dominantStateLabel: weather.dominantState ? getWeatherStateLabel(project, weather.dominantState, project.locale) : undefined
     } : {
       ...broad,
       // TODO: replace broad fallback with richer narrative text.
@@ -158,19 +183,28 @@ const buildWeatherViewModelFromSnapshot = (
   return {
     stateIcon: getConfiguredWeatherStateIcon(project, state),
     stateLabel: getWeatherStateLabel(project, state, snapshot.locale),
+    state,
     detailLevel: effectiveDetailLevel,
     ...(effectiveDetailLevel === "precise" ? {
       temperature: `${snapshot.weather.temperature} ${snapshot.weather.units.temperature}`,
+      temperatureCelsius: displayTemperatureToCelsius(snapshot.weather.temperature, snapshot.weather.units.temperature),
       wind: `${snapshot.weather.windDirection} · ${snapshot.weather.windSpeed} ${snapshot.weather.units.windSpeed}`,
+      windSpeed: `${snapshot.weather.windSpeed} ${snapshot.weather.units.windSpeed}`,
+      windSpeedKmh: displayWindToKmh(snapshot.weather.windSpeed, snapshot.weather.units.windSpeed),
+      windDirection: snapshot.weather.windDirection,
       rain: `${snapshot.weather.rain} ${snapshot.weather.units.rain}`,
+      rainMm: displayRainToMm(snapshot.weather.rain, snapshot.weather.units.rain),
       dailyMinMax: snapshot.weather.dailyMinTemperature !== undefined && snapshot.weather.dailyMaxTemperature !== undefined
         ? `${snapshot.weather.dailyMinTemperature} / ${snapshot.weather.dailyMaxTemperature} ${snapshot.weather.units.temperature}`
         : undefined,
       dailyRainTotal: snapshot.weather.dailyRainTotal !== undefined ? `${snapshot.weather.dailyRainTotal} ${snapshot.weather.units.rainTotal}` : undefined,
       trend: snapshot.weather.trendKind ? getWeatherTrendLabel(project, snapshot.weather.trendKind, snapshot.locale) : undefined,
+      trendKind: snapshot.weather.trendKind,
       dominantState: snapshot.weather.dominantState
         ? `${getConfiguredWeatherStateIcon(project, snapshot.weather.dominantState)} ${getWeatherStateLabel(project, snapshot.weather.dominantState, snapshot.locale)}`
-        : undefined
+        : undefined,
+      dominantStateKind: snapshot.weather.dominantState,
+      dominantStateLabel: snapshot.weather.dominantState ? getWeatherStateLabel(project, snapshot.weather.dominantState, snapshot.locale) : undefined
     } : {
       ...broad,
       // TODO: replace broad fallback with richer narrative text.
@@ -201,13 +235,54 @@ const buildHourlyForecastEntry = (
     timeLabel: forecastTimeLabel(project, offsetHours),
     stateIcon: getConfiguredWeatherStateIcon(project, state),
     stateLabel: getWeatherStateLabel(project, state, project.locale),
+    state,
     detailLevel: effectiveDetailLevel,
     ...(effectiveDetailLevel === "precise" ? {
       temperature: formatTemperature(weather.temperature, project.units, project.locale),
+      temperatureCelsius: weather.temperature,
       wind: `${weather.windDirection} · ${formatWindSpeed(weather.windSpeed, project.units, project.locale)}`,
+      windSpeed: formatWindSpeed(weather.windSpeed, project.units, project.locale),
+      windSpeedKmh: weather.windSpeed,
+      windDirection: weather.windDirection,
       rain: formatRain(weather.rain, project.units, project.locale),
-      trend: weather.trendKind ? getWeatherTrendLabel(project, weather.trendKind, project.locale) : undefined
+      rainMm: weather.rain,
+      trend: weather.trendKind ? getWeatherTrendLabel(project, weather.trendKind, project.locale) : undefined,
+      trendKind: weather.trendKind
     } : buildBroadLabels(project.locale, weather))
+  };
+};
+
+const buildHourlyForecastEntryFromSnapshot = (
+  project: CalendarProject,
+  entry: PublicHourlyForecastSnapshot,
+  detailLevel: PlayerForecastDetailLevel,
+  locale: LocaleCode
+): PlayerHourlyForecastEntry => {
+  const state = entry.state ?? "clear";
+  const effectiveDetailLevel = detailLevel === "narrative" ? "broad" : detailLevel;
+  return {
+    offsetHours: entry.offsetHours,
+    timeLabel: entry.timeLabel,
+    stateIcon: entry.stateIcon ?? getConfiguredWeatherStateIcon(project, state),
+    stateLabel: entry.stateLabel ?? getWeatherStateLabel(project, state, locale),
+    state,
+    detailLevel: effectiveDetailLevel,
+    ...(effectiveDetailLevel === "precise" ? {
+      temperature: entry.temperature === undefined ? undefined : `${entry.temperature} ${entry.units.temperature}`,
+      temperatureCelsius: entry.temperature === undefined ? undefined : displayTemperatureToCelsius(entry.temperature, entry.units.temperature),
+      wind: entry.windSpeed === undefined ? undefined : `${entry.windDirection ? `${entry.windDirection} · ` : ""}${entry.windSpeed} ${entry.units.windSpeed}`,
+      windSpeed: entry.windSpeed === undefined ? undefined : `${entry.windSpeed} ${entry.units.windSpeed}`,
+      windSpeedKmh: entry.windSpeed === undefined ? undefined : displayWindToKmh(entry.windSpeed, entry.units.windSpeed),
+      windDirection: entry.windDirection,
+      rain: entry.rain === undefined ? undefined : `${entry.rain} ${entry.units.rain}`,
+      rainMm: entry.rain === undefined ? undefined : displayRainToMm(entry.rain, entry.units.rain),
+      trend: entry.trendKind ? getWeatherTrendLabel(project, entry.trendKind, locale) : undefined,
+      trendKind: entry.trendKind
+    } : buildBroadLabels(locale, {
+      temperature: entry.temperature === undefined ? 0 : displayTemperatureToCelsius(entry.temperature, entry.units.temperature),
+      windSpeed: entry.windSpeed === undefined ? 0 : displayWindToKmh(entry.windSpeed, entry.units.windSpeed),
+      rain: entry.rain === undefined ? 0 : displayRainToMm(entry.rain, entry.units.rain)
+    }))
   };
 };
 
