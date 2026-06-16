@@ -154,7 +154,7 @@ export const TodayStatusSummary = ({
 
   return (
     <SectionCard style={{ background: ui.colors.surfaceElevated, borderColor: "#475569", boxShadow: "0 2px 10px rgba(2,6,23,0.22)" }}>
-      {topLineItems.length > 0 ? <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 18, fontWeight: 800, lineHeight: 1.25 }}>{topLineItems}</div> : null}
+      {topLineItems.length > 0 ? <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 800, lineHeight: 1.25 }}>{topLineItems}</div> : null}
       {biomeView ? <div style={biomeInlineStyle}><span style={biomeIconStyle}>{biomeView.icon}</span><div style={biomeTextStyle}><strong>{biomeView.label}</strong><span style={biomeDescriptionStyle}>{biomeView.description}</span></div></div> : null}
       {weatherNodes.length > 0 ? <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, rowGap: 6, fontSize: 13 }}>{weatherNodes}</div> : null}
       {trendText ? <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>{trendText}</div> : null}

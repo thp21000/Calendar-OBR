@@ -81,7 +81,7 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
             mode="player"
             readonly
             events={settings.today.showEvents ? model.events : []}
-            weatherEvents={settings.today.showWeatherEvents ? model.weatherEvents : []}
+            weatherEvents={[]}
             moonEvents={settings.today.showMoonEvents ? model.moonEvents : []}
             dayNotes={settings.today.showDayNotes ? model.dayNotes : []}
             eventsToday={[]}
