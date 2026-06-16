@@ -37,7 +37,9 @@ export const DayDetailsPanel = ({ project, locale, dayDetails, notes, onClose, o
 
   const weatherLine = isPlayer && publicDay ? (visibility?.showWeatherSummary && publicDay.weatherSummary ? [
     <span key="state">{publicDay.weatherSummary.stateIcon} {publicDay.weatherSummary.stateLabel}</span>,
-    publicDay.weatherSummary.temperatureLabel ? <span key="temp">{publicDay.weatherSummary.temperatureLabel}</span> : undefined,
+    publicDay.weatherSummary.temperatureLabel && publicDay.weatherSummary.temperatureCelsius !== undefined ? <span key="temp">{getTemperatureIcon(publicDay.weatherSummary.temperatureCelsius)} {publicDay.weatherSummary.temperatureLabel}</span> : undefined,
+    publicDay.weatherSummary.windSpeedLabel && publicDay.weatherSummary.windSpeedKmh !== undefined ? <span key="wind">{getWindSpeedIcon(publicDay.weatherSummary.windSpeedKmh)} {publicDay.weatherSummary.windSpeedLabel}{publicDay.weatherSummary.windDirection ? <span title={publicDay.weatherSummary.windDirection}> {getWindDirectionIcon(publicDay.weatherSummary.windDirection)}</span> : null}</span> : undefined,
+    publicDay.weatherSummary.rainTotalLabel ? <span key="rain">24 h: {publicDay.weatherSummary.rainTotalLabel}</span> : undefined,
     publicDay.weatherSummary.broadLabel ? <span key="broad">{publicDay.weatherSummary.broadLabel}</span> : undefined
   ].filter((item): item is JSX.Element => Boolean(item)) : []) : project && dayDetails ? (dayDetails.dailyWeather ? [
     <span key="state">{getConfiguredWeatherStateIcon(project, dayDetails.dailyWeather.dominantState)} {getWeatherStateLabel(project, dayDetails.dailyWeather.dominantState)}</span>,
@@ -46,9 +48,11 @@ export const DayDetailsPanel = ({ project, locale, dayDetails, notes, onClose, o
     <span key="rain">24 h: {formatRainTotal(dayDetails.dailyWeather.rainTotal24h, project.units, project.locale)}</span>
   ] : [<span key="empty">{t(project.locale, "calendar.noWeather")}</span>]) : [];
 
-  const trendText = !isPlayer && project && dayDetails && (dayDetails.dailyWeather?.trendKind || dayDetails.dailyWeather?.dominantState)
-    ? `${dayDetails.dailyWeather?.trendKind ? `${getConfiguredWeatherTrendIcon(project, dayDetails.dailyWeather.trendKind)} ${t(project.locale, "weather.trend")}: ${getWeatherTrendLabel(project, dayDetails.dailyWeather.trendKind)}` : ""}${dayDetails.dailyWeather?.trendKind && dayDetails.dailyWeather?.dominantState ? " · " : ""}${dayDetails.dailyWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${getWeatherStateLabel(project, dayDetails.dailyWeather.dominantState)}` : ""}`
-    : "";
+  const trendText = isPlayer && publicDay?.weatherSummary && (publicDay.weatherSummary.trendLabel || publicDay.weatherSummary.dominantStateLabel)
+    ? `${publicDay.weatherSummary.trendIcon && publicDay.weatherSummary.trendLabel ? `${publicDay.weatherSummary.trendIcon} ${t(displayLocale, "weather.trend")}: ${publicDay.weatherSummary.trendLabel}` : ""}${publicDay.weatherSummary.trendLabel && publicDay.weatherSummary.dominantStateLabel ? " · " : ""}${publicDay.weatherSummary.dominantState && publicDay.weatherSummary.dominantStateLabel ? `${t(displayLocale, "weather.dominantState")}: ${publicDay.weatherSummary.dominantStateIcon ?? publicDay.weatherSummary.stateIcon} ${publicDay.weatherSummary.dominantStateLabel}` : ""}`
+    : !isPlayer && project && dayDetails && (dayDetails.dailyWeather?.trendKind || dayDetails.dailyWeather?.dominantState)
+      ? `${dayDetails.dailyWeather?.trendKind ? `${getConfiguredWeatherTrendIcon(project, dayDetails.dailyWeather.trendKind)} ${t(project.locale, "weather.trend")}: ${getWeatherTrendLabel(project, dayDetails.dailyWeather.trendKind)}` : ""}${dayDetails.dailyWeather?.trendKind && dayDetails.dailyWeather?.dominantState ? " · " : ""}${dayDetails.dailyWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${getWeatherStateLabel(project, dayDetails.dailyWeather.dominantState)}` : ""}`
+      : "";
 
   const eventRows = isPlayer && publicDay ? [
     ...(visibility?.showPublicEvents ? publicDay.events.map((event) => <PublicMonthEventRow key={`event-${event.id}`} event={event} locale={displayLocale} onOpenPublicEvent={onOpenPublicEvent} />) : []),

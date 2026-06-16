@@ -29,11 +29,12 @@ export const MonthWeatherForecastCard = ({ project, locale, forecast, mode = "gm
       rows: [
         `${entry.stateIcon} ${entry.stateLabel}`,
         ...(detailLevel === "precise" ? [
-          entry.averageTemperature !== undefined ? `${entry.averageTemperature} ${entry.units.temperature}` : undefined,
-          entry.averageWindSpeed !== undefined ? `${entry.averageWindSpeed} ${entry.units.windSpeed}` : undefined,
-          entry.rainTotal24h !== undefined ? `${t(displayLocale, "weather.rainAccumulation")}: ${entry.rainTotal24h} ${entry.units.rainTotal}` : undefined
+          entry.averageTemperature !== undefined && entry.averageTemperatureCelsius !== undefined ? `${getTemperatureIcon(entry.averageTemperatureCelsius)} ${entry.averageTemperature} ${entry.units.temperature}` : undefined,
+          entry.averageWindSpeed !== undefined && entry.averageWindSpeedKmh !== undefined ? <span key="wind">{getWindSpeedIcon(entry.averageWindSpeedKmh)} {entry.averageWindSpeed} {entry.units.windSpeed}{entry.dominantWindDirection ? <span title={entry.dominantWindDirection}> {getWindDirectionIcon(entry.dominantWindDirection)}</span> : null}</span> : undefined,
+          entry.rainTotal24h !== undefined ? `${t(displayLocale, "weather.rainAccumulation")}: ${entry.rainTotal24h} ${entry.units.rainTotal}` : undefined,
+          entry.trendIcon && entry.trendLabel ? `${entry.trendIcon} ${entry.trendLabel}` : undefined
         ] : [entry.broadLabel])
-      ].filter(Boolean) as string[]
+      ].filter(Boolean) as React.ReactNode[]
     }))
     : project ? forecast.map((entry) => ({
       key: String(entry.absoluteDay),

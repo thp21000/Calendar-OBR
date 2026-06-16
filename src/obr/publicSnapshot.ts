@@ -9,13 +9,13 @@ import { getCurrentSeason, getSeasonForDate } from "../calendar/seasonsLogic";
 import { generateWeatherForTime, getCurrentWeather, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getCurrentWeatherBiomeDefinition } from "../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../calendar/weatherEventsLogic";
-import { formatTemperature, getWeatherUnitLabels, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../calendar/weatherUnits";
+import { formatRainTotal, formatTemperature, formatWindSpeed, getWeatherUnitLabels, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../calendar/weatherUnits";
 import type { CalendarCurrentTime, CalendarDate, CalendarProject, InternalTime, LocaleCode, MoonPhaseId, PlayerViewSettings, WeatherSnapshot, WeatherState, WeatherTrendKind, WindDirection } from "../domain/types";
 import { t } from "../i18n/messages";
 import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
 import { getCurrentMonthDays, getCurrentMonthFirstWeekdayIndex, getCurrentMonthWeekdayNames } from "../calendar/monthView";
 import { getDailyWeatherForecastEntries } from "../calendar/dayDetails";
-import { getWeatherStateLabel, getConfiguredWeatherStateIcon } from "../calendar/weatherAdvancedSettings";
+import { getWeatherStateLabel, getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherTrendLabel } from "../calendar/weatherAdvancedSettings";
 import { getAdjacentMonthLabels, getMonthViewTimeForDate, getNextMonthViewTime, getPreviousMonthViewTime } from "../calendar/monthNavigation";
 
 export type PublicCalendarIndex = {
@@ -92,9 +92,21 @@ export type PublicMonthMarkerSnapshot = {
 };
 
 export type PublicMonthWeatherSummarySnapshot = {
+  state?: WeatherState;
   stateIcon: string;
   stateLabel: string;
   temperatureLabel?: string;
+  temperatureCelsius?: number;
+  windSpeedLabel?: string;
+  windSpeedKmh?: number;
+  windDirection?: WindDirection;
+  rainTotalLabel?: string;
+  trendKind?: WeatherTrendKind;
+  trendIcon?: string;
+  trendLabel?: string;
+  dominantState?: WeatherState;
+  dominantStateIcon?: string;
+  dominantStateLabel?: string;
   broadLabel?: string;
 };
 
@@ -123,9 +135,15 @@ export type PublicDailyForecastSnapshot = {
   averageWindSpeed?: number;
   dominantWindDirection?: WindDirection;
   rainTotal24h?: number;
+  averageTemperatureCelsius?: number;
+  averageWindSpeedKmh?: number;
+  trendKind?: WeatherTrendKind;
+  trendIcon?: string;
+  trendLabel?: string;
   broadLabel?: string;
   units: { temperature: string; windSpeed: string; rainTotal: string };
 };
+
 
 export type PublicMonthSnapshot = {
   viewedTime: InternalTime;
@@ -271,9 +289,25 @@ export const buildPublicMonthSnapshot = (
     const dayNotes = settings.month.showDayNotes ? getPlayerVisibleDayNotesForDay(project, eventDate).filter((note) => Boolean(note.playerNote?.trim())).map((note) => ({ id: note.id, playerNote: note.playerNote?.trim() ?? "" })) : [];
     const season = settings.month.showWeatherSummary ? getSeasonForDate(project, eventDate) : undefined;
     const weatherSummary = settings.month.showWeatherSummary && weather ? {
-      stateIcon: getConfiguredWeatherStateIcon(project, weather.state ?? "clear"),
-      stateLabel: getWeatherStateLabel(project, weather.state ?? "clear", project.locale),
-      ...(settings.month.weatherDetailLevel === "precise" ? { temperatureLabel: formatTemperature(weather.temperature, project.units, project.locale) } : { broadLabel: broadWeatherLabel(project, weather.temperature) })
+      const weatherState = weather?.state ?? "clear";
+    const weatherSummary = settings.month.showWeatherSummary && weather ? {
+      state: weatherState,
+      stateIcon: getConfiguredWeatherStateIcon(project, weatherState),
+      stateLabel: getWeatherStateLabel(project, weatherState, project.locale),
+      ...(settings.month.weatherDetailLevel === "precise" ? {
+        temperatureLabel: formatTemperature(weather.temperature, project.units, project.locale),
+        temperatureCelsius: weather.temperature,
+        windSpeedLabel: formatWindSpeed(weather.windSpeed, project.units, project.locale),
+        windSpeedKmh: weather.windSpeed,
+        windDirection: weather.windDirection,
+        rainTotalLabel: weather.dailyRainTotal !== undefined ? formatRainTotal(weather.dailyRainTotal, project.units, project.locale) : undefined,
+        trendKind: weather.trendKind,
+        trendIcon: weather.trendKind ? getConfiguredWeatherTrendIcon(project, weather.trendKind) : undefined,
+        trendLabel: weather.trendKind ? getWeatherTrendLabel(project, weather.trendKind, project.locale) : undefined,
+        dominantState: weather.dominantState,
+        dominantStateIcon: weather.dominantState ? getConfiguredWeatherStateIcon(project, weather.dominantState) : undefined,
+        dominantStateLabel: weather.dominantState ? getWeatherStateLabel(project, weather.dominantState, project.locale) : undefined
+      } : { broadLabel: broadWeatherLabel(project, weather.temperature) })
     } : undefined;
     const markers: PublicMonthMarkerSnapshot[] = [
       ...events.map((event) => ({ id: `event:${event.id}`, icon: event.icon ?? "📌", label: event.name, type: "event" as const })),
@@ -305,9 +339,14 @@ export const buildPublicMonthSnapshot = (
     stateIcon: entry.dailyWeather ? getConfiguredWeatherStateIcon(project, entry.dailyWeather.dominantState) : "☁️",
     stateLabel: entry.dailyWeather ? getWeatherStateLabel(project, entry.dailyWeather.dominantState, project.locale) : t(project.locale, "calendar.noWeather"),
     averageTemperature: entry.dailyWeather ? Math.round(toDisplayTemperature(entry.dailyWeather.averageTemperature, project.units.temperature)) : undefined,
+    averageTemperatureCelsius: entry.dailyWeather?.averageTemperature,
     averageWindSpeed: entry.dailyWeather ? Math.round(toDisplayWindSpeed(entry.dailyWeather.averageWindSpeed, project.units.windSpeed)) : undefined,
+    averageWindSpeedKmh: entry.dailyWeather?.averageWindSpeed,
     dominantWindDirection: entry.dailyWeather?.dominantWindDirection,
     rainTotal24h: entry.dailyWeather ? roundPublicWeatherValue(toDisplayRain(entry.dailyWeather.rainTotal24h, project.units.rain), project.units.rain === "inch" ? 2 : 1) : undefined,
+    trendKind: entry.dailyWeather?.trendKind,
+    trendIcon: entry.dailyWeather?.trendKind ? getConfiguredWeatherTrendIcon(project, entry.dailyWeather.trendKind) : undefined,
+    trendLabel: entry.dailyWeather?.trendKind ? getWeatherTrendLabel(project, entry.dailyWeather.trendKind, project.locale) : undefined,
     broadLabel: entry.dailyWeather ? broadWeatherLabel(project, entry.dailyWeather.averageTemperature) : undefined,
     units: { temperature: weatherUnits.temperature, windSpeed: weatherUnits.windSpeed, rainTotal: weatherUnits.rainTotal }
   })) : [];
