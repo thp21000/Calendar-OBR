@@ -1,4 +1,4 @@
-import type { CalendarCurrentTime, CalendarEvent, CalendarProject, CalendarSystem, DayNote, LocaleCode, Moon, MoonEvent, PlayerViewSettings, SceneWeatherProfile, Season, UiSettings, UnitsSettings, WeatherAdvancedSettings, WeatherEvent, WeatherSettings } from "../domain/types";
+import type { AdventureContextState, CalendarCurrentTime, CalendarEvent, CalendarProject, CalendarSystem, DayNote, LocaleCode, Moon, MoonEvent, PlayerViewSettings, SceneWeatherProfile, Season, UiSettings, UnitsSettings, WeatherAdvancedSettings, WeatherEvent, WeatherSettings } from "../domain/types";
 import type { WeatherBiomeId, WeatherBiomeProfile } from "./weather/biomes";
 import { sanitizeCalendarProject } from "../importExport/calendarImportExport";
 import { createDefaultCalendarProject } from "../storage/calendarStorage";
@@ -22,6 +22,7 @@ export const CALENDAR_SECTION_IDS = [
   "units",
   "dateTimeFormats",
   "playerView",
+  "adventureContext",
   "campaignEvents",
   "dayNotes",
   "currentTime"
@@ -44,7 +45,8 @@ export const CONFIGURATION_SECTION_IDS: CalendarSectionId[] = [
   "weatherEvents",
   "units",
   "dateTimeFormats",
-  "playerView"
+  "playerView",
+  "adventureContext"
 ];
 
 export const CAMPAIGN_SECTION_IDS: CalendarSectionId[] = ["campaignEvents", "dayNotes", "currentTime"];
@@ -62,6 +64,7 @@ export type CalendarConfigurationPayload = {
   weatherBiome?: CalendarProject["weatherBiome"];
   weatherBiomeProfiles?: Partial<Record<WeatherBiomeId, WeatherBiomeProfile>>;
   sceneWeatherProfiles?: SceneWeatherProfile[];
+  adventureContext?: AdventureContextState;
   uiSettings: Pick<UiSettings, "compactMode" | "monthGridStartsOnWeekdayId" | "dateFormat" | "timeFormat" | "defaultMoonSystemInitialized" | "playerView"> & {
     playerView?: PlayerViewSettings;
   };
@@ -124,6 +127,7 @@ export const buildProjectSections = (project: CalendarProject): CalendarSectionM
   units: clone(project.units),
   dateTimeFormats: clone({ dateFormat: project.uiSettings.dateFormat, timeFormat: project.uiSettings.timeFormat, compactMode: project.uiSettings.compactMode, monthGridStartsOnWeekdayId: project.uiSettings.monthGridStartsOnWeekdayId }),
   playerView: clone(project.uiSettings.playerView),
+  adventureContext: clone(project.adventureContext),
   campaignEvents: clone(project.events),
   dayNotes: clone(project.dayNotes ?? []),
   currentTime: clone(project.currentTime)
@@ -142,6 +146,7 @@ export const buildCalendarConfigurationPayload = (project: CalendarProject): Cal
   weatherBiome: project.weatherBiome ? clone(project.weatherBiome) : undefined,
   weatherBiomeProfiles: project.weatherBiomeProfiles ? clone(project.weatherBiomeProfiles) : undefined,
   sceneWeatherProfiles: project.sceneWeatherProfiles ? clone(project.sceneWeatherProfiles) : undefined,
+  adventureContext: project.adventureContext ? clone(project.adventureContext) : undefined,
   uiSettings: buildReusableUiSettings(project)
 });
 
@@ -171,6 +176,7 @@ const configurationToProject = (file: CalendarConfigurationFile, baseProject: Ca
     weatherBiome: configuration.weatherBiome ? clone(configuration.weatherBiome) : undefined,
     weatherBiomeProfiles: configuration.weatherBiomeProfiles ? clone(configuration.weatherBiomeProfiles) : undefined,
     sceneWeatherProfiles: configuration.sceneWeatherProfiles ? clone(configuration.sceneWeatherProfiles) : undefined,
+    adventureContext: configuration.adventureContext ? clone(configuration.adventureContext) : baseProject.adventureContext,
     uiSettings: {
       ...baseProject.uiSettings,
       compactMode: configuration.uiSettings.compactMode,
@@ -258,6 +264,7 @@ export const applyCalendarSections = (
     next.uiSettings = { ...next.uiSettings, compactMode: formats.compactMode ?? next.uiSettings.compactMode, monthGridStartsOnWeekdayId: formats.monthGridStartsOnWeekdayId, dateFormat: formats.dateFormat, timeFormat: formats.timeFormat };
   }
   if (ids.has("playerView")) next.uiSettings = { ...next.uiSettings, playerView: sections.playerView ? clone(sections.playerView as PlayerViewSettings) : undefined };
+  if (ids.has("adventureContext") && sections.adventureContext) next.adventureContext = clone(sections.adventureContext as AdventureContextState);
   if (ids.has("campaignEvents") && sections.campaignEvents) next.events = clone(sections.campaignEvents as CalendarEvent[]);
   if (ids.has("dayNotes") && sections.dayNotes) next.dayNotes = clone(sections.dayNotes as DayNote[]);
   if (ids.has("currentTime") && sections.currentTime) next.currentTime = clone(sections.currentTime as CalendarCurrentTime);

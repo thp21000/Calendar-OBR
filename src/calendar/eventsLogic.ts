@@ -1,5 +1,6 @@
 import { absoluteDayToCalendarDate, calendarDateToAbsoluteDay } from "./dateEngine";
 import type { CalendarDate, CalendarEvent, CalendarProject } from "../domain/types";
+import { isAdventureContextConditionMet } from "./adventureContext";
 
 export type CreateCalendarEventInput = {
   name: string;
@@ -99,6 +100,12 @@ const getEventCompletionDate = (project: CalendarProject, startDate: CalendarDat
 
 const isEventVisibleInActiveViews = (event: CalendarEvent): boolean =>
   event.status !== "archived" && event.status !== "disabled";
+
+export const areCalendarEventConditionsMet = (project: CalendarProject, event: CalendarEvent): boolean => {
+  const conditions = event.conditions ?? [];
+  if (conditions.length === 0) return true;
+  return conditions.every((condition) => isAdventureContextConditionMet(project, condition));
+};
 
 const getEventDurationDays = (project: CalendarProject, event: CalendarEvent): number => {
   if (!event.endDate) return 1;
@@ -239,7 +246,7 @@ export const eventOccursOnDay = (event: CalendarEvent, date: CalendarDate, proje
 };
 
 export const getEventsForDay = (project: CalendarProject, date: CalendarDate): CalendarEvent[] =>
-  sortEventsByDate(project.events.filter((event) => isEventVisibleInActiveViews(event) && eventOccursOnDay(event, date, project)), project);
+  sortEventsByDate(project.events.filter((event) => isEventVisibleInActiveViews(event) && areCalendarEventConditionsMet(project, event) && eventOccursOnDay(event, date, project)), project);
 
 export const getEventsForCurrentDay = (project: CalendarProject): CalendarEvent[] => {
   const currentDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
@@ -251,6 +258,7 @@ export const getPlayerVisibleEventsForDay = (project: CalendarProject, date: Cal
     project.events.filter((event) => {
       if (!isEventVisibleInActiveViews(event)) return false;
       if (!eventOccursOnDay(event, date, project)) return false;
+      if (!areCalendarEventConditionsMet(project, event)) return false;
       if (event.visibility === "players") return true;
       if (event.visibility === "revealOnTrigger") return event.status === "triggered";
       return false;
@@ -449,6 +457,7 @@ export const getTriggeredEventsBetween = (
 
   return project.events.filter((event) => {
     if (!isEventTriggerable(event)) return false;
+    if (!areCalendarEventConditionsMet(project, event)) return false;
 
     if (event.recurrence.type === "none") {
       const startMinute = toAbsoluteMinute(project, getEventTriggerStartDate(event));

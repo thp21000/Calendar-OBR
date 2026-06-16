@@ -68,6 +68,33 @@ export type CalendarEventRecurrence =
   | { type: "everyXMonths"; interval: number }
   | { type: "yearly"; interval: number };
 
+export type AdventureContextCategory = "location" | "activity" | "kingmaker";
+
+export type AdventureContextDefinition = {
+  id: string;
+  label: Record<LocaleCode, string>;
+  description?: Record<LocaleCode, string>;
+  icon: string;
+  category: AdventureContextCategory;
+  enabled: boolean;
+};
+
+export type AdventureContextState = {
+  primaryContextId: string | null;
+  secondaryContextIds: string[];
+  availableContexts: AdventureContextDefinition[];
+};
+
+export type AdventureContextCondition = {
+  type: "adventureContext";
+  mode: "any" | "all" | "none";
+  contextIds: string[];
+  includePrimary?: boolean;
+  includeSecondary?: boolean;
+};
+
+export type EventCondition = AdventureContextCondition;
+
 export type CalendarEvent = {
   id: string;
   name: string;
@@ -87,6 +114,7 @@ export type CalendarEvent = {
   allDay?: boolean;
   reminderEnabled?: boolean;
   reminderMinutesBefore?: number;
+  conditions?: EventCondition[];
 };
 
 export type DateFormatPreference = "weekdayDayMonthYear" | "dayMonthYear" | "dayMonthYearNumeric" | "yearMonthDay" | "monthDayYear";
@@ -384,7 +412,7 @@ export type WeatherBiomeCondition = {
   biomeIds?: WeatherBiomeId[];
 };
 
-export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition | WeatherDominantStateCondition | WeatherWindDirectionCondition | WeatherSeasonCondition | WeatherTimeOfDayCondition | WeatherMoonPhaseCondition | WeatherBiomeCondition;
+export type WeatherCondition = WeatherMetricCondition | WeatherStateCondition | WeatherDominantStateCondition | WeatherWindDirectionCondition | WeatherSeasonCondition | WeatherTimeOfDayCondition | WeatherMoonPhaseCondition | WeatherBiomeCondition | AdventureContextCondition;
 
 export type WeatherEventTriggerHistoryEntry = {
   id: string;
@@ -493,6 +521,7 @@ export type CalendarProject = {
   weatherBiome?: WeatherBiomeState;
   weatherBiomeProfiles?: Partial<Record<WeatherBiomeId, WeatherBiomeProfile>>;
   sceneWeatherProfiles?: SceneWeatherProfile[];
+  adventureContext?: AdventureContextState;
   uiSettings: UiSettings;
 };
 

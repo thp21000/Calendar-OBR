@@ -10,6 +10,7 @@ import { sanitizeWeatherAdvancedSettings } from "../calendar/weatherAdvancedSett
 import { DEFAULT_UNITS } from "../calendar/weatherUnits";
 import { isWeatherState } from "../calendar/weatherStates";
 import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
+import { normalizeAdventureContext } from "../calendar/adventureContext";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -140,6 +141,7 @@ export const validateImportedCalendarProject = (
   if (!Array.isArray(data.weatherEvents)) return { valid: false, error: "weatherEvents must be an array." };
   if (!isRecord(data.weatherSettings)) return { valid: false, error: "weatherSettings must be an object." };
 
+  if (!isRecord(data.adventureContext)) return { valid: false, error: "adventureContext must be an object." };
   if (!isRecord(data.uiSettings)) return { valid: false, error: "uiSettings is required and must be an object." };
   if (!isValidUiTab(data.uiSettings.activeTab)) return { valid: false, error: "uiSettings.activeTab is invalid." };
   if (typeof data.uiSettings.compactMode !== "boolean") return { valid: false, error: "uiSettings.compactMode must be a boolean." };
@@ -160,6 +162,8 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     weatherOverrides: Array.isArray((data as Record<string, unknown>).weatherOverrides) ? (data as Record<string, unknown>).weatherOverrides as unknown[] : [],
     sceneWeatherProfiles: Array.isArray((data as Record<string, unknown>).sceneWeatherProfiles) ? (data as Record<string, unknown>).sceneWeatherProfiles as unknown[] : []
   };
+
+  maybeCompat.adventureContext = normalizeAdventureContext((data as Record<string, unknown>).adventureContext);
 
   if (isRecord(maybeCompat.units)) {
     const units = maybeCompat.units as Record<string, unknown>;
@@ -377,6 +381,9 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                     condition.direction === "W" ||
                     condition.direction === "NW")) ||
                 (condition.type === "season" && typeof condition.seasonId === "string" && condition.seasonId.trim().length > 0) ||
+                  (condition.type === "adventureContext" &&
+                    (condition.mode === "any" || condition.mode === "all" || condition.mode === "none") &&
+                    Array.isArray(condition.contextIds)) ||
                   (condition.type === "biome" && (condition.biomeIds === undefined || Array.isArray(condition.biomeIds))) ||
                   (condition.type === "timeOfDay" &&
                     typeof condition.startHour === "number" &&
@@ -412,6 +419,15 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
             if (condition.type === "biome") {
               const biomeIds = Array.isArray(condition.biomeIds) ? Array.from(new Set(condition.biomeIds.filter(isWeatherBiomeId))) : [];
               return biomeIds.length > 0 ? { ...condition, biomeIds } : { type: "biome" };
+            }
+            if (condition.type === "adventureContext") {
+              return {
+                type: "adventureContext",
+                mode: condition.mode === "all" || condition.mode === "none" ? condition.mode : "any",
+                contextIds: Array.isArray(condition.contextIds) ? Array.from(new Set(condition.contextIds.filter((id) => typeof id === "string" && id.trim().length > 0))) : [],
+                includePrimary: typeof condition.includePrimary === "boolean" ? condition.includePrimary : true,
+                includeSecondary: typeof condition.includeSecondary === "boolean" ? condition.includeSecondary : true
+              };
             }
             return condition;
           });
@@ -465,6 +481,28 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         return next;
       });
   }
+
+  if (Array.isArray(maybeCompat.events)) {
+    maybeCompat.events = (maybeCompat.events as unknown[]).filter(isRecord).map((event) => {
+      const next = { ...event } as Record<string, unknown>;
+      if (Array.isArray(next.conditions)) {
+        next.conditions = next.conditions
+          .filter(isRecord)
+          .filter((condition) => condition.type === "adventureContext" && (condition.mode === "any" || condition.mode === "all" || condition.mode === "none") && Array.isArray(condition.contextIds))
+          .map((condition) => ({
+            type: "adventureContext",
+            mode: condition.mode === "all" || condition.mode === "none" ? condition.mode : "any",
+            contextIds: Array.from(new Set((condition.contextIds as unknown[]).filter((id): id is string => typeof id === "string" && id.trim().length > 0))),
+            includePrimary: typeof condition.includePrimary === "boolean" ? condition.includePrimary : true,
+            includeSecondary: typeof condition.includeSecondary === "boolean" ? condition.includeSecondary : true
+          }));
+      } else {
+        delete next.conditions;
+      }
+      return next;
+    });
+  }
+  
   if (Array.isArray(maybeCompat.moonEvents)) {
     maybeCompat.moonEvents = maybeCompat.moonEvents
       .filter(isRecord)

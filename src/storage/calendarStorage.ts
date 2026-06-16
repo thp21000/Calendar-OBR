@@ -5,6 +5,7 @@ import { DEFAULT_WEATHER_BIOME_ID } from "../calendar/weather/biomes";
 import { DEFAULT_SCENE_WEATHER_PROFILES, ensureDefaultSceneWeatherProfiles } from "../calendar/sceneWeatherDefaults";
 import { notifyCalendarProjectUpdated } from "./projectSync";
 import { DEFAULT_PLAYER_VIEW_SETTINGS } from "../calendar/playerViewSettings";
+import { createDefaultAdventureContext, ensureAdventureContext } from "../calendar/adventureContext";
 
 const STORAGE_KEY = "calendar-obr.project.local-dev";
 const DEFAULT_WEATHER_SEED = "default-calendar";
@@ -106,6 +107,7 @@ const defaultProject: CalendarProject = {
   weatherOverrides: [],
   weatherBiome: { currentBiomeId: DEFAULT_WEATHER_BIOME_ID },
   sceneWeatherProfiles: structuredClone(DEFAULT_SCENE_WEATHER_PROFILES),
+  adventureContext: createDefaultAdventureContext(),
   uiSettings: { activeTab: "today", compactMode: true, defaultMoonSystemInitialized: true, playerView: structuredClone(DEFAULT_PLAYER_VIEW_SETTINGS) }
 };
 
@@ -126,7 +128,7 @@ export const loadCalendarProject = (storageKey = STORAGE_KEY): CalendarProject =
     const parsed = JSON.parse(raw) as unknown;
     const sanitized = sanitizeCalendarProject(parsed);
     if (!sanitized.ok) return createDefaultCalendarProject();
-    const ensured = ensureDefaultSceneWeatherProfiles(ensureDefaultMoonSystem(sanitized.project));
+    const ensured = ensureAdventureContext(ensureDefaultSceneWeatherProfiles(ensureDefaultMoonSystem(sanitized.project)));
     if (JSON.stringify(ensured) !== JSON.stringify(sanitized.project)) {
       storage.setItem(storageKey, JSON.stringify(ensured));
       notifyCalendarProjectUpdated(storageKey);

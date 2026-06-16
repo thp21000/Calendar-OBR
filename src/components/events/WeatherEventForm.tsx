@@ -6,6 +6,7 @@ import { t } from "../../i18n/messages";
 import { WEATHER_STATES } from "../../calendar/weatherStates";
 import { getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { WEATHER_BIOME_DEFINITIONS, getWeatherBiomeDefinition, type WeatherBiomeId } from "../../calendar/weather/biomes";
+import { getAdventureContextLabel, normalizeAdventureContext } from "../../calendar/adventureContext";
 import { formatRain, formatRainTotal, formatTemperature, formatWindSpeed, fromDisplayRain, fromDisplayTemperature, fromDisplayWindSpeed, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../../calendar/weatherUnits";
 
 const weatherStates = WEATHER_STATES;
@@ -40,7 +41,7 @@ const readDisplayMetricValue = (project: CalendarProject, metric: WeatherConditi
   return parsed === null ? undefined : fromDisplayMetricValue(project, metric, parsed);
 };
 
-type ConditionTypeToAdd = "metric" | "state" | "dominantState" | "windDirection" | "season" | "timeOfDay" | "moonPhase" | "biome";
+type ConditionTypeToAdd = "metric" | "state" | "dominantState" | "windDirection" | "season" | "timeOfDay" | "moonPhase" | "biome" | "adventureContext";
 
 type WeatherEventFormSectionProps = { title: string; children: ReactNode };
 const WeatherEventFormSection = ({ title, children }: WeatherEventFormSectionProps) => {
@@ -88,6 +89,11 @@ export const conditionSummary = (project: CalendarProject, condition: WeatherCon
   if (condition.type === "season") return `${t(locale, "weatherEvents.season")} = ${project.seasons.find((s) => s.id === condition.seasonId)?.name ?? condition.seasonId}`;
   if (condition.type === "timeOfDay") return `${t(locale, "weatherEvents.timeOfDay")} ${condition.startHour}→${condition.endHour}`;
   if (condition.type === "moonPhase") return `${t(locale, "weatherEvents.moon")}=${project.moons.find((m) => m.id === condition.moonId)?.name ?? condition.moonId} · ${t(locale, `moon.phase.${condition.phaseId}`)}`;
+  if (condition.type === "adventureContext") {
+    const state = normalizeAdventureContext(project.adventureContext);
+    const labels = condition.contextIds.map((id) => state.availableContexts.find((context) => context.id === id)).filter((context): context is NonNullable<typeof context> => Boolean(context)).map((context) => `${context.icon} ${getAdventureContextLabel(context, locale)}`);
+    return `${t(locale, "adventureContext.condition")} · ${t(locale, `adventureContext.conditionMode.${condition.mode}`)} · ${labels.length > 0 ? labels.join(", ") : t(locale, "adventureContext.none")}`;
+  }
   if (condition.type === "biome") {
     const biomeIds = condition.biomeIds ?? [];
     if (biomeIds.length === 0) return `${t(locale, "weatherEvents.biomes")} = ${t(locale, "weatherEvents.allBiomes")}`;
@@ -116,6 +122,10 @@ const getDefaultCondition = (project: CalendarProject, type: ConditionTypeToAdd)
   if (type === "timeOfDay") return { type: "timeOfDay", startHour: 22, endHour: 6 };
   if (type === "moonPhase") return { type: "moonPhase", moonId: project.moons[0]?.id ?? "", phaseId: "full" };
   if (type === "biome") return { type: "biome", biomeIds: [project.weatherBiome?.currentBiomeId ?? "temperate"] };
+  if (type === "adventureContext") {
+    const state = normalizeAdventureContext(project.adventureContext);
+    return { type: "adventureContext", mode: "any", contextIds: [state.primaryContextId ?? state.availableContexts[0]?.id ?? "road"].filter(Boolean), includePrimary: true, includeSecondary: true };
+  }
   return { type: "metric", metric: "temperature", operator: "gte", value: 35 };
 };
 
@@ -138,7 +148,8 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
     { id: "season", label: t(project.locale, "weatherEvents.conditionTypeSeason") },
     { id: "timeOfDay", label: t(project.locale, "weatherEvents.conditionTypeTimeOfDay") },
     { id: "moonPhase", label: t(project.locale, "weatherEvents.conditionTypeMoonPhase") },
-    { id: "biome", label: t(project.locale, "weatherEvents.conditionTypeBiome") }
+    { id: "biome", label: t(project.locale, "weatherEvents.conditionTypeBiome") },
+    { id: "adventureContext", label: t(project.locale, "adventureContext.condition") }
   ];
 
   const getWeatherEventAutoSummary = (): string => {
@@ -194,6 +205,27 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
         {condition.type === "season" ? (project.seasons.length === 0 ? <div style={{ ...hint, color: "#fca5a5" }}>{t(project.locale, "weatherEvents.noSeasonAvailable")}</div> : <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.season")} help={t(project.locale, "weatherEvents.help.season")} /><select value={condition.seasonId} onChange={(e) => updateDraftCondition(index, { ...condition, seasonId: e.target.value })} style={mergedInputStyle}>{project.seasons.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>) : null}
         {condition.type === "timeOfDay" ? <><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.startHour")} help={t(project.locale, "weatherEvents.help.timeOfDay")} /><input type="number" min={0} max={23} value={condition.startHour} onChange={(e) => updateDraftCondition(index, { ...condition, startHour: Math.max(0, Math.min(23, Math.trunc(Number(e.target.value) || 0))) })} style={mergedInputStyle} /></label><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.endHour")} help={t(project.locale, "weatherEvents.help.timeOfDay")} /><input type="number" min={0} max={23} value={condition.endHour} onChange={(e) => updateDraftCondition(index, { ...condition, endHour: Math.max(0, Math.min(23, Math.trunc(Number(e.target.value) || 0))) })} style={mergedInputStyle} /></label></> : null}
         {condition.type === "moonPhase" ? (project.moons.length === 0 ? <div style={{ ...hint, color: "#fca5a5" }}>{t(project.locale, "weatherEvents.noMoonAvailable")}</div> : <><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.moon")} help={t(project.locale, "weatherEvents.help.moonPhase")} /><select value={condition.moonId} onChange={(e) => updateDraftCondition(index, { ...condition, moonId: e.target.value })} style={mergedInputStyle}>{project.moons.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.moonPhase")} help={t(project.locale, "weatherEvents.help.moonPhase")} /><select value={condition.phaseId} onChange={(e) => updateDraftCondition(index, { ...condition, phaseId: e.target.value as MoonPhaseId })} style={mergedInputStyle}>{moonPhases.map((p) => <option key={p} value={p}>{t(project.locale, `moon.phase.${p}`)}</option>)}</select></label></>) : null}
+        {condition.type === "adventureContext" ? <div style={condCard}>
+          <FieldLabel label={t(project.locale, "adventureContext.condition")} help={t(project.locale, "adventureContext.current")} />
+          <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.conditionMode")}</div><select value={condition.mode} onChange={(event) => updateDraftCondition(index, { ...condition, mode: event.target.value as "any" | "all" | "none" })} style={mergedInputStyle}><option value="any">{t(project.locale, "adventureContext.conditionMode.any")}</option><option value="all">{t(project.locale, "adventureContext.conditionMode.all")}</option><option value="none">{t(project.locale, "adventureContext.conditionMode.none")}</option></select></label>
+          <label style={checkLabel}><input type="checkbox" checked={condition.includePrimary ?? true} onChange={(event) => updateDraftCondition(index, { ...condition, includePrimary: event.target.checked })} />{t(project.locale, "adventureContext.includePrimary")}</label>
+          <label style={checkLabel}><input type="checkbox" checked={condition.includeSecondary ?? true} onChange={(event) => updateDraftCondition(index, { ...condition, includeSecondary: event.target.checked })} />{t(project.locale, "adventureContext.includeSecondary")}</label>
+          <div style={labelStyle}>{t(project.locale, "adventureContext.requiredContexts")}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 4 }}>
+            {normalizeAdventureContext(project.adventureContext).availableContexts.filter((context) => context.enabled).map((context) => {
+              const checked = condition.contextIds.includes(context.id);
+              return <label key={context.id} style={{ ...checkLabel, marginBottom: 0, fontSize: 12 }}>
+                <input type="checkbox" checked={checked} onChange={(event) => {
+                  const current = new Set(condition.contextIds);
+                  if (event.target.checked) current.add(context.id);
+                  else current.delete(context.id);
+                  updateDraftCondition(index, { ...condition, contextIds: Array.from(current) });
+                }} />
+                <span>{context.icon} {getAdventureContextLabel(context, project.locale)}</span>
+              </label>;
+            })}
+          </div>
+        </div> : null}
         {condition.type === "biome" ? <div style={condCard}>
           <FieldLabel label={t(project.locale, "weatherEvents.biomes")} help={t(project.locale, "weatherEvents.help.biomes")} />
           <div style={hint}>{t(project.locale, "weatherEvents.help.biomes")}</div>

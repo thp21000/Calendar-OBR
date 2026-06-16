@@ -141,6 +141,12 @@ Il doit afficher immédiatement :
 * événements du jour ;
 * boutons rapides pour avancer/reculer le temps.
 
+### 6.2. Contexte d’aventure
+
+Le MJ peut définir un **Contexte d’aventure** séparé du biome météo. Le biome décrit le terrain ou le climat général utilisé par la génération météo ; le Contexte d’aventure décrit la situation actuelle des PJ (lieu, activité ou contexte Kingmaker) et ne modifie aucune métrique météo.
+
+Le projet conserve un contexte principal unique, plusieurs contextes secondaires et la liste des contextes disponibles. Ce contexte sert de condition réutilisable pour filtrer les événements datés et déclencher les événements météo, sans transformer ces événements en données météo ni modifier les packs Kingmaker existants.
+
 ### Éléments affichés
 
 * Date longue : `21 Calistril (février) 4710, 18:55` ;

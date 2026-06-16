@@ -23,6 +23,7 @@ import { EventDetailsPopup } from "./events/EventDetailsPopup";
 import { MoonEventDetailsPopup } from "./events/MoonEventDetailsPopup";
 import { WeatherEventDetailsPopup } from "./events/WeatherEventDetailsPopup";
 import { WeatherBiomePickerPopup } from "./weather/WeatherBiomePickerPopup";
+import { AdventureContextPickerPopup } from "./adventure/AdventureContextPickerPopup";
 import { PrimaryButton, SecondaryButton, SectionCard, SectionHeader, Toolbar } from "./ui";
 
 type QuickAction = { key: string; deltaMinutes: number };
@@ -90,6 +91,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const [selectedMoonEventId, setSelectedMoonEventId] = useState<string | null>(null);
   const [selectedWeatherEventId, setSelectedWeatherEventId] = useState<string | null>(null);
   const [biomePickerOpen, setBiomePickerOpen] = useState(false);
+  const [adventureContextOpen, setAdventureContextOpen] = useState(false);
   const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
   const selectedMoonEvent = selectedMoonEventId ? (project.moonEvents ?? []).find((event) => event.id === selectedMoonEventId) ?? null : null;
   const selectedWeatherEvent = selectedWeatherEventId ? project.weatherEvents.find((event) => event.id === selectedWeatherEventId) ?? null : null;
@@ -185,6 +187,13 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
           >
             🌐 {t(project.locale, "weatherBiome.changeAction")}
           </SecondaryButton>
+          <SecondaryButton
+            type="button"
+            onClick={() => setAdventureContextOpen(true)}
+            style={longRestButtonStyle}
+          >
+            🧭 {t(project.locale, "adventureContext.changeAction")}
+          </SecondaryButton>
         </Toolbar>
       </SectionCard>
     );
@@ -233,6 +242,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={todayDateLabel} /> : null}
       {selectedWeatherEvent ? <WeatherEventDetailsPopup project={project} event={selectedWeatherEvent} onClose={() => setSelectedWeatherEventId(null)} /> : null}
       {biomePickerOpen ? <WeatherBiomePickerPopup project={project} onClose={() => setBiomePickerOpen(false)} onApply={onProjectUpdate} /> : null}
+      {adventureContextOpen ? <AdventureContextPickerPopup project={project} onClose={() => setAdventureContextOpen(false)} onApply={onProjectUpdate} /> : null}
     </>
   );
 };

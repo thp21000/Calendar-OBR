@@ -3,6 +3,7 @@ import { absoluteDayToCalendarDate, addHours } from "./dateEngine";
 import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
 import { getWeatherBiomeState } from "./weather/biomes";
+import { isAdventureContextConditionMet } from "./adventureContext";
 import type { CalendarProject, InternalTime, WeatherCondition, WeatherConditionMetric, WeatherEvent, WeatherEventTriggerHistoryEntry, WeatherSnapshot, WeatherState, WeatherOverride } from "../domain/types";
 
 export type PlayerVisibleWeatherEvent = {
@@ -48,6 +49,11 @@ export const isWeatherConditionMet = (weather: WeatherSnapshot, condition: Weath
     const moon = context.project.moons.find((m) => m.id === condition.moonId);
     if (!moon) return false;
     return getMoonPhaseForDate(moon, context.time.absoluteDay).id === condition.phaseId;
+  }
+
+  if (condition.type === "adventureContext") {
+    if (!context?.project) return false;
+    return isAdventureContextConditionMet(context.project, condition);
   }
 
   if (condition.type === "biome") {
@@ -363,7 +369,15 @@ export const getWeatherEventDiagnostics = (
   const conditions = event.conditions ?? [];
   const conditionDiagnostics = conditions.map((condition) => ({
     condition,
-    met: isWeatherConditionMet(weather, condition, { project, time })
+    met: isWeatherConditionMet(weather, condition, { project, time }),
+    adventureContext: condition.type === "adventureContext" ? {
+      primaryContextId: project.adventureContext?.primaryContextId ?? null,
+      secondaryContextIds: project.adventureContext?.secondaryContextIds ?? [],
+      mode: condition.mode,
+      contextIds: condition.contextIds,
+      includePrimary: condition.includePrimary ?? true,
+      includeSecondary: condition.includeSecondary ?? true
+    } : undefined
   }));
   const blockedReasons = conditionDiagnostics
     .filter((diagnostic) => !diagnostic.met && diagnostic.condition.type === "biome" && (diagnostic.condition.biomeIds?.length ?? 0) > 0)
