@@ -103,18 +103,11 @@ export const getActiveWeatherEventsWithDuration = (
   currentTime: InternalTime,
   lastTriggeredAtMinutesByEventId?: Record<string, number>
 ): WeatherEvent[] => {
-  const nowMinutes = toAbsoluteMinutes(currentTime);
+  void lastTriggeredAtMinutesByEventId;
   return project.weatherEvents.filter((event) => {
     if (event.enabled === false || event.status === "archived" || event.status === "disabled") return false;
     
-    const conditionsMetNow = isWeatherEventTriggered(weather, event, { project, time: currentTime });
-    if (conditionsMetNow) return true;
-
-    if ((event.kind ?? "informational") !== "weatherEffect") return false;
-
-    const lastTriggeredAt = typeof event.lastTriggeredAtMinutes === "number" ? event.lastTriggeredAtMinutes : lastTriggeredAtMinutesByEventId?.[event.id];
-    if (typeof lastTriggeredAt !== "number") return false;
-    return isWithinDurationWindow(lastTriggeredAt, nowMinutes, getWeatherEventDurationHours(event));
+   return isWeatherEventTriggered(weather, event, { project, time: currentTime });
   });
 };
 
@@ -124,22 +117,8 @@ export const getNewlyTriggeredWeatherEventsBetween = (
   toTime: InternalTime,
   lastTriggeredAtMinutesByEventId?: Record<string, number>
 ): WeatherEvent[] => {
-  const fromWeather = generateWeatherForTime(project, fromTime.absoluteDay, fromTime.hour);
-  const toWeather = generateWeatherForTime(project, toTime.absoluteDay, toTime.hour);
-  if (!fromWeather || !toWeather) return [];
-
-  const fromTriggeredIds = new Set(project.weatherEvents.filter((event) => isWeatherEventTriggered(fromWeather, event, { project, time: fromTime })).map((event) => event.id));
-  const toMinutes = toAbsoluteMinutes(toTime);
-  return project.weatherEvents.filter((event) => isWeatherEventTriggered(toWeather, event, { project, time: toTime })).filter((event) => {
-    if (event.enabled === false || event.status === "archived" || event.status === "disabled") return false;
-    const lastTriggeredAt = typeof event.lastTriggeredAtMinutes === "number" ? event.lastTriggeredAtMinutes : lastTriggeredAtMinutesByEventId?.[event.id];
-    if (typeof lastTriggeredAt === "number") {
-      if (isWithinDurationWindow(lastTriggeredAt, toMinutes, getWeatherEventDurationHours(event))) return false;
-      if (isWithinCooldownWindow(lastTriggeredAt, toMinutes, event.cooldownHours)) return false;
-    }
-    if (fromTriggeredIds.has(event.id)) return false;
-    return didWeatherEventChanceSucceed(project, event, toMinutes);
-  });
+  void lastTriggeredAtMinutesByEventId;
+  return updateWeatherEventLifecycles(project, fromTime, toTime).newlyTriggered;
 };
 
 export const applyWeatherEventTriggerActions = (
@@ -155,7 +134,7 @@ export const applyWeatherEventTriggerActions = (
     weatherOverrides: applyWeatherEffectsToOverrides(project, triggeredWeatherEvents, triggerTime),
     weatherEvents: project.weatherEvents.map((event) => {
       if (!ids.has(event.id)) return event;
-      const nextStatus = event.disableAfterTrigger ? "disabled" : event.archiveAfterTrigger ? "archived" : "triggered";
+      const nextStatus: NonNullable<WeatherEvent["status"]> = event.disableAfterTrigger ? "disabled" : event.archiveAfterTrigger ? "archived" : "triggered";
       const entry: WeatherEventTriggerHistoryEntry = {
         id: `weather-trigger-${event.id}-${at}`,
         triggeredAtMinutes: at,
@@ -166,7 +145,13 @@ export const applyWeatherEventTriggerActions = (
         windSpeed: weather?.windSpeed
       };
       const nextHistory = [...(event.triggerHistory ?? []), entry].slice(-10);
-      return { ...event, lastTriggeredAtMinutes: at, status: nextStatus, triggerHistory: nextHistory };
+      return {
+        ...event,
+        lastTriggeredAtMinutes: at,
+        activeStartedAtMinutes: nextStatus === "triggered" ? at : undefined,
+        status: nextStatus,
+        triggerHistory: nextHistory
+      };
     })
   };
 };
@@ -179,10 +164,10 @@ export const isWithinDurationWindow = (triggeredAtMinutes: number, currentMinute
   return currentMinutes - triggeredAtMinutes < safeHours * 60;
 };
 
-export const isWithinCooldownWindow = (triggeredAtMinutes: number, currentMinutes: number, cooldownHours?: number): boolean => {
+export const isWithinCooldownWindow = (endedAtMinutes: number, currentMinutes: number, cooldownHours?: number): boolean => {
   if (typeof cooldownHours !== "number") return false;
   const safeHours = Math.max(0, cooldownHours);
-  return currentMinutes - triggeredAtMinutes < safeHours * 60;
+  return currentMinutes - endedAtMinutes < safeHours * 60;
 };
 
 export const getWeatherEventDurationHours = (event: WeatherEvent): number | undefined => {
@@ -190,6 +175,180 @@ export const getWeatherEventDurationHours = (event: WeatherEvent): number | unde
   if ((event.kind ?? "informational") === "weatherEffect") return 1;
   if (normalizeTriggerChancePercent(event.triggerChancePercent) < 100) return 1;
   return undefined;
+};
+
+export const generateWeatherForEventConditions = (project: CalendarProject, time: InternalTime): WeatherSnapshot | undefined =>
+  generateWeatherForTime(
+    {
+      ...project,
+      weatherOverrides: (project.weatherOverrides ?? []).filter((override) => override.source !== "weatherEvent")
+    },
+    time.absoluteDay,
+    time.hour,
+    time.minute
+  );
+
+const isWeatherEventBlockedByCooldown = (event: WeatherEvent, currentMinutes: number): boolean =>
+  typeof event.lastEndedAtMinutes === "number" && isWithinCooldownWindow(event.lastEndedAtMinutes, currentMinutes, event.cooldownHours);
+
+const buildTriggerHistoryEntry = (
+  event: WeatherEvent,
+  at: number,
+  weather?: WeatherSnapshot
+): WeatherEventTriggerHistoryEntry => ({
+  id: `weather-trigger-${event.id}-${at}`,
+  triggeredAtMinutes: at,
+  weatherState: weather?.state,
+  dominantState: weather?.dominantState,
+  trendKind: weather?.trendKind,
+  temperature: weather?.temperature,
+  rain: weather?.rain,
+  windSpeed: weather?.windSpeed
+});
+
+const eventOverrideKey = (eventId: string) => `weather-effect-${eventId}-`;
+
+const isOverrideForWeatherEvent = (override: WeatherOverride, eventId: string): boolean =>
+  (override.source === "weatherEvent" && override.sourceId === eventId) || override.id.startsWith(eventOverrideKey(eventId));
+
+const buildWeatherEventOverrideSegments = (
+  event: WeatherEvent,
+  startAbsoluteMinutes: number,
+  endAbsoluteMinutes: number
+): WeatherOverride[] => {
+  if ((event.kind ?? "informational") !== "weatherEffect" || !event.effect) return [];
+  if (endAbsoluteMinutes <= startAbsoluteMinutes) return [];
+  const hasAnyEffect = Object.values(event.effect).some((value) => value !== undefined && value !== null);
+  if (!hasAnyEffect) return [];
+
+  const overrides: WeatherOverride[] = [];
+  for (let cursor = startAbsoluteMinutes; cursor < endAbsoluteMinutes;) {
+    const absoluteDay = Math.floor(cursor / (24 * 60));
+    const dayStart = absoluteDay * 24 * 60;
+    const startMinuteOfDay = cursor - dayStart;
+    const segmentEnd = Math.min(endAbsoluteMinutes, dayStart + 24 * 60);
+    const endMinuteOfDay = segmentEnd - dayStart;
+    overrides.push({
+      id: `${eventOverrideKey(event.id)}${absoluteDay}-${startMinuteOfDay}-${endMinuteOfDay}`,
+      absoluteDay,
+      startMinuteOfDay,
+      endMinuteOfDay,
+      label: event.name,
+      gmNote: event.summary ?? event.gmDescription,
+      source: "weatherEvent",
+      sourceId: event.id,
+      ...event.effect
+    });
+    cursor = segmentEnd;
+  }
+  return overrides;
+};
+
+const replaceWeatherEventOverrides = (
+  overrides: WeatherOverride[] | undefined,
+  event: WeatherEvent,
+  startAbsoluteMinutes: number,
+  endAbsoluteMinutes: number
+): WeatherOverride[] => [
+  ...(overrides ?? []).filter((override) => !isOverrideForWeatherEvent(override, event.id)),
+  ...buildWeatherEventOverrideSegments(event, startAbsoluteMinutes, endAbsoluteMinutes)
+];
+
+const endWeatherEventOverrides = (overrides: WeatherOverride[] | undefined, event: WeatherEvent, endedAtMinutes: number): WeatherOverride[] =>
+  (overrides ?? []).flatMap((override) => {
+    if (!isOverrideForWeatherEvent(override, event.id)) return [override];
+    const startMinute = override.startMinuteOfDay ?? 0;
+    const endMinute = override.endMinuteOfDay ?? 24 * 60;
+    const absoluteStart = override.absoluteDay * 24 * 60 + startMinute;
+    const absoluteEnd = override.absoluteDay * 24 * 60 + endMinute;
+    if (absoluteStart >= endedAtMinutes) return [];
+    if (absoluteEnd <= endedAtMinutes) return [override];
+    return [{ ...override, endMinuteOfDay: endedAtMinutes - override.absoluteDay * 24 * 60 }];
+  });
+
+const maintainActiveWeatherEffectOverrides = (
+  project: CalendarProject,
+  activeEvents: WeatherEvent[],
+  currentMinutes: number
+): WeatherOverride[] => {
+  let overrides = project.weatherOverrides ?? [];
+  for (const event of activeEvents) {
+    if ((event.kind ?? "informational") !== "weatherEffect") continue;
+    const start = event.activeStartedAtMinutes ?? event.lastTriggeredAtMinutes ?? currentMinutes;
+    overrides = replaceWeatherEventOverrides(overrides, event, start, currentMinutes + 60);
+  }
+  return overrides;
+};
+
+export const updateWeatherEventLifecycles = (
+  project: CalendarProject,
+  previousTime: InternalTime,
+  nextTime: InternalTime
+): { project: CalendarProject; newlyTriggered: WeatherEvent[]; ended: WeatherEvent[] } => {
+  const previousWeather = generateWeatherForEventConditions(project, previousTime);
+  const nextWeather = generateWeatherForEventConditions(project, nextTime);
+  if (!previousWeather || !nextWeather) return { project: { ...project, currentTime: nextTime }, newlyTriggered: [], ended: [] };
+
+  const nextMinutes = toAbsoluteMinutes(nextTime);
+  const newlyTriggered: WeatherEvent[] = [];
+  const ended: WeatherEvent[] = [];
+  let weatherOverrides = project.weatherOverrides ?? [];
+
+  const weatherEvents = project.weatherEvents.map((event) => {
+    const status = event.status ?? "active";
+    if (event.enabled === false || status === "archived" || status === "disabled") return event;
+
+    const wasActive = status === "triggered";
+    const conditionsWereMet = isWeatherEventTriggered(previousWeather, event, { project, time: previousTime });
+    const conditionsAreMet = isWeatherEventTriggered(nextWeather, event, { project, time: nextTime });
+
+    if (wasActive) {
+      if (conditionsAreMet) {
+        return {
+          ...event,
+          activeStartedAtMinutes: event.activeStartedAtMinutes ?? event.lastTriggeredAtMinutes ?? nextMinutes
+        };
+      }
+      const finished = {
+        ...event,
+        status: "active" as const,
+        activeStartedAtMinutes: undefined,
+        lastEndedAtMinutes: nextMinutes
+      };
+      weatherOverrides = endWeatherEventOverrides(weatherOverrides, event, nextMinutes);
+      ended.push(finished);
+      return finished;
+    }
+
+    if (!conditionsAreMet || conditionsWereMet) return event;
+    if (isWeatherEventBlockedByCooldown(event, nextMinutes)) return event;
+    if (!didWeatherEventChanceSucceed(project, event, nextMinutes)) return event;
+
+    const nextStatus: NonNullable<WeatherEvent["status"]> = event.disableAfterTrigger ? "disabled" : event.archiveAfterTrigger ? "archived" : "triggered";
+    const triggered = {
+      ...event,
+      status: nextStatus,
+      activeStartedAtMinutes: nextStatus === "triggered" ? nextMinutes : undefined,
+      lastTriggeredAtMinutes: nextMinutes,
+      triggerHistory: [...(event.triggerHistory ?? []), buildTriggerHistoryEntry(event, nextMinutes, nextWeather)].slice(-10)
+    };
+    newlyTriggered.push(triggered);
+    return triggered;
+  });
+
+  const activeEvents = weatherEvents.filter((event) => {
+    if (event.enabled === false || event.status !== "triggered") return false;
+    return isWeatherEventTriggered(nextWeather, event, { project: { ...project, weatherEvents }, time: nextTime });
+  });
+
+  const nextProject = {
+    ...project,
+    currentTime: nextTime,
+    weatherEvents,
+    weatherOverrides: maintainActiveWeatherEffectOverrides({ ...project, weatherOverrides }, activeEvents, nextMinutes)
+  };
+
+  return { project: nextProject, newlyTriggered, ended };
 };
 
 export const getWeatherEventDiagnostics = (
@@ -217,13 +376,13 @@ export const getWeatherEventDiagnostics = (
     : false;
   const nowMinutes = toAbsoluteMinutes(time);
   const lastTriggeredAtMinutes = event.lastTriggeredAtMinutes;
+  const activeStartedAtMinutes = event.activeStartedAtMinutes;
+  const lastEndedAtMinutes = event.lastEndedAtMinutes;
   const durationHours = getWeatherEventDurationHours(event);
-  const blockedByCooldown = typeof lastTriggeredAtMinutes === "number"
-    ? isWithinCooldownWindow(lastTriggeredAtMinutes, nowMinutes, event.cooldownHours)
+  const blockedByCooldown = typeof lastEndedAtMinutes === "number"
+    ? isWithinCooldownWindow(lastEndedAtMinutes, nowMinutes, event.cooldownHours)
     : false;
-  const alreadyActive = typeof lastTriggeredAtMinutes === "number"
-    ? isWithinDurationWindow(lastTriggeredAtMinutes, nowMinutes, durationHours)
-    : false;
+  const alreadyActive = status === "triggered" && conditionsMet;
 
   return {
     conditions: conditionDiagnostics,
@@ -236,6 +395,8 @@ export const getWeatherEventDiagnostics = (
     triggerChancePercent: normalizeTriggerChancePercent(event.triggerChancePercent),
     durationHours,
     lastTriggeredAtMinutes,
+    activeStartedAtMinutes,
+    lastEndedAtMinutes,
     cooldownHours: event.cooldownHours,
     blockedReasons,
     isCurrentlyTriggerable: enabled && !blockedByStatus && !blockedByCooldown && !alreadyActive && conditionsMet
@@ -266,7 +427,7 @@ export const getWeatherEventUpcomingTriggerWindows = (
 
   for (let offset = 0; offset < safeScanHours; offset += 1) {
     const scannedTime = addHours(fromTime, offset);
-    const weather = generateWeatherForTime(project, scannedTime.absoluteDay, scannedTime.hour);
+    const weather = generateWeatherForEventConditions(project, scannedTime);
     if (!weather) {
       activeWindow = undefined;
       continue;
@@ -369,34 +530,14 @@ const didWeatherEventChanceSucceed = (project: CalendarProject, event: WeatherEv
 };
 
 const applyWeatherEffectsToOverrides = (project: CalendarProject, triggeredWeatherEvents: WeatherEvent[], triggerTime: InternalTime): WeatherOverride[] => {
-  const existing = [...(project.weatherOverrides ?? [])];
+  let overrides = project.weatherOverrides ?? [];
+  const startAbsoluteMinutes = toAbsoluteMinutes(triggerTime);
   for (const event of triggeredWeatherEvents) {
-    if ((event.kind ?? "informational") !== "weatherEffect" || !event.effect) continue;
-    const effect = event.effect;
-    const hasAnyEffect = Object.values(effect).some((value) => value !== undefined && value !== null);
-    if (!hasAnyEffect) continue;
-    const startAbsoluteMinutes = toAbsoluteMinutes(triggerTime);
+    if ((event.kind ?? "informational") !== "weatherEffect") continue;
     const durationHours = getWeatherEventDurationHours(event) ?? 1;
-    const endAbsoluteMinutes = startAbsoluteMinutes + durationHours * 60;
-    for (let dayMinuteCursor = startAbsoluteMinutes; dayMinuteCursor < endAbsoluteMinutes;) {
-      const absoluteDay = Math.floor(dayMinuteCursor / (24 * 60));
-      const dayStartAbsoluteMinutes = absoluteDay * 24 * 60;
-      const startMinuteOfDay = dayMinuteCursor - dayStartAbsoluteMinutes;
-      const endOfDayAbsoluteMinutes = dayStartAbsoluteMinutes + 24 * 60;
-      const segmentEndAbsoluteMinutes = Math.min(endAbsoluteMinutes, endOfDayAbsoluteMinutes);
-      const endMinuteOfDay = segmentEndAbsoluteMinutes - dayStartAbsoluteMinutes;
-      const overrideId = `weather-effect-${event.id}-${absoluteDay}-${startMinuteOfDay}-${endMinuteOfDay}`;
-      const current = existing.find((item) => item.id === overrideId);
-      const payload: Partial<WeatherOverride> = { ...effect };
-      if (current) {
-        Object.assign(current, payload, { id: current.id, absoluteDay: current.absoluteDay, startMinuteOfDay: current.startMinuteOfDay, endMinuteOfDay: current.endMinuteOfDay, label: current.label ?? event.name, gmNote: current.gmNote ?? event.summary ?? event.gmDescription });
-      } else {
-        existing.push({ id: overrideId, absoluteDay, startMinuteOfDay, endMinuteOfDay, label: event.name, gmNote: event.summary ?? event.gmDescription, ...payload });
-      }
-      dayMinuteCursor = segmentEndAbsoluteMinutes;
-    }
+    overrides = replaceWeatherEventOverrides(overrides, event, startAbsoluteMinutes, startAbsoluteMinutes + durationHours * 60);
   }
-  return existing;
+  return overrides;
 };
 
 export const duplicateWeatherEvent = (project: CalendarProject, eventId: string): CalendarProject => {
@@ -411,6 +552,8 @@ export const duplicateWeatherEvent = (project: CalendarProject, eventId: string)
     status: "active",
     enabled: true,
     lastTriggeredAtMinutes: undefined,
+    activeStartedAtMinutes: undefined,
+    lastEndedAtMinutes: undefined,
     triggerHistory: []
   };
 

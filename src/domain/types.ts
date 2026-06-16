@@ -423,6 +423,8 @@ export type WeatherEvent = {
   notifyOnTrigger?: boolean;
   status?: "active" | "triggered" | "archived" | "disabled";
   lastTriggeredAtMinutes?: number;
+  activeStartedAtMinutes?: number;
+  lastEndedAtMinutes?: number;
   archiveAfterTrigger?: boolean;
   disableAfterTrigger?: boolean;
   triggerHistory?: WeatherEventTriggerHistoryEntry[];

@@ -14,6 +14,7 @@ import {
   getWeatherEventUpcomingTriggerWindows,
   getWeatherEventDiagnostics,
   applyWeatherEventTriggerActions,
+  updateWeatherEventLifecycles,
   isWeatherConditionMet,
   isWeatherEventTriggered,
   isWithinCooldownWindow,
@@ -53,6 +54,11 @@ const buildProject = (weatherEvents: WeatherEvent[]): CalendarProject => ({
   weatherSettings: {},
   weatherEvents,
   uiSettings: { activeTab: "today", compactMode: false }
+});
+
+const withYearSeason = (project: CalendarProject): CalendarProject => ({
+  ...project,
+  seasons: [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }]
 });
 
 describe("weatherEventsLogic", () => {
@@ -558,7 +564,7 @@ it("événement désactivé non déclenché", () => {
     expect(getCurrentlyMatchingWeatherEvents(project, weather, project.currentTime)).toEqual([]);
   });
 
-  it("garde un effet météo actif pendant durationHours même si la météo ne matche plus", () => {
+  it("ne garde plus un effet météo actif par durationHours si la météo ne matche plus", () => {
     const project = buildProject([
       { ...createDefaultWeatherEvent("fr"), id: "dur-active", kind: "weatherEffect", durationHours: 2, conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
     ]);
@@ -568,7 +574,7 @@ it("événement désactivé non déclenché", () => {
       { absoluteDay: 0, hour: 12, minute: 0 },
       { "dur-active": toAbsoluteMinutes({ absoluteDay: 0, hour: 11, minute: 0 }) }
     );
-    expect(active.map((e) => e.id)).toEqual(["dur-active"]);
+    expect(active).toEqual([]);
   });
 
   it("ne garde pas une alerte informative visible si les conditions actuelles ne matchent plus", () => {
@@ -766,7 +772,7 @@ it("événement désactivé non déclenché", () => {
       ...createDefaultWeatherEvent("fr"),
       id: "window-cooldown",
       cooldownHours: 3,
-      lastTriggeredAtMinutes: toAbsoluteMinutes({ absoluteDay: 0, hour: 9, minute: 0 }),
+      lastEndedAtMinutes: toAbsoluteMinutes({ absoluteDay: 0, hour: 9, minute: 0 }),
       conditions: [{ type: "timeOfDay", startHour: 10, endHour: 14 }],
       requireAllConditions: true
     } as WeatherEvent;
@@ -790,6 +796,122 @@ it("événement désactivé non déclenché", () => {
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } } as any];
 
     expect(getWeatherEventUpcomingTriggerWindows(project, event, { absoluteDay: 0, hour: 10, minute: 0 }, 8)).toEqual([]);
+  });
+
+  it("cycle de vie : déclenche quand les conditions deviennent vraies", () => {
+    const event = { ...createDefaultWeatherEvent("fr"), id: "life-start", conditions: [{ type: "timeOfDay", startHour: 10, endHour: 12 }] } as WeatherEvent;
+    const result = updateWeatherEventLifecycles(withYearSeason(buildProject([event])), { absoluteDay: 0, hour: 9, minute: 0 }, { absoluteDay: 0, hour: 10, minute: 0 });
+
+    expect(result.newlyTriggered.map((e) => e.id)).toEqual(["life-start"]);
+    expect(result.project.weatherEvents[0].status).toBe("triggered");
+    expect(result.project.weatherEvents[0].activeStartedAtMinutes).toBe(toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }));
+    expect(result.project.weatherEvents[0].lastTriggeredAtMinutes).toBe(toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }));
+    expect(result.project.weatherEvents[0].triggerHistory).toHaveLength(1);
+  });
+
+  it("cycle de vie : reste actif sans retrigger tant que les conditions restent vraies", () => {
+    const event = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "life-keep",
+      status: "triggered" as const,
+      activeStartedAtMinutes: toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }),
+      lastTriggeredAtMinutes: toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }),
+      conditions: [{ type: "timeOfDay", startHour: 10, endHour: 12 }]
+    } as WeatherEvent;
+    const result = updateWeatherEventLifecycles(withYearSeason(buildProject([event])), { absoluteDay: 0, hour: 10, minute: 0 }, { absoluteDay: 0, hour: 11, minute: 0 });
+
+    expect(result.newlyTriggered).toEqual([]);
+    expect(result.ended).toEqual([]);
+    expect(result.project.weatherEvents[0].status).toBe("triggered");
+    expect(result.project.weatherEvents[0].lastEndedAtMinutes).toBeUndefined();
+  });
+
+  it("cycle de vie : termine quand les conditions deviennent fausses et démarre le cooldown", () => {
+    const event = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "life-end",
+      status: "triggered" as const,
+      cooldownHours: 2,
+      activeStartedAtMinutes: toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }),
+      lastTriggeredAtMinutes: toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }),
+      conditions: [{ type: "timeOfDay", startHour: 10, endHour: 11 }]
+    } as WeatherEvent;
+    const result = updateWeatherEventLifecycles(withYearSeason(buildProject([event])), { absoluteDay: 0, hour: 11, minute: 0 }, { absoluteDay: 0, hour: 12, minute: 0 });
+
+    expect(result.ended.map((e) => e.id)).toEqual(["life-end"]);
+    expect(result.project.weatherEvents[0].status).toBe("active");
+    expect(result.project.weatherEvents[0].activeStartedAtMinutes).toBeUndefined();
+    expect(result.project.weatherEvents[0].lastEndedAtMinutes).toBe(toAbsoluteMinutes({ absoluteDay: 0, hour: 12, minute: 0 }));
+  });
+
+  it("cycle de vie : cooldown après fin bloque puis autorise un nouveau déclenchement", () => {
+    const blockedEvent = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "life-cooldown",
+      cooldownHours: 2,
+      lastEndedAtMinutes: toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }),
+      conditions: [{ type: "timeOfDay", startHour: 11, endHour: 23 }]
+    } as WeatherEvent;
+    const allowedEvent = { ...blockedEvent, conditions: [{ type: "timeOfDay", startHour: 12, endHour: 23 }] } as WeatherEvent;
+    const blocked = updateWeatherEventLifecycles(withYearSeason(buildProject([blockedEvent])), { absoluteDay: 0, hour: 10, minute: 0 }, { absoluteDay: 0, hour: 11, minute: 0 });
+    const allowed = updateWeatherEventLifecycles(withYearSeason(buildProject([allowedEvent])), { absoluteDay: 0, hour: 11, minute: 0 }, { absoluteDay: 0, hour: 12, minute: 0 });
+
+    expect(blocked.newlyTriggered).toEqual([]);
+    expect(allowed.newlyTriggered.map((e) => e.id)).toEqual(["life-cooldown"]);
+  });
+
+  it("cycle de vie : un weatherEffect maintient son override puis l'arrête à la fin réelle", () => {
+    const event = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "life-effect",
+      kind: "weatherEffect" as const,
+      effect: { state: "fog" as const },
+      conditions: [{ type: "timeOfDay", startHour: 10, endHour: 11 }]
+    } as WeatherEvent;
+    const started = updateWeatherEventLifecycles(withYearSeason(buildProject([event])), { absoluteDay: 0, hour: 9, minute: 0 }, { absoluteDay: 0, hour: 10, minute: 0 }).project;
+    expect(started.weatherOverrides?.filter((override) => override.source === "weatherEvent" && override.sourceId === "life-effect")).toHaveLength(1);
+    expect(started.weatherOverrides?.[0]?.endMinuteOfDay).toBe(11 * 60);
+
+    const ended = updateWeatherEventLifecycles(started, { absoluteDay: 0, hour: 11, minute: 0 }, { absoluteDay: 0, hour: 12, minute: 0 }).project;
+    expect(ended.weatherEvents[0].status).toBe("active");
+    expect(ended.weatherOverrides?.every((override) => override.endMinuteOfDay! <= 12 * 60)).toBe(true);
+  });
+
+  it("cycle de vie : un weatherEffect ne s'auto-entretient pas avec son propre override", () => {
+    const event = {
+      ...createDefaultWeatherEvent("fr"),
+      id: "self-fog",
+      status: "triggered" as const,
+      activeStartedAtMinutes: toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }),
+      lastTriggeredAtMinutes: toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }),
+      kind: "weatherEffect" as const,
+      effect: { state: "fog" as const },
+      conditions: [{ type: "state", state: "fog" as const }]
+    } as WeatherEvent;
+    const project = withYearSeason(buildProject([event]));
+    project.weatherOverrides = [{ id: "weather-effect-self-fog-0-600-720", source: "weatherEvent", sourceId: "self-fog", absoluteDay: 0, startMinuteOfDay: 600, endMinuteOfDay: 720, state: "fog" }];
+
+    const result = updateWeatherEventLifecycles(project, { absoluteDay: 0, hour: 10, minute: 0 }, { absoluteDay: 0, hour: 11, minute: 0 });
+
+    expect(result.ended.map((e) => e.id)).toEqual(["self-fog"]);
+    expect(result.project.weatherEvents[0].status).toBe("active");
+  });
+
+  it("cycle de vie : archived/disabled et options archive/disable restent respectés", () => {
+    const archived = { ...createDefaultWeatherEvent("fr"), id: "arch", status: "archived" as const, conditions: [{ type: "timeOfDay", startHour: 10, endHour: 12 }] } as WeatherEvent;
+    const disabled = { ...createDefaultWeatherEvent("fr"), id: "dis", status: "disabled" as const, conditions: [{ type: "timeOfDay", startHour: 10, endHour: 12 }] } as WeatherEvent;
+    const archiveAfter = { ...createDefaultWeatherEvent("fr"), id: "archive-after", archiveAfterTrigger: true, conditions: [{ type: "timeOfDay", startHour: 10, endHour: 12 }] } as WeatherEvent;
+    const disableAfter = { ...createDefaultWeatherEvent("fr"), id: "disable-after", disableAfterTrigger: true, conditions: [{ type: "timeOfDay", startHour: 10, endHour: 12 }] } as WeatherEvent;
+
+    const result = updateWeatherEventLifecycles(withYearSeason(buildProject([archived, disabled, archiveAfter, disableAfter])), { absoluteDay: 0, hour: 9, minute: 0 }, { absoluteDay: 0, hour: 10, minute: 0 });
+
+    expect(result.newlyTriggered.map((e) => e.id)).toEqual(["archive-after", "disable-after"]);
+    expect(result.project.weatherEvents.map((e) => [e.id, e.status])).toEqual([
+      ["arch", "archived"],
+      ["dis", "disabled"],
+      ["archive-after", "archived"],
+      ["disable-after", "disabled"]
+    ]);
   });
 
   it("déclenche un event state via override", () => {

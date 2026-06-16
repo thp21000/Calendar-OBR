@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getReminderEventsBetween, getTriggeredEventsBetween, updateCalendarEvent } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
@@ -8,9 +8,8 @@ import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getTr
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import {
   getCurrentlyMatchingWeatherEvents,
-  getNewlyTriggeredWeatherEventsBetween,
-  applyWeatherEventTriggerActions,
-  toAbsoluteMinutes
+  generateWeatherForEventConditions,
+  updateWeatherEventLifecycles
 } from "../calendar/weatherEventsLogic";
 import { getCurrentWeather, getHourlyWeatherForecast } from "../calendar/weatherLogic";
 import { getWeatherUnitLabels } from "../calendar/weatherUnits";
@@ -72,11 +71,11 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const dismissedStorageKey = `calendar-obr.notifications.dismissed.${project.id}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
   const todayDateLabel = `${displayDate.weekdayName ?? ""} ${displayDate.dayOfMonth} ${displayDate.monthName} ${displayDate.year}`.trim();
-  const lastTriggeredAtMinutesRef = useRef<Record<string, number>>({});
   const currentSeason = getCurrentSeason(project);
   const currentWeather = getCurrentWeather(project);
-  const triggeredWeatherEvents = currentWeather
-    ? getCurrentlyMatchingWeatherEvents(project, currentWeather, project.currentTime)
+  const conditionWeather = generateWeatherForEventConditions(project, project.currentTime);
+  const triggeredWeatherEvents = conditionWeather
+    ? getCurrentlyMatchingWeatherEvents(project, conditionWeather, project.currentTime)
     : [];
   const currentMoonPhases = moonLogic.getCurrentMoonPhases(project);
   const triggeredMoonEvents = getTriggeredMoonEvents(project, project.currentTime.absoluteDay);
@@ -120,17 +119,14 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
 
     if (deltaMinutes > 0) {
       const triggered = getTriggeredEventsBetween(project, previousTime, nextTime);
-      const triggeredWeather = getNewlyTriggeredWeatherEventsBetween(project, previousTime, nextTime, lastTriggeredAtMinutesRef.current);
+      const weatherLifecycle = updateWeatherEventLifecycles(project, previousTime, nextTime);
+      const triggeredWeather = weatherLifecycle.newlyTriggered;
       const triggeredMoon = getNewlyTriggeredMoonEventsBetween(project, previousTime, nextTime);
       const completed = getCompletedEventsBetween(project, previousTime, nextTime);
       const reminderEvents = getReminderEventsBetween(project, previousTime, nextTime);
       setLastTriggeredEvents(triggered);
       setLastTriggeredWeatherEvents(triggeredWeather);
       setLastTriggeredMoonEvents(triggeredMoon);
-      const triggerTimeMinutes = toAbsoluteMinutes(nextTime);
-      for (const weatherEvent of triggeredWeather) {
-        lastTriggeredAtMinutesRef.current[weatherEvent.id] = triggerTimeMinutes;
-      }
       const dismissed = readDismissed();
       const created = [
         ...createNotificationsFromTriggers(triggered, triggeredWeather.filter((w) => w.notifyOnTrigger !== false), triggeredMoon.filter((m) => m.notifyOnTrigger), nextTime),
@@ -146,11 +142,8 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         });
         return [...merged.values()];
       });
-      const withTime = { ...project, currentTime: nextTime };
-      const nextWeather = getCurrentWeather(withTime);
-      const withEventsCompletion = applyEventCompletionActions(withTime, completed);
-      const withWeatherTriggers = applyWeatherEventTriggerActions(withEventsCompletion, triggeredWeather, nextTime, nextWeather);
-      const withMoonEventStatus = applyMoonEventTriggerActions(withWeatherTriggers, triggeredMoon, nextTime.absoluteDay);
+      const withEventsCompletion = applyEventCompletionActions(weatherLifecycle.project, completed);
+      const withMoonEventStatus = applyMoonEventTriggerActions(withEventsCompletion, triggeredMoon, nextTime.absoluteDay);
       onProjectUpdate(withMoonEventStatus);
       return;
     } else {
