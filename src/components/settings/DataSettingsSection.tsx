@@ -5,7 +5,7 @@ import type { StorageScope } from "../../obr/roomScope";
 import { ExportDataModal } from "./importExport/ExportDataModal";
 import { ImportDataModal } from "./importExport/ImportDataModal";
 
-type Props = { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; locale: "fr" | "en"; scope: StorageScope; onReset: () => void };
+type Props = { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; locale: "fr" | "en"; scope: StorageScope };
 
 export const DataSettingsSection = ({ project, onProjectUpdate, locale, scope }: Props) => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);

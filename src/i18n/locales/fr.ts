@@ -1072,6 +1072,7 @@ export const frMessages = {
   "settings.importExport.section.dayNotes": "Notes de jours",
   "settings.importExport.section.currentTime": "Date et heure actuelles",
   "common.dismiss": "Masquer",
+  "settings.resetCalendarConfirm": "Réinitialiser définitivement le calendrier ? Cette action efface le calendrier courant et repart de zéro.",
   "settings.resetCalendar": "Réinitialiser le calendrier",
   "common.loading": "Chargement...",
   "seasons.name": "Nom",

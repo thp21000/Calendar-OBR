@@ -1072,6 +1072,7 @@ export const enMessages = {
   "settings.importExport.section.dayNotes": "Day notes",
   "settings.importExport.section.currentTime": "Current date and time",
   "common.dismiss": "Dismiss",
+  "settings.resetCalendarConfirm": "Reset the calendar permanently? This clears the current calendar and starts over.",
   "settings.resetCalendar": "Reset calendar",
   "common.loading": "Loading...",
   "seasons.name": "Name",

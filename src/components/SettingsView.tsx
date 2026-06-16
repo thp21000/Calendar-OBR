@@ -6,7 +6,6 @@ import { CalendarStructureSettingsSection } from "./settings/CalendarStructureSe
 import { CurrentTimeSettingsSection } from "./settings/CurrentTimeSettingsSection";
 import { DataSettingsSection } from "./settings/DataSettingsSection";
 import { DisplaySettingsSection } from "./settings/DisplaySettingsSection";
-import { FutureSettingsSection } from "./settings/FutureSettingsSection";
 import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
 import { MoonsSettingsSection } from "./settings/MoonsSettingsSection";
 import { PacksSettingsSection } from "./settings/PacksSettingsSection";
@@ -92,16 +91,22 @@ export const SettingsView = ({
 
       <SettingsGroup title={t(project.locale, "settings.group.data")} help={t(project.locale, "settings.group.dataHelp")} storageKey="calendar-obr.settings.group.data">
         <CollapsibleSection title={t(project.locale, "settings.section.data")} storageKey="calendar-obr.settings.section.data">
-          <DataSettingsSection project={project} onProjectUpdate={onProjectUpdate} locale={project.locale} scope={scope} onReset={onReset} />
+          <DataSettingsSection project={project} onProjectUpdate={onProjectUpdate} locale={project.locale} scope={scope} />
         </CollapsibleSection>
         <CollapsibleSection title={t(project.locale, "settings.section.packs")} storageKey="calendar-obr.settings.section.packs">
           <PacksSettingsSection project={project} onProjectUpdate={onProjectUpdate} />
         </CollapsibleSection>
       </SettingsGroup>
 
-      <SettingsGroup title={t(project.locale, "settings.group.advancedMaintenance")} help={t(project.locale, "settings.group.advancedMaintenanceHelp")} storageKey="calendar-obr.settings.group.advancedMaintenance">
-        <FutureSettingsSection locale={project.locale} />
-      </SettingsGroup>
+      <div style={{ marginTop: 14, paddingTop: 10, borderTop: "1px solid #374151" }}>
+        <button
+          type="button"
+          onClick={() => { if (window.confirm(t(project.locale, "settings.resetCalendarConfirm"))) onReset(); }}
+          style={resetButtonStyle}
+        >
+          {t(project.locale, "settings.resetCalendar")}
+        </button>
+      </div>
     </div>
   );
 };
@@ -117,3 +122,4 @@ const HelpText = ({ text }: { text: string }) => <div style={{ fontSize: 12, col
 
 const inputStyle = { width: "100%", margin: "4px 0 8px", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", boxSizing: "border-box" as const };
 const buttonStyle = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "6px 10px", cursor: "pointer", fontSize: 12 };
+const resetButtonStyle = { width: "100%", border: "1px solid #f87171", borderRadius: 8, background: "#7f1d1d", color: "#fee2e2", padding: "9px 12px", cursor: "pointer", fontSize: 13, fontWeight: 800 };
