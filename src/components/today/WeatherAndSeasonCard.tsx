@@ -218,7 +218,6 @@ export const WeatherForecastCard = ({ project, hourlyForecast, weatherUnits, mod
           entry.trendKind && entry.trend ? `${getConfiguredWeatherTrendIcon(project, entry.trendKind)} ${entry.trend}` : undefined
         ] : [entry.broadTemperature, entry.broadWind, entry.broadRain])
       ].filter(Boolean) as React.ReactNode[]
-      ].filter(Boolean) as string[]
     }))
     : hourlyForecast.map((entry) => ({
       key: String(entry.offsetHours),
