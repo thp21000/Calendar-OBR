@@ -288,8 +288,7 @@ export const buildPublicMonthSnapshot = (
     })) : [];
     const dayNotes = settings.month.showDayNotes ? getPlayerVisibleDayNotesForDay(project, eventDate).filter((note) => Boolean(note.playerNote?.trim())).map((note) => ({ id: note.id, playerNote: note.playerNote?.trim() ?? "" })) : [];
     const season = settings.month.showWeatherSummary ? getSeasonForDate(project, eventDate) : undefined;
-    const weatherSummary = settings.month.showWeatherSummary && weather ? {
-      const weatherState = weather?.state ?? "clear";
+    const weatherState = weather?.state ?? "clear";
     const weatherSummary = settings.month.showWeatherSummary && weather ? {
       state: weatherState,
       stateIcon: getConfiguredWeatherStateIcon(project, weatherState),
