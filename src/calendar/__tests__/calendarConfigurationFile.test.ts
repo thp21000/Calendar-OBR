@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyCalendarConfigurationFile, buildCalendarConfigurationFile, readCalendarConfigurationFileFromText, validateCalendarConfigurationFile } from "../calendarConfigurationFile";
+import { applyCalendarConfigurationFile, applyCalendarCustomExportFile, buildCalendarConfigurationFile, buildCalendarCustomExportFile, readCalendarConfigurationFileFromText, readCalendarImportFileFromText, validateCalendarConfigurationFile } from "../calendarConfigurationFile";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
 import type { CalendarEvent, DayNote } from "../../domain/types";
 
@@ -99,5 +99,73 @@ describe("calendarConfigurationFile", () => {
     expect(parsed.ok).toBe(false);
     if (parsed.ok) return;
     expect(project).toEqual(createDefaultCalendarProject());
+  });
+});
+
+describe("calendar custom import/export", () => {
+  it("exports a custom file with only selected sections", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [{ id: "winter", name: "Winter", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-1", dayOfMonth: 10 } }];
+    const file = buildCalendarCustomExportFile(project, ["seasons"]);
+
+    expect(file.kind).toBe("calendar-obr.custom-export");
+    expect(file.sections.seasons).toEqual(project.seasons);
+    expect(file.sections.calendarSystem).toBeUndefined();
+  });
+
+  it("imports a custom file with one selected section", () => {
+    const source = createDefaultCalendarProject();
+    source.seasons = [{ id: "spring", name: "Spring", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-1", dayOfMonth: 20 } }];
+    const target = createDefaultCalendarProject();
+    target.moons = [{ id: "kept", name: "Kept", cycleLengthDays: 9 }];
+    const file = buildCalendarCustomExportFile(source, ["seasons"]);
+
+    const result = applyCalendarCustomExportFile(target, file, ["seasons"]);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.project.seasons[0].id).toBe("spring");
+    expect(result.project.moons[0].id).toBe("kept");
+  });
+
+  it("refuses a custom import without selected sections", () => {
+    const project = createDefaultCalendarProject();
+    const file = buildCalendarCustomExportFile(project, ["seasons"]);
+
+    const result = applyCalendarCustomExportFile(project, file, []);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain("No section selected");
+  });
+
+  it("detects full projects, configurations, custom exports, and unrecognized files", () => {
+    const project = createDefaultCalendarProject();
+
+    expect(readCalendarImportFileFromText(JSON.stringify(project))).toMatchObject({ ok: true, importFile: { type: "project", requiresFullProjectConfirmation: true } });
+    expect(readCalendarImportFileFromText(JSON.stringify(buildCalendarConfigurationFile(project)))).toMatchObject({ ok: true, importFile: { type: "configuration" } });
+    expect(readCalendarImportFileFromText(JSON.stringify(buildCalendarCustomExportFile(project, ["seasons"])))).toMatchObject({ ok: true, importFile: { type: "custom" } });
+    expect(readCalendarImportFileFromText(JSON.stringify({ kind: "unknown" }))).toMatchObject({ ok: false });
+  });
+
+  it("keeps current time, events, and notes when those sections are not selected", () => {
+    const source = createDefaultCalendarProject();
+    source.currentTime = { absoluteDay: 1, hour: 1, minute: 1 };
+    source.events = [campaignEvent("source-event")];
+    source.dayNotes = [dayNote()];
+    source.seasons = [{ id: "imported", name: "Imported", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-1", dayOfMonth: 2 } }];
+    const target = createDefaultCalendarProject();
+    target.currentTime = { absoluteDay: 77, hour: 7, minute: 7 };
+    target.events = [campaignEvent("target-event")];
+    target.dayNotes = [dayNote()];
+
+    const result = applyCalendarCustomExportFile(target, buildCalendarCustomExportFile(source, ["seasons", "currentTime", "campaignEvents", "dayNotes"]), ["seasons"]);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.project.seasons[0].id).toBe("imported");
+    expect(result.project.currentTime).toEqual(target.currentTime);
+    expect(result.project.events).toEqual(target.events);
+    expect(result.project.dayNotes).toEqual(target.dayNotes);
   });
 });

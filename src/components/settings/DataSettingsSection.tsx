@@ -1,167 +1,25 @@
-import { useRef, useState } from "react";
-import type { ChangeEvent } from "react";
+import { useState } from "react";
 import type { CalendarProject } from "../../domain/types";
-import { applyCalendarConfigurationFile, downloadCalendarConfigurationFile, exportCalendarConfigurationFile, readCalendarConfigurationFileFromText } from "../../calendar/calendarConfigurationFile";
-import { exportCalendarProject, importCalendarProject } from "../../importExport/calendarImportExport";
 import { t } from "../../i18n/messages";
 import type { StorageScope } from "../../obr/roomScope";
+import { ExportDataModal } from "./importExport/ExportDataModal";
+import { ImportDataModal } from "./importExport/ImportDataModal";
 
-type Props = {
-  project: CalendarProject;
-  onProjectUpdate: (project: CalendarProject) => void;
-  locale: "fr" | "en";
-  scope: StorageScope;
-  onReset: () => void;
-};
+type Props = { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; locale: "fr" | "en"; scope: StorageScope; onReset: () => void };
 
-const buildExportFileName = (project: CalendarProject): string => {
-  const safeName = project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "export";
-  const date = new Date().toISOString().slice(0, 10);
-  return `calendar-obr-${safeName}-${date}.json`;
-};
-
-export const DataSettingsSection = ({ project, onProjectUpdate, locale, scope, onReset }: Props) => {
+export const DataSettingsSection = ({ project, onProjectUpdate, locale, scope }: Props) => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [configurationJson, setConfigurationJson] = useState("");
-  const [configurationError, setConfigurationError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const configurationInputRef = useRef<HTMLInputElement>(null);
-
-  const onExport = () => {
-    const json = exportCalendarProject(project);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = buildExportFileName(project);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    setStatusMessage(t(locale, "settings.exportSuccess"));
-  };
-
-  const onImportClick = () => fileInputRef.current?.click();
-
-  const onImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (!window.confirm(t(locale, "settings.importConfirm"))) {
-      setStatusMessage(t(locale, "settings.importCancelled"));
-      return;
-    }
-    try {
-      const text = await file.text();
-      const result = importCalendarProject(text, project);
-      if (result.ok) {
-        onProjectUpdate(result.project);
-        setStatusMessage(t(locale, "settings.importSuccess"));
-      } else {
-        setStatusMessage(t(locale, "settings.importError"));
-      }
-    } catch {
-      setStatusMessage(t(locale, "settings.importError"));
-    }
-  };
-
-  const onExportConfiguration = () => {
-    downloadCalendarConfigurationFile(project);
-    setStatusMessage(t(locale, "settings.configurationExported"));
-  };
-
-  const onImportConfigurationClick = () => configurationInputRef.current?.click();
-
-  const onImportConfigurationFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const parsed = readCalendarConfigurationFileFromText(text);
-      if (!parsed.ok) {
-        setConfigurationError(parsed.error);
-        setStatusMessage(t(locale, "settings.invalidConfigurationFile"));
-        return;
-      }
-      const applied = applyCalendarConfigurationFile(project, parsed.file);
-      if (!applied.ok) {
-        setConfigurationError(applied.error);
-        setStatusMessage(t(locale, "settings.invalidConfigurationFile"));
-        return;
-      }
-      onProjectUpdate(applied.project);
-      setConfigurationJson(JSON.stringify(parsed.file, null, 2));
-      setConfigurationError(null);
-      setStatusMessage(t(locale, "settings.configurationImported"));
-    } catch {
-      setConfigurationError(t(locale, "settings.invalidConfigurationFile"));
-      setStatusMessage(t(locale, "settings.invalidConfigurationFile"));
-    }
-  };
-
-  const onGenerateConfigurationJson = () => {
-    setConfigurationJson(exportCalendarConfigurationFile(project));
-    setConfigurationError(null);
-  };
-
-  const onCopyConfigurationJson = async () => {
-    const nextJson = configurationJson || exportCalendarConfigurationFile(project);
-    setConfigurationJson(nextJson);
-    await navigator.clipboard?.writeText(nextJson);
-    setStatusMessage(t(locale, "settings.configurationExported"));
-  };
-
-  const onApplyConfigurationJson = () => {
-    const parsed = readCalendarConfigurationFileFromText(configurationJson);
-    if (!parsed.ok) {
-      setConfigurationError(parsed.error);
-      setStatusMessage(t(locale, "settings.invalidConfigurationFile"));
-      return;
-    }
-    const applied = applyCalendarConfigurationFile(project, parsed.file);
-    if (!applied.ok) {
-      setConfigurationError(applied.error);
-      setStatusMessage(t(locale, "settings.invalidConfigurationFile"));
-      return;
-    }
-    onProjectUpdate(applied.project);
-    setConfigurationError(null);
-    setStatusMessage(t(locale, "settings.configurationImported"));
-  };
-
-  return (
-    <>
-      <div>{t(locale, "settings.storageScope")}: {scope.type === "obr-room" ? t(locale, "settings.storageScopeRoom") : "Local"}</div>
-      <RowButtons>
-        <Action onClick={onReset}>{t(locale, "settings.resetCalendar")}</Action>
-        <Action onClick={onExport}>{t(locale, "settings.exportJson")}</Action>
-        <Action onClick={onImportClick}>{t(locale, "settings.importJson")}</Action>
-        <Action onClick={onExportConfiguration}>{t(locale, "settings.exportConfiguration")}</Action>
-        <Action onClick={onImportConfigurationClick}>{t(locale, "settings.importConfiguration")}</Action>
-      </RowButtons>
-      <input ref={fileInputRef} type="file" accept="application/json,.json" style={{ display: "none" }} onChange={onImportFile} />
-      <input ref={configurationInputRef} type="file" accept="application/json,.json" style={{ display: "none" }} onChange={onImportConfigurationFile} />
-      <details style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, marginTop: 8 }}>
-        <summary style={{ cursor: "pointer", fontWeight: 700 }}>{t(locale, "settings.editConfigurationJson")}</summary>
-        <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-          <RowButtons>
-            <Action onClick={onGenerateConfigurationJson}>{t(locale, "settings.configurationExported")}</Action>
-            <Action onClick={onCopyConfigurationJson}>{t(locale, "common.copy")}</Action>
-            <Action onClick={onApplyConfigurationJson}>{t(locale, "settings.applyConfiguration")}</Action>
-          </RowButtons>
-          <textarea
-            value={configurationJson}
-            onChange={(event) => setConfigurationJson(event.target.value)}
-            placeholder={t(locale, "settings.editConfigurationJson")}
-            style={{ minHeight: 180, resize: "vertical", width: "100%", boxSizing: "border-box", border: "1px solid #4b5563", borderRadius: 6, background: "#0f172a", color: "#e5e7eb", padding: 8, fontFamily: "monospace", fontSize: 12 }}
-          />
-          {configurationError ? <div style={{ fontSize: 12, color: "#fca5a5" }}>{configurationError}</div> : null}
-        </div>
-      </details>
-      {statusMessage ? <div style={{ fontSize: 12, color: "#93c5fd", marginTop: 6 }}>{statusMessage}</div> : null}
-    </>
-  );
+  const [modal, setModal] = useState<"export" | "import" | null>(null);
+  return <>
+    <div>{t(locale, "settings.storageScope")}: {scope.type === "obr-room" ? t(locale, "settings.storageScopeRoom") : "Local"}</div>
+    <RowButtons>
+      <Action onClick={() => setModal("export")}>{t(locale, "settings.importExport.export")}</Action>
+      <Action onClick={() => setModal("import")}>{t(locale, "settings.importExport.import")}</Action>
+    </RowButtons>
+    {statusMessage ? <div style={{ fontSize: 12, color: "#93c5fd", marginTop: 6 }}>{statusMessage}</div> : null}
+    {modal === "export" ? <ExportDataModal project={project} locale={locale} onClose={() => setModal(null)} onStatus={setStatusMessage} /> : null}
+    {modal === "import" ? <ImportDataModal project={project} locale={locale} onClose={() => setModal(null)} onProjectUpdate={onProjectUpdate} onStatus={setStatusMessage} /> : null}
+  </>;
 };
 
 const RowButtons = ({ children }: { children: React.ReactNode }) => <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>{children}</div>;
