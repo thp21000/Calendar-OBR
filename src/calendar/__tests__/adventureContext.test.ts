@@ -71,14 +71,27 @@ describe("adventure context", () => {
     expect(project.adventureContext?.secondaryContextIds).toEqual(["travel", "hexploration"]);
   });
 
-  it("supports adventureContext conditions in any/all/none modes and include flags", () => {
+  it("supports allContexts, primaryOnly, secondaryOnly and legacy include flags", () => {
     let project = setPrimaryAdventureContext(createDefaultCalendarProject(), "road");
     project = setSecondaryAdventureContexts(project, ["travel", "hexploration"]);
-    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", contextIds: ["road"] })).toBe(true);
-    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "all", contextIds: ["road", "travel"] })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "allContexts", contextIds: ["road"] })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "allContexts", contextIds: ["travel"] })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "primaryOnly", contextIds: ["travel"] })).toBe(false);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "secondaryOnly", contextIds: ["road"] })).toBe(false);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", contextIds: ["road"], includePrimary: true, includeSecondary: false })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", contextIds: ["travel"], includePrimary: false, includeSecondary: true })).toBe(true);
     expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "none", contextIds: ["marsh"] })).toBe(true);
-    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", contextIds: ["road"], includePrimary: false, includeSecondary: true })).toBe(false);
-    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", contextIds: ["travel"], includePrimary: true, includeSecondary: false })).toBe(false);
+    });
+
+  it("supports primaryAndAnySecondary target", () => {
+    const ids = ["camp", "woods", "rest"];
+    expect(isAdventureContextConditionMet(setPrimaryAdventureContext(createDefaultCalendarProject(), "camp"), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(false);
+    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(createDefaultCalendarProject(), ["camp"]), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(false);
+    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "camp"), ["road"]), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(false);
+    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "camp"), ["woods"]), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(true);
+    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "woods"), ["rest"]), { type: "adventureContext", mode: "none", target: "primaryAndAnySecondary", contextIds: ids })).toBe(true);
+    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "road"), ["camp", "woods"]), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(false);
+    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "camp"), ["woods", "rest"]), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(true);
   });
 
   it("filters weather events by adventure context", () => {

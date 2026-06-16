@@ -85,9 +85,12 @@ export type AdventureContextState = {
   availableContexts: AdventureContextDefinition[];
 };
 
+export type AdventureContextConditionTarget = "allContexts" | "primaryOnly" | "secondaryOnly" | "primaryAndAnySecondary";
+
 export type AdventureContextCondition = {
   type: "adventureContext";
   mode: "any" | "all" | "none";
+  target?: AdventureContextConditionTarget;
   contextIds: string[];
   includePrimary?: boolean;
   includeSecondary?: boolean;

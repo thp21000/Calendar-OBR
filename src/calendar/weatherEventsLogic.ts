@@ -3,7 +3,7 @@ import { absoluteDayToCalendarDate, addHours } from "./dateEngine";
 import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
 import { getWeatherBiomeState } from "./weather/biomes";
-import { isAdventureContextConditionMet } from "./adventureContext";
+import { getAdventureContextConditionDetails, isAdventureContextConditionMet } from "./adventureContext";
 import type { CalendarProject, InternalTime, WeatherCondition, WeatherConditionMetric, WeatherEvent, WeatherEventTriggerHistoryEntry, WeatherSnapshot, WeatherState, WeatherOverride } from "../domain/types";
 
 export type PlayerVisibleWeatherEvent = {
@@ -370,14 +370,7 @@ export const getWeatherEventDiagnostics = (
   const conditionDiagnostics = conditions.map((condition) => ({
     condition,
     met: isWeatherConditionMet(weather, condition, { project, time }),
-    adventureContext: condition.type === "adventureContext" ? {
-      primaryContextId: project.adventureContext?.primaryContextId ?? null,
-      secondaryContextIds: project.adventureContext?.secondaryContextIds ?? [],
-      mode: condition.mode,
-      contextIds: condition.contextIds,
-      includePrimary: condition.includePrimary ?? true,
-      includeSecondary: condition.includeSecondary ?? true
-    } : undefined
+    adventureContext: condition.type === "adventureContext" ? getAdventureContextConditionDetails(project, condition) : undefined
   }));
   const blockedReasons = conditionDiagnostics
     .filter((diagnostic) => !diagnostic.met && diagnostic.condition.type === "biome" && (diagnostic.condition.biomeIds?.length ?? 0) > 0)

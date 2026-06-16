@@ -383,6 +383,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                 (condition.type === "season" && typeof condition.seasonId === "string" && condition.seasonId.trim().length > 0) ||
                   (condition.type === "adventureContext" &&
                     (condition.mode === "any" || condition.mode === "all" || condition.mode === "none") &&
+                    (condition.target === undefined || condition.target === "allContexts" || condition.target === "primaryOnly" || condition.target === "secondaryOnly" || condition.target === "primaryAndAnySecondary") &&
                     Array.isArray(condition.contextIds)) ||
                   (condition.type === "biome" && (condition.biomeIds === undefined || Array.isArray(condition.biomeIds))) ||
                   (condition.type === "timeOfDay" &&
@@ -421,8 +422,11 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
               return biomeIds.length > 0 ? { ...condition, biomeIds } : { type: "biome" };
             }
             if (condition.type === "adventureContext") {
+              const target = condition.target === "primaryOnly" || condition.target === "secondaryOnly" || condition.target === "primaryAndAnySecondary" ? condition.target : "allContexts";
               return {
                 type: "adventureContext",
+                mode: target === "primaryAndAnySecondary" ? "any" : condition.mode === "all" || condition.mode === "none" ? condition.mode : "any",
+                target,
                 mode: condition.mode === "all" || condition.mode === "none" ? condition.mode : "any",
                 contextIds: Array.isArray(condition.contextIds) ? Array.from(new Set(condition.contextIds.filter((id) => typeof id === "string" && id.trim().length > 0))) : [],
                 includePrimary: typeof condition.includePrimary === "boolean" ? condition.includePrimary : true,
@@ -489,13 +493,17 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         next.conditions = next.conditions
           .filter(isRecord)
           .filter((condition) => condition.type === "adventureContext" && (condition.mode === "any" || condition.mode === "all" || condition.mode === "none") && Array.isArray(condition.contextIds))
-          .map((condition) => ({
-            type: "adventureContext",
-            mode: condition.mode === "all" || condition.mode === "none" ? condition.mode : "any",
-            contextIds: Array.from(new Set((condition.contextIds as unknown[]).filter((id): id is string => typeof id === "string" && id.trim().length > 0))),
-            includePrimary: typeof condition.includePrimary === "boolean" ? condition.includePrimary : true,
-            includeSecondary: typeof condition.includeSecondary === "boolean" ? condition.includeSecondary : true
-          }));
+          .map((condition) => {
+            const target = condition.target === "primaryOnly" || condition.target === "secondaryOnly" || condition.target === "primaryAndAnySecondary" ? condition.target : "allContexts";
+            return {
+              type: "adventureContext",
+              mode: target === "primaryAndAnySecondary" ? "any" : condition.mode === "all" || condition.mode === "none" ? condition.mode : "any",
+              target,
+              contextIds: Array.from(new Set((condition.contextIds as unknown[]).filter((id): id is string => typeof id === "string" && id.trim().length > 0))),
+              includePrimary: typeof condition.includePrimary === "boolean" ? condition.includePrimary : true,
+              includeSecondary: typeof condition.includeSecondary === "boolean" ? condition.includeSecondary : true
+            };
+          });
       } else {
         delete next.conditions;
       }

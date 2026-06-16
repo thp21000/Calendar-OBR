@@ -1,4 +1,4 @@
-import type { AdventureContextCondition, AdventureContextDefinition, AdventureContextState, CalendarProject, LocaleCode } from "../domain/types";
+import type { AdventureContextCondition, AdventureContextConditionTarget, AdventureContextDefinition, AdventureContextState, CalendarProject, LocaleCode } from "../domain/types";
 
 const ctx = (
   id: string,
@@ -131,6 +131,13 @@ export const getAdventureContextLabel = (definition: AdventureContextDefinition,
 export const getAdventureContextById = (project: CalendarProject, id: string): AdventureContextDefinition | undefined =>
   normalizeAdventureContext(project.adventureContext).availableContexts.find((definition) => definition.id === id);
 
+export const getAdventureContextConditionTarget = (condition: Pick<AdventureContextCondition, "target" | "includePrimary" | "includeSecondary">): AdventureContextConditionTarget => {
+  if (condition.target === "allContexts" || condition.target === "primaryOnly" || condition.target === "secondaryOnly" || condition.target === "primaryAndAnySecondary") return condition.target;
+  if (condition.includePrimary === true && condition.includeSecondary === false) return "primaryOnly";
+  if (condition.includePrimary === false && condition.includeSecondary === true) return "secondaryOnly";
+  return "allContexts";
+};
+
 export const getActiveAdventureContextIds = (
   project: Pick<CalendarProject, "adventureContext">,
   includePrimary = true,
@@ -143,16 +150,43 @@ export const getActiveAdventureContextIds = (
   return Array.from(new Set(ids));
 };
 
-export const isAdventureContextConditionMet = (project: Pick<CalendarProject, "adventureContext">, condition: AdventureContextCondition): boolean => {
-  const includePrimary = condition.includePrimary ?? true;
-  const includeSecondary = condition.includeSecondary ?? true;
-  const active = new Set(getActiveAdventureContextIds(project, includePrimary, includeSecondary));
-  const required = Array.from(new Set(condition.contextIds ?? []));
-  if (required.length === 0) return condition.mode === "none";
-  if (condition.mode === "all") return required.every((id) => active.has(id));
-  if (condition.mode === "none") return required.every((id) => !active.has(id));
+const evaluateMode = (mode: AdventureContextCondition["mode"], activeIds: string[], requiredIds: string[]): boolean => {
+  const active = new Set(activeIds);
+  const required = Array.from(new Set(requiredIds));
+  if (required.length === 0) return mode === "none";
+  if (mode === "all") return required.every((id) => active.has(id));
+  if (mode === "none") return required.every((id) => !active.has(id));
   return required.some((id) => active.has(id));
 };
+
+export const getAdventureContextConditionDetails = (project: Pick<CalendarProject, "adventureContext">, condition: AdventureContextCondition) => {
+  const state = normalizeAdventureContext(project.adventureContext);
+  const target = getAdventureContextConditionTarget(condition);
+  const required = Array.from(new Set(condition.contextIds ?? []));
+  const primaryMatches = Boolean(state.primaryContextId && required.includes(state.primaryContextId));
+  const secondaryMatches = state.secondaryContextIds.some((id) => required.includes(id));
+  const activeIds = target === "primaryOnly"
+    ? (state.primaryContextId ? [state.primaryContextId] : [])
+    : target === "secondaryOnly"
+      ? state.secondaryContextIds
+      : getActiveAdventureContextIds({ adventureContext: state }, true, true);
+  const result = target === "primaryAndAnySecondary"
+    ? primaryMatches && secondaryMatches
+    : evaluateMode(condition.mode, activeIds, required);
+  return {
+    target,
+    mode: target === "primaryAndAnySecondary" ? "any" as const : condition.mode,
+    primaryContextId: state.primaryContextId,
+    secondaryContextIds: state.secondaryContextIds,
+    contextIds: required,
+    primaryMatches,
+    secondaryMatches,
+    result
+  };
+};
+
+export const isAdventureContextConditionMet = (project: Pick<CalendarProject, "adventureContext">, condition: AdventureContextCondition): boolean =>
+  getAdventureContextConditionDetails(project, condition).result;
 
 export const setPrimaryAdventureContext = (project: CalendarProject, contextId: string | null): CalendarProject => {
   const state = normalizeAdventureContext(project.adventureContext);
