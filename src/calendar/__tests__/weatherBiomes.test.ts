@@ -33,6 +33,7 @@ describe("weather biomes", () => {
     const project = createDefaultCalendarProject();
     delete project.weatherBiome;
     delete project.weatherBiomeProfiles;
+    project.seasons = [{ id: "s1", name: "Season", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];
     const profile = resolveEffectiveWeatherProfile(project, { absoluteDay: 0, hour: 8 });
     expect(profile.temperature.average).toBe(12);
     expect(applyBiomeToWeatherSnapshot(project, baseWeather, { absoluteDay: 0, hour: 8 })).toEqual(baseWeather);

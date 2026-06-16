@@ -7,6 +7,68 @@ import { notifyCalendarProjectUpdated } from "./projectSync";
 import { DEFAULT_PLAYER_VIEW_SETTINGS } from "../calendar/playerViewSettings";
 
 const STORAGE_KEY = "calendar-obr.project.local-dev";
+const DEFAULT_WEATHER_SEED = "default-calendar";
+
+const createWeatherSeed = (): string => `meteo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+const createDefaultSeasons = (): CalendarProject["seasons"] => [
+  {
+    id: "season-spring",
+    name: "Printemps",
+    icon: "🌱",
+    start: { monthId: "month-1", dayOfMonth: 1 },
+    end: { monthId: "month-1", dayOfMonth: 15 },
+    weatherModifier: {
+      temperature: { minOffset: 2, averageOffset: 3, maxOffset: 4 },
+      rain: { minMultiplier: 1.1, averageMultiplier: 1.2, maxMultiplier: 1.15 },
+      dailyRain: { minMultiplier: 1.1, averageMultiplier: 1.25, maxMultiplier: 1.2 },
+      windSpeed: { minMultiplier: 0.95, averageMultiplier: 1, maxMultiplier: 1.05 },
+      traits: { precipitationChanceOffset: 0.08, stormChanceOffset: 0.03, fogChanceOffset: 0.04 }
+    }
+  },
+  {
+    id: "season-summer",
+    name: "Été",
+    icon: "☀️",
+    start: { monthId: "month-1", dayOfMonth: 16 },
+    end: { monthId: "month-1", dayOfMonth: 30 },
+    weatherModifier: {
+      temperature: { minOffset: 8, averageOffset: 10, maxOffset: 12 },
+      rain: { minMultiplier: 0.55, averageMultiplier: 0.65, maxMultiplier: 0.8 },
+      dailyRain: { minMultiplier: 0.55, averageMultiplier: 0.65, maxMultiplier: 0.85 },
+      windSpeed: { minMultiplier: 0.8, averageMultiplier: 0.85, maxMultiplier: 0.95 },
+      traits: { precipitationChanceOffset: -0.12, stormChanceOffset: 0.04, fogChanceOffset: -0.08, dayNightAmplitudeMultiplier: 1.15 }
+    }
+  },
+  {
+    id: "season-autumn",
+    name: "Automne",
+    icon: "🍂",
+    start: { monthId: "month-2", dayOfMonth: 1 },
+    end: { monthId: "month-2", dayOfMonth: 15 },
+    weatherModifier: {
+      temperature: { minOffset: -1, averageOffset: -2, maxOffset: -3 },
+      rain: { minMultiplier: 1.25, averageMultiplier: 1.35, maxMultiplier: 1.45 },
+      dailyRain: { minMultiplier: 1.25, averageMultiplier: 1.4, maxMultiplier: 1.5 },
+      windSpeed: { minMultiplier: 1.1, averageMultiplier: 1.2, maxMultiplier: 1.25 },
+      traits: { precipitationChanceOffset: 0.12, stormChanceOffset: 0.05, fogChanceOffset: 0.08, windVariabilityMultiplier: 1.15 }
+    }
+  },
+  {
+    id: "season-winter",
+    name: "Hiver",
+    icon: "❄️",
+    start: { monthId: "month-2", dayOfMonth: 16 },
+    end: { monthId: "month-2", dayOfMonth: 30 },
+    weatherModifier: {
+      temperature: { minOffset: -8, averageOffset: -9, maxOffset: -10 },
+      rain: { minMultiplier: 0.9, averageMultiplier: 0.95, maxMultiplier: 1 },
+      dailyRain: { minMultiplier: 0.9, averageMultiplier: 1, maxMultiplier: 1.05 },
+      windSpeed: { minMultiplier: 1.05, averageMultiplier: 1.15, maxMultiplier: 1.25 },
+      traits: { precipitationChanceOffset: 0.02, stormChanceOffset: 0.02, fogChanceOffset: 0.05, dayNightAmplitudeMultiplier: 0.8 }
+    }
+  }
+];
 
 const defaultProject: CalendarProject = {
   schemaVersion: 1,
@@ -35,11 +97,11 @@ const defaultProject: CalendarProject = {
     ]
   },
   events: [],
-  seasons: [],
+  seasons: createDefaultSeasons(),
   moons: createDefaultMoonSystem("fr"),
   moonEvents: [],
   dayNotes: [],
-  weatherSettings: {},
+  weatherSettings: { seed: DEFAULT_WEATHER_SEED },
   weatherEvents: [],
   weatherOverrides: [],
   weatherBiome: { currentBiomeId: DEFAULT_WEATHER_BIOME_ID },
@@ -93,6 +155,7 @@ export const saveCalendarProject = (project: CalendarProject, storageKey = STORA
 
 export const resetCalendarProject = (storageKey = STORAGE_KEY): CalendarProject => {
   const project = createDefaultCalendarProject();
+  project.weatherSettings = { ...project.weatherSettings, seed: createWeatherSeed() };
   const storage = safeStorage();
   if (storage) {
     storage.removeItem(storageKey);

@@ -6,6 +6,8 @@ import {
   resetCalendarProject,
   saveCalendarProject
 } from "../calendarStorage";
+import { getCurrentSeason } from "../../calendar/seasonsLogic";
+import { getCurrentWeather } from "../../calendar/weatherLogic";
 
 describe("calendarStorage integrity", () => {
   it("default project is valid and saveable", () => {
@@ -21,6 +23,10 @@ describe("calendarStorage integrity", () => {
     expect(project.name).toBeTruthy();
     expect(project.calendarSystem.months.length).toBeGreaterThan(0);
     expect(project.calendarSystem.weekdays.length).toBeGreaterThan(0);
+    expect(project.seasons.length).toBe(4);
+    expect(getCurrentSeason(project)?.name).toBe("Printemps");
+    expect(project.weatherSettings.seed).toBeTruthy();
+    expect(getCurrentWeather(project)).toBeDefined();
     expect(project.sceneWeatherProfiles?.length).toBe(26);
     expect(saveCalendarProject(project).ok).toBe(true);
 
@@ -131,8 +137,12 @@ describe("calendarStorage integrity", () => {
     expect(reset.id).toBe("default-calendar");
     const loaded = loadCalendarProject(CALENDAR_STORAGE_KEY);
     expect(loaded.id).toBe("default-calendar");
+    expect(reset.seasons.length).toBe(4);
+    expect(getCurrentWeather(reset)).toBeDefined();
+    expect(reset.weatherSettings.seed).toBeTruthy();
+    expect(reset.weatherSettings.seed).not.toBe(createDefaultCalendarProject().weatherSettings.seed);
     expect(loaded.sceneWeatherProfiles?.length).toBe(26);
-
+    expect(loaded.weatherSettings.seed).toBe(reset.weatherSettings.seed);
     vi.unstubAllGlobals();
   });
 });
