@@ -7,7 +7,7 @@ import { getCurrentMoonPhases } from "../../calendar/moonLogic";
 import { getPlayerVisibleMoonEvents } from "../../calendar/moonEventsLogic";
 import { normalizePlayerViewSettings } from "../../calendar/playerViewSettings";
 import { getCurrentSeason } from "../../calendar/seasonsLogic";
-import { getConfiguredWeatherStateIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
+import { getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { getCurrentWeatherBiomeDefinition } from "../../calendar/weather/biomes";
 import { getPlayerVisibleWeatherEvents } from "../../calendar/weatherEventsLogic";
 import { getCurrentWeather, getHourlyWeatherForecast } from "../../calendar/weatherLogic";
@@ -40,6 +40,9 @@ export type PlayerWeatherViewModel = {
   broadTemperature?: string;
   broadWind?: string;
   broadRain?: string;
+  broadSoil?: string;
+  broadTrend?: string;
+  broadDominant?: string;
   narrativeLabel?: string;
 };
 
@@ -63,6 +66,11 @@ export type PlayerHourlyForecastEntry = {
   broadTemperature?: string;
   broadWind?: string;
   broadRain?: string;
+  broadTrend?: string;
+  broadSoil?: string;
+  broadDominant?: string;
+  narrativeLabel?: string;
+  forecastNarrativeLabel?: string;
 };
 
 export type PlayerViewModel = {
@@ -94,11 +102,13 @@ const compactPublicEvents = (events: PublicEventDetails[]): PublicEventDetails[]
   }));
 
 const temperatureBroadKey = (valueCelsius: number): string => {
+  if (valueCelsius < -10) return "player.weatherBroad.freezing";
   if (valueCelsius < 0) return "player.weatherBroad.cold";
   if (valueCelsius < 10) return "player.weatherBroad.cool";
   if (valueCelsius < 22) return "player.weatherBroad.mild";
   if (valueCelsius < 32) return "player.weatherBroad.warm";
-  return "player.weatherBroad.hot";
+  if (valueCelsius < 40) return "player.weatherBroad.hot";
+  return "player.weatherBroad.scorching";
 };
 
 const windBroadKey = (valueKmh: number): string => {
@@ -113,18 +123,67 @@ const rainBroadKey = (valueMm: number): string => {
   if (valueMm <= 0.05) return "player.weatherBroad.rainDry";
   if (valueMm < 1) return "player.weatherBroad.rainDrizzle";
   if (valueMm < 5) return "player.weatherBroad.rainLight";
-  return "player.weatherBroad.rainHeavy";
+  if (valueMm < 15) return "player.weatherBroad.rainModerate";
+  if (valueMm < 30) return "player.weatherBroad.rainHeavy";
+  return "player.weatherBroad.rainDeluge";
 };
+
+const soilBroadKey = (valueMm = 0): string => {
+  if (valueMm <= 0.2) return "player.weatherBroad.soilDry";
+  if (valueMm < 2) return "player.weatherBroad.soilSlightlyWet";
+  if (valueMm < 8) return "player.weatherBroad.soilWet";
+  if (valueMm < 20) return "player.weatherBroad.soilSoaked";
+  return "player.weatherBroad.soilFlooded";
+};
+
+const directionLabel = (locale: LocaleCode, direction?: WindDirection): string => direction ? t(locale, `player.weatherBroad.direction.${direction}`) : "";
+
+const sentence = (template: string, values: Record<string, string>): string =>
+  Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{${key}}`, value), template);
 
 const displayTemperatureToCelsius = (value: number, unitLabel: string): number => unitLabel === "°F" ? (value - 32) * 5 / 9 : value;
 const displayWindToKmh = (value: number, unitLabel: string): number => unitLabel === "mph" ? value / 0.621371 : value;
 const displayRainToMm = (value: number, unitLabel: string): number => unitLabel.startsWith("in") ? value * 25.4 : value;
 
-const buildBroadLabels = (locale: LocaleCode, weather: Pick<WeatherSnapshot, "temperature" | "windSpeed" | "rain">) => ({
-  broadTemperature: t(locale, temperatureBroadKey(weather.temperature)),
-  broadWind: t(locale, windBroadKey(weather.windSpeed)),
-  broadRain: t(locale, rainBroadKey(weather.rain))
-});
+const buildBroadLabels = (
+  locale: LocaleCode,
+  weather: Pick<WeatherSnapshot, "temperature" | "windSpeed" | "rain"> & Partial<Pick<WeatherSnapshot, "dailyRainTotal" | "windDirection" | "trendKind" | "dominantState" | "state">>,
+  labels?: { stateLabel?: string; dominantStateLabel?: string; trendLabel?: string; trendIcon?: string; dominantStateIcon?: string }
+) => {
+  const temperature = t(locale, temperatureBroadKey(weather.temperature));
+  const wind = t(locale, windBroadKey(weather.windSpeed));
+  const windDirection = directionLabel(locale, weather.windDirection);
+  const rain = t(locale, rainBroadKey(weather.rain));
+  const soil = t(locale, soilBroadKey(weather.dailyRainTotal ?? weather.rain));
+  const stateLabel = labels?.stateLabel ?? "";
+  const dominant = labels?.dominantStateLabel ?? stateLabel;
+  const trend = labels?.trendLabel ?? t(locale, "player.weatherBroad.trendStable");
+  const broadTemperature = `🌡️ ${t(locale, "weather.temperature")} ${temperature}`;
+  const broadWind = `🌬️ ${wind}${windDirection ? ` ${windDirection}` : ""}`;
+  const broadRain = `🌧️ ${rain}`;
+  const broadSoil = `💧 ${soil}`;
+  const broadTrend = `${labels?.trendIcon ?? "⚖️"} ${t(locale, "weather.trend")}: ${trend}`;
+  const broadDominant = `${labels?.dominantStateIcon ?? "☁️"} ${t(locale, "weather.dominantState")}: ${dominant}`;
+  const narrativeLabel = sentence(t(locale, "player.weatherNarrative.summary"), {
+    icon: labels?.dominantStateIcon ?? "☁️",
+    state: stateLabel.toLowerCase(),
+    temperature,
+    wind: `${wind}${windDirection ? ` ${windDirection}` : ""}`,
+    rain,
+    soil,
+    trend: trend.toLowerCase(),
+    dominant: dominant.toLowerCase()
+  });
+  const forecastNarrativeLabel = sentence(t(locale, "player.weatherNarrative.forecast"), {
+    icon: labels?.dominantStateIcon ?? "☁️",
+    state: stateLabel.toLowerCase(),
+    temperature,
+    wind,
+    rain,
+    trend: trend.toLowerCase()
+  });
+  return { broadTemperature, broadWind, broadRain, broadSoil, broadTrend, broadDominant, narrativeLabel, forecastNarrativeLabel };
+};
 
 const buildWeatherViewModel = (
   project: CalendarProject,
@@ -132,8 +191,14 @@ const buildWeatherViewModel = (
   detailLevel: PlayerWeatherDetailLevel
 ): PlayerWeatherViewModel => {
   const state = weather.state ?? "clear";
-  const broad = buildBroadLabels(project.locale, weather);
-  const effectiveDetailLevel = detailLevel === "narrative" ? "broad" : detailLevel;
+  const broad = buildBroadLabels(project.locale, weather, {
+    stateLabel: getWeatherStateLabel(project, state, project.locale),
+    dominantStateLabel: weather.dominantState ? getWeatherStateLabel(project, weather.dominantState, project.locale) : undefined,
+    dominantStateIcon: weather.dominantState ? getConfiguredWeatherStateIcon(project, weather.dominantState) : getConfiguredWeatherStateIcon(project, state),
+    trendLabel: weather.trendKind ? getWeatherTrendLabel(project, weather.trendKind, project.locale) : undefined,
+    trendIcon: weather.trendKind ? getConfiguredWeatherTrendIcon(project, weather.trendKind) : undefined
+  });
+  const effectiveDetailLevel = detailLevel;
   return {
     stateIcon: getConfiguredWeatherStateIcon(project, state),
     stateLabel: getWeatherStateLabel(project, state, project.locale),
@@ -160,9 +225,7 @@ const buildWeatherViewModel = (
       dominantStateKind: weather.dominantState,
       dominantStateLabel: weather.dominantState ? getWeatherStateLabel(project, weather.dominantState, project.locale) : undefined
     } : {
-      ...broad,
-      // TODO: replace broad fallback with richer narrative text.
-      narrativeLabel: detailLevel === "narrative" ? `${broad.broadTemperature} · ${broad.broadWind} · ${broad.broadRain}` : undefined
+      ...broad
     })
   };
 };
@@ -177,9 +240,20 @@ const buildWeatherViewModelFromSnapshot = (
   const broad = buildBroadLabels(snapshot.locale, {
     temperature: displayTemperatureToCelsius(snapshot.weather.temperature, snapshot.weather.units.temperature),
     windSpeed: displayWindToKmh(snapshot.weather.windSpeed, snapshot.weather.units.windSpeed),
-    rain: displayRainToMm(snapshot.weather.rain, snapshot.weather.units.rain)
+    rain: displayRainToMm(snapshot.weather.rain, snapshot.weather.units.rain),
+    dailyRainTotal: snapshot.weather.dailyRainTotal === undefined ? undefined : displayRainToMm(snapshot.weather.dailyRainTotal, snapshot.weather.units.rainTotal),
+    windDirection: snapshot.weather.windDirection,
+    trendKind: snapshot.weather.trendKind,
+    dominantState: snapshot.weather.dominantState,
+    state
+  }, {
+    stateLabel: getWeatherStateLabel(project, state, snapshot.locale),
+    dominantStateLabel: snapshot.weather.dominantState ? getWeatherStateLabel(project, snapshot.weather.dominantState, snapshot.locale) : undefined,
+    dominantStateIcon: snapshot.weather.dominantState ? getConfiguredWeatherStateIcon(project, snapshot.weather.dominantState) : getConfiguredWeatherStateIcon(project, state),
+    trendLabel: snapshot.weather.trendKind ? getWeatherTrendLabel(project, snapshot.weather.trendKind, snapshot.locale) : undefined,
+    trendIcon: snapshot.weather.trendKind ? getConfiguredWeatherTrendIcon(project, snapshot.weather.trendKind) : undefined
   });
-  const effectiveDetailLevel = detailLevel === "narrative" ? "broad" : detailLevel;
+  const effectiveDetailLevel = detailLevel;
   return {
     stateIcon: getConfiguredWeatherStateIcon(project, state),
     stateLabel: getWeatherStateLabel(project, state, snapshot.locale),
@@ -206,9 +280,7 @@ const buildWeatherViewModelFromSnapshot = (
       dominantStateKind: snapshot.weather.dominantState,
       dominantStateLabel: snapshot.weather.dominantState ? getWeatherStateLabel(project, snapshot.weather.dominantState, snapshot.locale) : undefined
     } : {
-      ...broad,
-      // TODO: replace broad fallback with richer narrative text.
-      narrativeLabel: detailLevel === "narrative" ? `${broad.broadTemperature} · ${broad.broadWind} · ${broad.broadRain}` : undefined
+      ...broad
     })
   };
 };
@@ -229,7 +301,14 @@ const buildHourlyForecastEntry = (
   detailLevel: PlayerForecastDetailLevel
 ): PlayerHourlyForecastEntry => {
   const state = weather.state ?? "clear";
-  const effectiveDetailLevel = detailLevel === "narrative" ? "broad" : detailLevel;
+  const broad = buildBroadLabels(project.locale, weather, {
+    stateLabel: getWeatherStateLabel(project, state, project.locale),
+    dominantStateLabel: weather.dominantState ? getWeatherStateLabel(project, weather.dominantState, project.locale) : undefined,
+    dominantStateIcon: weather.dominantState ? getConfiguredWeatherStateIcon(project, weather.dominantState) : getConfiguredWeatherStateIcon(project, state),
+    trendLabel: weather.trendKind ? getWeatherTrendLabel(project, weather.trendKind, project.locale) : undefined,
+    trendIcon: weather.trendKind ? getConfiguredWeatherTrendIcon(project, weather.trendKind) : undefined
+  });
+  const effectiveDetailLevel = detailLevel;
   return {
     offsetHours,
     timeLabel: forecastTimeLabel(project, offsetHours),
@@ -248,7 +327,7 @@ const buildHourlyForecastEntry = (
       rainMm: weather.rain,
       trend: weather.trendKind ? getWeatherTrendLabel(project, weather.trendKind, project.locale) : undefined,
       trendKind: weather.trendKind
-    } : buildBroadLabels(project.locale, weather))
+    } : broad)
   };
 };
 
@@ -259,7 +338,20 @@ const buildHourlyForecastEntryFromSnapshot = (
   locale: LocaleCode
 ): PlayerHourlyForecastEntry => {
   const state = entry.state ?? "clear";
-  const effectiveDetailLevel = detailLevel === "narrative" ? "broad" : detailLevel;
+  const broad = buildBroadLabels(locale, {
+    temperature: entry.temperature === undefined ? 0 : displayTemperatureToCelsius(entry.temperature, entry.units.temperature),
+    windSpeed: entry.windSpeed === undefined ? 0 : displayWindToKmh(entry.windSpeed, entry.units.windSpeed),
+    rain: entry.rain === undefined ? 0 : displayRainToMm(entry.rain, entry.units.rain),
+    windDirection: entry.windDirection,
+    trendKind: entry.trendKind,
+    state
+  }, {
+    stateLabel: entry.stateLabel ?? getWeatherStateLabel(project, state, locale),
+    dominantStateIcon: entry.stateIcon ?? getConfiguredWeatherStateIcon(project, state),
+    trendLabel: entry.trendKind ? getWeatherTrendLabel(project, entry.trendKind, locale) : undefined,
+    trendIcon: entry.trendKind ? getConfiguredWeatherTrendIcon(project, entry.trendKind) : undefined
+  });
+  const effectiveDetailLevel = detailLevel;
   return {
     offsetHours: entry.offsetHours,
     timeLabel: entry.timeLabel,
@@ -278,11 +370,7 @@ const buildHourlyForecastEntryFromSnapshot = (
       rainMm: entry.rain === undefined ? undefined : displayRainToMm(entry.rain, entry.units.rain),
       trend: entry.trendKind ? getWeatherTrendLabel(project, entry.trendKind, locale) : undefined,
       trendKind: entry.trendKind
-    } : buildBroadLabels(locale, {
-      temperature: entry.temperature === undefined ? 0 : displayTemperatureToCelsius(entry.temperature, entry.units.temperature),
-      windSpeed: entry.windSpeed === undefined ? 0 : displayWindToKmh(entry.windSpeed, entry.units.windSpeed),
-      rain: entry.rain === undefined ? 0 : displayRainToMm(entry.rain, entry.units.rain)
-    }))
+    } : broad)
   };
 };
 

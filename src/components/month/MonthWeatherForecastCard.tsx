@@ -26,15 +26,15 @@ export const MonthWeatherForecastCard = ({ project, locale, forecast, mode = "gm
     ? (publicMonth?.dailyForecast ?? []).map((entry) => ({
       key: String(entry.absoluteDay),
       title: entry.dateLabel,
-      rows: [
+      rows: (detailLevel === "narrative" ? [entry.narrativeLabel] : [
         `${entry.stateIcon} ${entry.stateLabel}`,
         ...(detailLevel === "precise" ? [
           entry.averageTemperature !== undefined && entry.averageTemperatureCelsius !== undefined ? `${getTemperatureIcon(entry.averageTemperatureCelsius)} ${entry.averageTemperature} ${entry.units.temperature}` : undefined,
           entry.averageWindSpeed !== undefined && entry.averageWindSpeedKmh !== undefined ? <span key="wind">{getWindSpeedIcon(entry.averageWindSpeedKmh)} {entry.averageWindSpeed} {entry.units.windSpeed}{entry.dominantWindDirection ? <span title={entry.dominantWindDirection}> {getWindDirectionIcon(entry.dominantWindDirection)}</span> : null}</span> : undefined,
           entry.rainTotal24h !== undefined ? `${t(displayLocale, "weather.rainAccumulation")}: ${entry.rainTotal24h} ${entry.units.rainTotal}` : undefined,
           entry.trendIcon && entry.trendLabel ? `${entry.trendIcon} ${entry.trendLabel}` : undefined
-        ] : [entry.broadLabel])
-      ].filter(Boolean) as React.ReactNode[]
+        ] : [entry.broadTemperature, entry.broadWind, entry.broadRain, entry.broadSoil, entry.broadTrend, entry.broadDominant])
+      ]).filter(Boolean) as React.ReactNode[]
     }))
     : project ? forecast.map((entry) => ({
       key: String(entry.absoluteDay),

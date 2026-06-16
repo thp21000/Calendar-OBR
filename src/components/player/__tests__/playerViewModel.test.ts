@@ -188,7 +188,48 @@ it("masque les chiffres météo en niveau large", () => {
   expect(model.weather?.temperature).toBeUndefined();
   expect(model.weather?.wind).toBeUndefined();
   expect(model.weather?.rain).toBeUndefined();
-  expect(model.weather?.broadTemperature).toBe("doux");
+  expect(model.weather?.broadTemperature).toContain("🌡️");
+  expect(model.weather?.broadTemperature).toContain("doux");
+  expect(model.weather?.broadWind).toContain("🌬️");
+  expect(model.weather?.broadRain).toContain("🌧️");
+  expect([model.weather?.broadTemperature, model.weather?.broadWind, model.weather?.broadRain, model.weather?.broadSoil, model.weather?.broadTrend, model.weather?.broadDominant].join(" ")).not.toMatch(/\d/);
+});
+
+it("produit une météo narrative différente du mode large", () => {
+  const project = baseProject();
+  const snapshot: PublicCalendarTodaySnapshot = {
+    schemaVersion: 1,
+    revision: 1,
+    updatedAt: 1,
+    calendarName: "Snapshot Calendar",
+    locale: "fr",
+    currentTime: project.currentTime,
+    formattedDate: "Lundi 1 janvier 1000, 08:00",
+    weatherBiome: { name: "Forêt", icon: "🌲", description: "Bois" },
+    moons: [],
+    eventsToday: [],
+    weatherEventsToday: [],
+    moonEventsToday: [],
+    dayNotesToday: [],
+    playerView: {
+      ...DEFAULT_PLAYER_VIEW_SETTINGS,
+      today: { ...DEFAULT_PLAYER_VIEW_SETTINGS.today, weatherDetailLevel: "narrative" }
+    },
+    weather: {
+      temperature: 68,
+      windSpeed: 31,
+      windDirection: "E",
+      rain: 1,
+      state: "cloudy",
+      units: { temperature: "°F", windSpeed: "mph", rain: "in/h", rainTotal: "in" }
+    }
+  };
+
+  const model = buildPlayerViewModelFromSnapshot(project, snapshot);
+
+  expect(model.weather?.narrativeLabel).toContain(".");
+  expect(model.weather?.narrativeLabel).not.toBe(model.weather?.broadTemperature);
+  expect(model.weather?.narrativeLabel).not.toMatch(/\d/);
 });
 
 it("conserve la prévision snapshot déjà convertie", () => {

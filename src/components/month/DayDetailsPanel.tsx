@@ -36,11 +36,17 @@ export const DayDetailsPanel = ({ project, locale, dayDetails, notes, onClose, o
   ].filter((item): item is JSX.Element => Boolean(item)) : [];
 
   const weatherLine = isPlayer && publicDay ? (visibility?.showWeatherSummary && publicDay.weatherSummary ? [
-    <span key="state">{publicDay.weatherSummary.stateIcon} {publicDay.weatherSummary.stateLabel}</span>,
-    publicDay.weatherSummary.temperatureLabel && publicDay.weatherSummary.temperatureCelsius !== undefined ? <span key="temp">{getTemperatureIcon(publicDay.weatherSummary.temperatureCelsius)} {publicDay.weatherSummary.temperatureLabel}</span> : undefined,
-    publicDay.weatherSummary.windSpeedLabel && publicDay.weatherSummary.windSpeedKmh !== undefined ? <span key="wind">{getWindSpeedIcon(publicDay.weatherSummary.windSpeedKmh)} {publicDay.weatherSummary.windSpeedLabel}{publicDay.weatherSummary.windDirection ? <span title={publicDay.weatherSummary.windDirection}> {getWindDirectionIcon(publicDay.weatherSummary.windDirection)}</span> : null}</span> : undefined,
-    publicDay.weatherSummary.rainTotalLabel ? <span key="rain">24 h: {publicDay.weatherSummary.rainTotalLabel}</span> : undefined,
-    publicDay.weatherSummary.broadLabel ? <span key="broad">{publicDay.weatherSummary.broadLabel}</span> : undefined
+    publicDay.weatherSummary.narrativeLabel ? <span key="narrative" style={{ whiteSpace: "normal" }}>{publicDay.weatherSummary.narrativeLabel}</span> : <span key="state">{publicDay.weatherSummary.stateIcon} {publicDay.weatherSummary.stateLabel}</span>,
+    !publicDay.weatherSummary.narrativeLabel && publicDay.weatherSummary.temperatureLabel && publicDay.weatherSummary.temperatureCelsius !== undefined ? <span key="temp">{getTemperatureIcon(publicDay.weatherSummary.temperatureCelsius)} {publicDay.weatherSummary.temperatureLabel}</span> : undefined,
+    !publicDay.weatherSummary.narrativeLabel && publicDay.weatherSummary.windSpeedLabel && publicDay.weatherSummary.windSpeedKmh !== undefined ? <span key="wind">{getWindSpeedIcon(publicDay.weatherSummary.windSpeedKmh)} {publicDay.weatherSummary.windSpeedLabel}{publicDay.weatherSummary.windDirection ? <span title={publicDay.weatherSummary.windDirection}> {getWindDirectionIcon(publicDay.weatherSummary.windDirection)}</span> : null}</span> : undefined,
+    !publicDay.weatherSummary.narrativeLabel && publicDay.weatherSummary.rainTotalLabel ? <span key="rain">24 h: {publicDay.weatherSummary.rainTotalLabel}</span> : undefined,
+    !publicDay.weatherSummary.narrativeLabel && publicDay.weatherSummary.broadTemperature ? <span key="broad-temp">{publicDay.weatherSummary.broadTemperature}</span> : undefined,
+    !publicDay.weatherSummary.narrativeLabel && publicDay.weatherSummary.broadWind ? <span key="broad-wind">{publicDay.weatherSummary.broadWind}</span> : undefined,
+    !publicDay.weatherSummary.narrativeLabel && publicDay.weatherSummary.broadRain ? <span key="broad-rain">{publicDay.weatherSummary.broadRain}</span> : undefined,
+    !publicDay.weatherSummary.narrativeLabel && publicDay.weatherSummary.broadSoil ? <span key="broad-soil">{publicDay.weatherSummary.broadSoil}</span> : undefined,
+    !publicDay.weatherSummary.narrativeLabel && publicDay.weatherSummary.broadTrend ? <span key="broad-trend">{publicDay.weatherSummary.broadTrend}</span> : undefined,
+    !publicDay.weatherSummary.narrativeLabel && publicDay.weatherSummary.broadDominant ? <span key="broad-dominant">{publicDay.weatherSummary.broadDominant}</span> : undefined,
+    !publicDay.weatherSummary.narrativeLabel && !publicDay.weatherSummary.broadTemperature && publicDay.weatherSummary.broadLabel ? <span key="broad">{publicDay.weatherSummary.broadLabel}</span> : undefined
   ].filter((item): item is JSX.Element => Boolean(item)) : []) : project && dayDetails ? (dayDetails.dailyWeather ? [
     <span key="state">{getConfiguredWeatherStateIcon(project, dayDetails.dailyWeather.dominantState)} {getWeatherStateLabel(project, dayDetails.dailyWeather.dominantState)}</span>,
     <span key="temp">{getTemperatureIcon(dayDetails.dailyWeather.averageTemperature)} {formatTemperature(dayDetails.dailyWeather.averageTemperature, project.units, project.locale)}</span>,
@@ -48,7 +54,8 @@ export const DayDetailsPanel = ({ project, locale, dayDetails, notes, onClose, o
     <span key="rain">24 h: {formatRainTotal(dayDetails.dailyWeather.rainTotal24h, project.units, project.locale)}</span>
   ] : [<span key="empty">{t(project.locale, "calendar.noWeather")}</span>]) : [];
 
-  const trendText = isPlayer && publicDay?.weatherSummary && (publicDay.weatherSummary.trendLabel || publicDay.weatherSummary.dominantStateLabel)
+  const playerWeatherUsesInlineDetail = isPlayer && publicDay?.weatherSummary && (publicDay.weatherSummary.narrativeLabel || publicDay.weatherSummary.broadTrend || publicDay.weatherSummary.broadDominant);
+  const trendText = !playerWeatherUsesInlineDetail && isPlayer && publicDay?.weatherSummary && (publicDay.weatherSummary.trendLabel || publicDay.weatherSummary.dominantStateLabel)
     ? `${publicDay.weatherSummary.trendIcon && publicDay.weatherSummary.trendLabel ? `${publicDay.weatherSummary.trendIcon} ${t(displayLocale, "weather.trend")}: ${publicDay.weatherSummary.trendLabel}` : ""}${publicDay.weatherSummary.trendLabel && publicDay.weatherSummary.dominantStateLabel ? " · " : ""}${publicDay.weatherSummary.dominantState && publicDay.weatherSummary.dominantStateLabel ? `${t(displayLocale, "weather.dominantState")}: ${publicDay.weatherSummary.dominantStateIcon ?? publicDay.weatherSummary.stateIcon} ${publicDay.weatherSummary.dominantStateLabel}` : ""}`
     : !isPlayer && project && dayDetails && (dayDetails.dailyWeather?.trendKind || dayDetails.dailyWeather?.dominantState)
       ? `${dayDetails.dailyWeather?.trendKind ? `${getConfiguredWeatherTrendIcon(project, dayDetails.dailyWeather.trendKind)} ${t(project.locale, "weather.trend")}: ${getWeatherTrendLabel(project, dayDetails.dailyWeather.trendKind)}` : ""}${dayDetails.dailyWeather?.trendKind && dayDetails.dailyWeather?.dominantState ? " · " : ""}${dayDetails.dailyWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${getWeatherStateLabel(project, dayDetails.dailyWeather.dominantState)}` : ""}`
