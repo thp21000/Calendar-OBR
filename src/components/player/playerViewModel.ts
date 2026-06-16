@@ -286,32 +286,6 @@ const buildHourlyForecastEntryFromSnapshot = (
   };
 };
 
-const buildHourlyForecastEntryFromSnapshot = (
-  project: CalendarProject,
-  entry: PublicHourlyForecastSnapshot,
-  detailLevel: PlayerForecastDetailLevel,
-  locale: LocaleCode
-): PlayerHourlyForecastEntry => {
-  const state = entry.state ?? "clear";
-  const effectiveDetailLevel = detailLevel === "narrative" ? "broad" : detailLevel;
-  return {
-    offsetHours: entry.offsetHours,
-    timeLabel: entry.timeLabel,
-    stateIcon: entry.stateIcon ?? getConfiguredWeatherStateIcon(project, state),
-    stateLabel: entry.stateLabel ?? getWeatherStateLabel(project, state, locale),
-    detailLevel: effectiveDetailLevel,
-    ...(effectiveDetailLevel === "precise" ? {
-      temperature: entry.temperature === undefined ? undefined : `${entry.temperature} ${entry.units.temperature}`,
-      wind: entry.windSpeed === undefined ? undefined : `${entry.windDirection ? `${entry.windDirection} · ` : ""}${entry.windSpeed} ${entry.units.windSpeed}`,
-      rain: entry.rain === undefined ? undefined : `${entry.rain} ${entry.units.rain}`
-    } : buildBroadLabels(locale, {
-      temperature: entry.temperature === undefined ? 0 : displayTemperatureToCelsius(entry.temperature, entry.units.temperature),
-      windSpeed: entry.windSpeed === undefined ? 0 : displayWindToKmh(entry.windSpeed, entry.units.windSpeed),
-      rain: entry.rain === undefined ? 0 : displayRainToMm(entry.rain, entry.units.rain)
-    }))
-  };
-};
-
 const buildDateParts = (project: CalendarProject, time = project.currentTime): string[] => {
   const date = absoluteDayToCalendarDate(time, project.calendarSystem);
   return [
