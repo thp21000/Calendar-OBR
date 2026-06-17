@@ -145,7 +145,7 @@ Il doit afficher immédiatement :
 
 Le MJ peut définir un **Contexte d’aventure** séparé du biome météo. Le biome décrit le terrain ou le climat général utilisé par la génération météo ; le Contexte d’aventure décrit la situation actuelle des PJ (lieu, activité ou contexte Kingmaker) et ne modifie aucune métrique météo.
 
-Le projet conserve un contexte principal unique, plusieurs contextes secondaires et la liste des contextes disponibles. Ce contexte sert de condition réutilisable pour filtrer les événements datés et déclencher les événements météo, sans transformer ces événements en données météo ni modifier les packs Kingmaker existants.
+Le projet conserve une liste unique de contextes actifs (`activeContextIds`) et la liste des contextes disponibles. Les anciens champs `primaryContextId` et `secondaryContextIds` sont migrés doucement vers cette liste active. Ce contexte sert de condition réutilisable (`any`, `all`, `none`) pour filtrer les événements datés et déclencher les événements météo, sans transformer ces événements en données météo.
 
 ### Éléments affichés
 

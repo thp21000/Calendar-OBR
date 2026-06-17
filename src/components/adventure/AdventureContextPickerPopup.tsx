@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getAdventureContextLabel, normalizeAdventureContext, setPrimaryAdventureContext, setSecondaryAdventureContexts } from "../../calendar/adventureContext";
+import { getAdventureContextLabel, normalizeAdventureContext, setActiveAdventureContexts } from "../../calendar/adventureContext";
 import type { AdventureContextCategory, CalendarProject } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { SecondaryButton } from "../ui";
@@ -9,12 +9,10 @@ const categories: AdventureContextCategory[] = ["location", "activity", "kingmak
 
 export const AdventureContextPickerPopup = ({ project, onClose, onApply }: { project: CalendarProject; onClose: () => void; onApply: (project: CalendarProject) => void }) => {
   const state = normalizeAdventureContext(project.adventureContext);
-  const [primaryContextId, setPrimaryContextId] = useState<string>(state.primaryContextId ?? "");
-  const [secondaryContextIds, setSecondaryContextIds] = useState<string[]>(state.secondaryContextIds);
+  const [activeContextIds, setActiveContextIds] = useState<string[]>(state.activeContextIds);
 
   const apply = () => {
-    const withPrimary = setPrimaryAdventureContext(project, primaryContextId || null);
-    onApply(setSecondaryAdventureContexts(withPrimary, secondaryContextIds));
+    onApply(setActiveAdventureContexts(project, activeContextIds));
     onClose();
   };
 
@@ -25,16 +23,12 @@ export const AdventureContextPickerPopup = ({ project, onClose, onApply }: { pro
           <h2 style={{ margin: 0, fontSize: 16 }}>{t(project.locale, "adventureContext.title")}</h2>
           <button type="button" onClick={onClose} style={closeButtonStyle}>×</button>
         </div>
-        <label style={fieldStyle}>
-          <span style={labelStyle}>{t(project.locale, "adventureContext.primary")}</span>
-          <select value={primaryContextId} onChange={(event) => setPrimaryContextId(event.target.value)} style={inputStyle}>
-            <option value="">{t(project.locale, "adventureContext.none")}</option>
-            {state.availableContexts.filter((context) => context.enabled).map((context) => <option key={context.id} value={context.id}>{context.icon} {getAdventureContextLabel(context, project.locale)}</option>)}
-          </select>
-        </label>
+        <div style={{ display: "grid", gap: 4 }}>
+          <div style={labelStyle}>{t(project.locale, "adventureContext.activeContexts")}</div>
+          <div style={hintStyle}>{t(project.locale, "adventureContext.activeHelp")}</div>
+        </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <SecondaryButton type="button" onClick={() => setPrimaryContextId("")}>{t(project.locale, "adventureContext.clearPrimary")}</SecondaryButton>
-          <SecondaryButton type="button" onClick={() => setSecondaryContextIds([])}>{t(project.locale, "adventureContext.clearSecondary")}</SecondaryButton>
+          <SecondaryButton type="button" onClick={() => setActiveContextIds([])}>{t(project.locale, "adventureContext.clearAll")}</SecondaryButton>
         </div>
         {categories.map((category) => {
           const contexts = state.availableContexts.filter((context) => context.enabled && context.category === category);
@@ -42,14 +36,13 @@ export const AdventureContextPickerPopup = ({ project, onClose, onApply }: { pro
             <h3 style={categoryTitleStyle}>{t(project.locale, `adventureContext.category.${category}`)}</h3>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {contexts.map((context) => {
-                const checked = secondaryContextIds.includes(context.id);
+                const checked = activeContextIds.includes(context.id);
                 return <label key={context.id} title={context.description?.[project.locale]} style={{ ...tagStyle, borderColor: checked ? ui.colors.accent : ui.colors.border, background: checked ? "rgba(59,130,246,0.18)" : ui.colors.surface }}>
-                  <input type="checkbox" checked={checked} disabled={context.id === primaryContextId} onChange={(event) => {
-                    const next = new Set(secondaryContextIds);
+                  <input type="checkbox" checked={checked} onChange={(event) => {
+                    const next = new Set(activeContextIds);
                     if (event.target.checked) next.add(context.id);
                     else next.delete(context.id);
-                    next.delete(primaryContextId);
-                    setSecondaryContextIds([...next]);
+                    setActiveContextIds([...next]);
                   }} />
                   <span>{context.icon} {getAdventureContextLabel(context, project.locale)}</span>
                 </label>;
@@ -69,9 +62,8 @@ export const AdventureContextPickerPopup = ({ project, onClose, onApply }: { pro
 const backdropStyle: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(2,6,23,0.7)", zIndex: 60, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 12, overflowY: "auto" };
 const modalStyle: React.CSSProperties = { width: "min(620px, 100%)", background: ui.colors.surfaceElevated, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.lg, padding: ui.spacing.md, display: "grid", gap: 10, color: ui.colors.textPrimary };
 const closeButtonStyle: React.CSSProperties = { border: 0, background: "transparent", color: ui.colors.textSecondary, cursor: "pointer", fontSize: 22 };
-const fieldStyle: React.CSSProperties = { display: "grid", gap: 4 };
 const labelStyle: React.CSSProperties = { fontSize: 12, color: ui.colors.textSecondary };
-const inputStyle: React.CSSProperties = { background: ui.colors.surface, border: `1px solid ${ui.colors.border}`, color: ui.colors.textPrimary, borderRadius: ui.radius.md, padding: "7px 8px" };
+const hintStyle: React.CSSProperties = { fontSize: 12, color: ui.colors.textSecondary };
 const categoryStyle: React.CSSProperties = { border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm, display: "grid", gap: 8 };
 const categoryTitleStyle: React.CSSProperties = { margin: 0, fontSize: 13 };
 const tagStyle: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 5, border: `1px solid ${ui.colors.border}`, borderRadius: 999, padding: "4px 8px", fontSize: 12, cursor: "pointer" };

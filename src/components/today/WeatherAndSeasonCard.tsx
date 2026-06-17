@@ -106,8 +106,7 @@ export const TodayStatusSummary = ({
   ].filter((item): item is JSX.Element => Boolean(item));
 
   const adventureContextState = normalizeAdventureContext(project.adventureContext);
-  const primaryAdventureContext = !isPlayer && adventureContextState.primaryContextId ? getAdventureContextById({ ...project, adventureContext: adventureContextState }, adventureContextState.primaryContextId) : undefined;
-  const secondaryAdventureContexts = !isPlayer ? adventureContextState.secondaryContextIds.map((id) => getAdventureContextById({ ...project, adventureContext: adventureContextState }, id)).filter((context): context is NonNullable<typeof context> => Boolean(context)) : [];
+  const activeAdventureContexts = !isPlayer ? adventureContextState.activeContextIds.map((id) => getAdventureContextById({ ...project, adventureContext: adventureContextState }, id)).filter((context): context is NonNullable<typeof context> => Boolean(context)) : [];
 
   const biomeView = showBiome ? (isPlayer && playerModel?.biome ? {
     icon: playerModel.biome.icon,
@@ -161,10 +160,9 @@ export const TodayStatusSummary = ({
     <SectionCard style={{ background: ui.colors.surfaceElevated, borderColor: "#475569", boxShadow: "0 2px 10px rgba(2,6,23,0.22)" }}>
       {topLineItems.length > 0 ? <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 800, lineHeight: 1.25 }}>{topLineItems}</div> : null}
       {biomeView ? <div style={biomeInlineStyle}><span style={biomeIconStyle}>{biomeView.icon}</span><div style={biomeTextStyle}><strong>{biomeView.label}</strong><span style={biomeDescriptionStyle}>{biomeView.description}</span></div></div> : null}
-      {!isPlayer && (primaryAdventureContext || secondaryAdventureContexts.length > 0) ? <div style={adventureContextInlineStyle}>
+      {!isPlayer && activeAdventureContexts.length > 0 ? <div style={adventureContextInlineStyle}>
         <strong>{t(project.locale, "adventureContext.current")}</strong>
-        <span>{primaryAdventureContext ? `${primaryAdventureContext.icon} ${getAdventureContextLabel(primaryAdventureContext, project.locale)}` : t(project.locale, "adventureContext.none")}</span>
-        {secondaryAdventureContexts.map((context) => <Badge key={context.id}>{context.icon} {getAdventureContextLabel(context, project.locale)}</Badge>)}
+        {activeAdventureContexts.map((context) => <Badge key={context.id}>{context.icon} {getAdventureContextLabel(context, project.locale)}</Badge>)}
       </div> : null}
       {weatherNodes.length > 0 ? <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, rowGap: 6, fontSize: 13 }}>{weatherNodes}</div> : null}
       {trendText ? <div style={{ marginTop: 6, fontSize: 11, color: "#94a3b8" }}>{trendText}</div> : null}

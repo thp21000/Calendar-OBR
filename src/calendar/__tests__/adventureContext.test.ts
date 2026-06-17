@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { areCalendarEventConditionsMet, getEventsForDay } from "../eventsLogic";
-import { DEFAULT_ADVENTURE_CONTEXTS, isAdventureContextConditionMet, normalizeAdventureContext, setPrimaryAdventureContext, setSecondaryAdventureContexts } from "../adventureContext";
+import { DEFAULT_ADVENTURE_CONTEXTS, isAdventureContextConditionMet, normalizeAdventureContext, setActiveAdventureContexts } from "../adventureContext";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
 import { exportCalendarProject, sanitizeCalendarProject } from "../../importExport/calendarImportExport";
 import { buildCalendarConfigurationFile, applyCalendarConfigurationFile } from "../calendarConfigurationFile";
@@ -37,7 +37,7 @@ const event = (conditions?: CalendarEvent["conditions"]): CalendarEvent => ({
 const weatherEvent = (contextIds: string[]): WeatherEvent => ({
   id: "weather-event-1",
   name: "Context weather event",
-  conditions: [{ type: "adventureContext", mode: "any", contextIds, includePrimary: true, includeSecondary: true }],
+  conditions: [{ type: "adventureContext", mode: "any", contextIds }],
   requireAllConditions: true,
   enabled: true,
   status: "active"
@@ -46,73 +46,63 @@ const weatherEvent = (contextIds: string[]): WeatherEvent => ({
 describe("adventure context", () => {
   it("initializes missing adventureContext with all default contexts", () => {
     const state = normalizeAdventureContext(undefined);
-    expect(state.primaryContextId).toBeNull();
-    expect(state.secondaryContextIds).toEqual([]);
+    expect(state.activeContextIds).toEqual([]);
     expect(state.availableContexts).toHaveLength(DEFAULT_ADVENTURE_CONTEXTS.length);
     expect(state.availableContexts.map((context) => context.id)).toContain("road");
   });
 
-  it("preserves custom contexts and adds missing defaults", () => {
+  it("preserves custom contexts, migrates legacy selections and adds missing defaults", () => {
     const state = normalizeAdventureContext({
       primaryContextId: "custom-context",
-      secondaryContextIds: ["road"],
+      secondaryContextIds: ["road", "road"],
       availableContexts: [{ id: "custom-context", label: { fr: "Custom", en: "Custom" }, icon: "⭐", category: "activity", enabled: true }]
     });
-    expect(state.primaryContextId).toBe("custom-context");
+    expect(state.activeContextIds).toEqual(["custom-context", "road"]);
     expect(state.availableContexts.some((context) => context.id === "custom-context")).toBe(true);
     expect(state.availableContexts).toHaveLength(DEFAULT_ADVENTURE_CONTEXTS.length + 1);
   });
 
-  it("selects a primary context and multiple secondary contexts", () => {
-    let project = createDefaultCalendarProject();
-    project = setPrimaryAdventureContext(project, "road");
-    project = setSecondaryAdventureContexts(project, ["travel", "hexploration"]);
-    expect(project.adventureContext?.primaryContextId).toBe("road");
-    expect(project.adventureContext?.secondaryContextIds).toEqual(["travel", "hexploration"]);
+  it("selects multiple active contexts", () => {
+    const project = setActiveAdventureContexts(createDefaultCalendarProject(), ["road", "travel", "hexploration", "road"]);
+    expect(project.adventureContext?.activeContextIds).toEqual(["road", "travel", "hexploration"]);
   });
 
-  it("supports allContexts, primaryOnly, secondaryOnly and legacy include flags", () => {
-    let project = setPrimaryAdventureContext(createDefaultCalendarProject(), "road");
-    project = setSecondaryAdventureContexts(project, ["travel", "hexploration"]);
-    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "allContexts", contextIds: ["road"] })).toBe(true);
-    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "allContexts", contextIds: ["travel"] })).toBe(true);
-    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "primaryOnly", contextIds: ["travel"] })).toBe(false);
-    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "secondaryOnly", contextIds: ["road"] })).toBe(false);
-    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", contextIds: ["road"], includePrimary: true, includeSecondary: false })).toBe(true);
-    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", contextIds: ["travel"], includePrimary: false, includeSecondary: true })).toBe(true);
+  it("evaluates any, all and none against the active context list", () => {
+    const project = setActiveAdventureContexts(createDefaultCalendarProject(), ["road", "travel", "hexploration"]);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", contextIds: ["road"] })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", contextIds: ["marsh", "travel"] })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "all", contextIds: ["road", "travel"] })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "all", contextIds: ["road", "marsh"] })).toBe(false);
     expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "none", contextIds: ["marsh"] })).toBe(true);
-    });
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "none", contextIds: ["road"] })).toBe(false);
+  });
 
-  it("supports primaryAndAnySecondary target", () => {
-    const ids = ["camp", "woods", "rest"];
-    expect(isAdventureContextConditionMet(setPrimaryAdventureContext(createDefaultCalendarProject(), "camp"), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(false);
-    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(createDefaultCalendarProject(), ["camp"]), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(false);
-    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "camp"), ["road"]), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(false);
-    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "camp"), ["woods"]), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(true);
-    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "woods"), ["rest"]), { type: "adventureContext", mode: "none", target: "primaryAndAnySecondary", contextIds: ids })).toBe(true);
-    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "road"), ["camp", "woods"]), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(false);
-    expect(isAdventureContextConditionMet(setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "camp"), ["woods", "rest"]), { type: "adventureContext", mode: "any", target: "primaryAndAnySecondary", contextIds: ids })).toBe(true);
+  it("ignores legacy condition scope fields and keeps primaryAndAnySecondary permissive", () => {
+    const project = setActiveAdventureContexts(createDefaultCalendarProject(), ["camp"]);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "primaryOnly", contextIds: ["camp"], includePrimary: true, includeSecondary: false })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "secondaryOnly", contextIds: ["camp"], includePrimary: false, includeSecondary: true })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "all", target: "primaryAndAnySecondary", contextIds: ["camp", "woods"] })).toBe(true);
   });
 
   it("filters weather events by adventure context", () => {
-    const project = setPrimaryAdventureContext(createDefaultCalendarProject(), "road");
+    const project = setActiveAdventureContexts(createDefaultCalendarProject(), ["road"]);
     expect(isWeatherEventTriggered(weather, weatherEvent(["road"]), { project, time: project.currentTime })).toBe(true);
     expect(isWeatherEventTriggered(weather, weatherEvent(["marsh"]), { project, time: project.currentTime })).toBe(false);
   });
 
   it("keeps dated events without conditions visible and filters conditioned events", () => {
-    let project = setPrimaryAdventureContext(createDefaultCalendarProject(), "road");
+    let project = setActiveAdventureContexts(createDefaultCalendarProject(), ["road"]);
     project = { ...project, events: [event(), event([{ type: "adventureContext", mode: "any", contextIds: ["road"] }]), { ...event([{ type: "adventureContext", mode: "any", contextIds: ["marsh"] }]), id: "event-3", name: "Hidden" }] };
     expect(areCalendarEventConditionsMet(project, project.events[0])).toBe(true);
     expect(getEventsForDay(project, { year: 1000, monthId: "month-1", dayOfMonth: 1, hour: 0, minute: 0 }).map((item) => item.name)).toEqual(["Visible event", "Visible event"]);
   });
 
   it("preserves adventure context through export/import and configuration files", () => {
-    const source = setSecondaryAdventureContexts(setPrimaryAdventureContext(createDefaultCalendarProject(), "woods"), ["exploration"]);
+    const source = setActiveAdventureContexts(createDefaultCalendarProject(), ["woods", "exploration"]);
     const sanitized = sanitizeCalendarProject(JSON.parse(exportCalendarProject(source)));
-    expect(sanitized.ok && sanitized.project.adventureContext?.primaryContextId).toBe("woods");
+    expect(sanitized.ok && sanitized.project.adventureContext?.activeContextIds).toEqual(["woods", "exploration"]);
     const config = buildCalendarConfigurationFile(source);
     const applied = applyCalendarConfigurationFile(createDefaultCalendarProject(), config);
-    expect(applied.ok && applied.project.adventureContext?.secondaryContextIds).toEqual(["exploration"]);
+    expect(applied.ok && applied.project.adventureContext?.activeContextIds).toEqual(["woods", "exploration"]);
   });
 });

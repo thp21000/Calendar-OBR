@@ -98,8 +98,7 @@ const mergeDefaultDefinition = (existing: AdventureContextDefinition, fallback: 
 });
 
 export const createDefaultAdventureContext = (): AdventureContextState => ({
-  primaryContextId: null,
-  secondaryContextIds: [],
+  activeContextIds: [],
   availableContexts: clone(DEFAULT_ADVENTURE_CONTEXTS)
 });
 
@@ -114,11 +113,13 @@ export const normalizeAdventureContext = (input: unknown): AdventureContextState
   }
   const availableContexts = Array.from(byId.values());
   const validIds = new Set(availableContexts.map((definition) => definition.id));
-  const primaryContextId = typeof source.primaryContextId === "string" && validIds.has(source.primaryContextId) ? source.primaryContextId : null;
-  const secondaryContextIds = Array.isArray(source.secondaryContextIds)
-    ? Array.from(new Set(source.secondaryContextIds.filter((id): id is string => typeof id === "string" && validIds.has(id) && id !== primaryContextId)))
-    : [];
-  return { primaryContextId, secondaryContextIds, availableContexts };
+  const legacyIds = [
+    typeof source.primaryContextId === "string" ? source.primaryContextId : undefined,
+    ...(Array.isArray(source.secondaryContextIds) ? source.secondaryContextIds : [])
+  ];
+  const rawActiveIds = Array.isArray(source.activeContextIds) ? source.activeContextIds : legacyIds;
+  const activeContextIds = Array.from(new Set(rawActiveIds.filter((id): id is string => typeof id === "string" && validIds.has(id))));
+  return { activeContextIds, availableContexts };
 };
 
 export const ensureAdventureContext = (project: CalendarProject): CalendarProject => ({
@@ -131,24 +132,8 @@ export const getAdventureContextLabel = (definition: AdventureContextDefinition,
 export const getAdventureContextById = (project: CalendarProject, id: string): AdventureContextDefinition | undefined =>
   normalizeAdventureContext(project.adventureContext).availableContexts.find((definition) => definition.id === id);
 
-export const getAdventureContextConditionTarget = (condition: Pick<AdventureContextCondition, "target" | "includePrimary" | "includeSecondary">): AdventureContextConditionTarget => {
-  if (condition.target === "allContexts" || condition.target === "primaryOnly" || condition.target === "secondaryOnly" || condition.target === "primaryAndAnySecondary") return condition.target;
-  if (condition.includePrimary === true && condition.includeSecondary === false) return "primaryOnly";
-  if (condition.includePrimary === false && condition.includeSecondary === true) return "secondaryOnly";
-  return "allContexts";
-};
-
-export const getActiveAdventureContextIds = (
-  project: Pick<CalendarProject, "adventureContext">,
-  includePrimary = true,
-  includeSecondary = true
-): string[] => {
-  const state = normalizeAdventureContext(project.adventureContext);
-  const ids: string[] = [];
-  if (includePrimary && state.primaryContextId) ids.push(state.primaryContextId);
-  if (includeSecondary) ids.push(...state.secondaryContextIds);
-  return Array.from(new Set(ids));
-};
+export const getActiveAdventureContextIds = (project: Pick<CalendarProject, "adventureContext">): string[] =>
+  normalizeAdventureContext(project.adventureContext).activeContextIds;
 
 const evaluateMode = (mode: AdventureContextCondition["mode"], activeIds: string[], requiredIds: string[]): boolean => {
   const active = new Set(activeIds);
@@ -159,28 +144,20 @@ const evaluateMode = (mode: AdventureContextCondition["mode"], activeIds: string
   return required.some((id) => active.has(id));
 };
 
+const normalizeLegacyConditionMode = (condition: AdventureContextCondition): AdventureContextCondition["mode"] =>
+  condition.target === "primaryAndAnySecondary" ? "any" : condition.mode;
+
 export const getAdventureContextConditionDetails = (project: Pick<CalendarProject, "adventureContext">, condition: AdventureContextCondition) => {
   const state = normalizeAdventureContext(project.adventureContext);
-  const target = getAdventureContextConditionTarget(condition);
   const required = Array.from(new Set(condition.contextIds ?? []));
-  const primaryMatches = Boolean(state.primaryContextId && required.includes(state.primaryContextId));
-  const secondaryMatches = state.secondaryContextIds.some((id) => required.includes(id));
-  const activeIds = target === "primaryOnly"
-    ? (state.primaryContextId ? [state.primaryContextId] : [])
-    : target === "secondaryOnly"
-      ? state.secondaryContextIds
-      : getActiveAdventureContextIds({ adventureContext: state }, true, true);
-  const result = target === "primaryAndAnySecondary"
-    ? primaryMatches && secondaryMatches
-    : evaluateMode(condition.mode, activeIds, required);
+  const mode = normalizeLegacyConditionMode(condition);
+  const result = evaluateMode(mode, state.activeContextIds, required);
+  const matchingContextIds = required.filter((id) => state.activeContextIds.includes(id));
   return {
-    target,
-    mode: target === "primaryAndAnySecondary" ? "any" as const : condition.mode,
-    primaryContextId: state.primaryContextId,
-    secondaryContextIds: state.secondaryContextIds,
+    mode,
+    activeContextIds: state.activeContextIds,
     contextIds: required,
-    primaryMatches,
-    secondaryMatches,
+    matchingContextIds,
     result
   };
 };
@@ -188,15 +165,14 @@ export const getAdventureContextConditionDetails = (project: Pick<CalendarProjec
 export const isAdventureContextConditionMet = (project: Pick<CalendarProject, "adventureContext">, condition: AdventureContextCondition): boolean =>
   getAdventureContextConditionDetails(project, condition).result;
 
-export const setPrimaryAdventureContext = (project: CalendarProject, contextId: string | null): CalendarProject => {
+export const setActiveAdventureContexts = (project: CalendarProject, contextIds: string[]): CalendarProject => {
   const state = normalizeAdventureContext(project.adventureContext);
   const validIds = new Set(state.availableContexts.map((definition) => definition.id));
-  const primaryContextId = contextId && validIds.has(contextId) ? contextId : null;
-  return { ...project, adventureContext: { ...state, primaryContextId, secondaryContextIds: state.secondaryContextIds.filter((id) => id !== primaryContextId) } };
+  return { ...project, adventureContext: { ...state, activeContextIds: Array.from(new Set(contextIds.filter((id) => validIds.has(id)))) } };
 };
 
-export const setSecondaryAdventureContexts = (project: CalendarProject, contextIds: string[]): CalendarProject => {
-  const state = normalizeAdventureContext(project.adventureContext);
-  const validIds = new Set(state.availableContexts.map((definition) => definition.id));
-  return { ...project, adventureContext: { ...state, secondaryContextIds: Array.from(new Set(contextIds.filter((id) => validIds.has(id) && id !== state.primaryContextId))) } };
-};
+export const setPrimaryAdventureContext = (project: CalendarProject, contextId: string | null): CalendarProject =>
+  setActiveAdventureContexts(project, contextId ? [contextId, ...normalizeAdventureContext(project.adventureContext).activeContextIds.filter((id) => id !== contextId)] : normalizeAdventureContext(project.adventureContext).activeContextIds);
+
+export const setSecondaryAdventureContexts = (project: CalendarProject, contextIds: string[]): CalendarProject =>
+  setActiveAdventureContexts(project, contextIds);

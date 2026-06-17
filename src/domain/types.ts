@@ -80,9 +80,12 @@ export type AdventureContextDefinition = {
 };
 
 export type AdventureContextState = {
-  primaryContextId: string | null;
-  secondaryContextIds: string[];
+  activeContextIds: string[];
   availableContexts: AdventureContextDefinition[];
+  /** @deprecated Legacy project shape migrated into activeContextIds. */
+  primaryContextId?: string | null;
+  /** @deprecated Legacy project shape migrated into activeContextIds. */
+  secondaryContextIds?: string[];
 };
 
 export type AdventureContextConditionTarget = "allContexts" | "primaryOnly" | "secondaryOnly" | "primaryAndAnySecondary";
@@ -90,9 +93,12 @@ export type AdventureContextConditionTarget = "allContexts" | "primaryOnly" | "s
 export type AdventureContextCondition = {
   type: "adventureContext";
   mode: "any" | "all" | "none";
+  /** @deprecated Legacy scope ignored by the simplified active-context evaluator. */
   target?: AdventureContextConditionTarget;
   contextIds: string[];
+  /** @deprecated Legacy scope ignored by the simplified active-context evaluator. */
   includePrimary?: boolean;
+  /** @deprecated Legacy scope ignored by the simplified active-context evaluator. */
   includeSecondary?: boolean;
 };
 

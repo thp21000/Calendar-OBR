@@ -6,7 +6,7 @@ import { t } from "../../i18n/messages";
 import { WEATHER_STATES } from "../../calendar/weatherStates";
 import { getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { WEATHER_BIOME_DEFINITIONS, getWeatherBiomeDefinition, type WeatherBiomeId } from "../../calendar/weather/biomes";
-import { getAdventureContextConditionTarget, getAdventureContextLabel, normalizeAdventureContext } from "../../calendar/adventureContext";
+import { getAdventureContextLabel, normalizeAdventureContext } from "../../calendar/adventureContext";
 import { formatRain, formatRainTotal, formatTemperature, formatWindSpeed, fromDisplayRain, fromDisplayTemperature, fromDisplayWindSpeed, toDisplayRain, toDisplayTemperature, toDisplayWindSpeed } from "../../calendar/weatherUnits";
 
 const weatherStates = WEATHER_STATES;
@@ -92,8 +92,7 @@ export const conditionSummary = (project: CalendarProject, condition: WeatherCon
   if (condition.type === "adventureContext") {
     const state = normalizeAdventureContext(project.adventureContext);
     const labels = condition.contextIds.map((id) => state.availableContexts.find((context) => context.id === id)).filter((context): context is NonNullable<typeof context> => Boolean(context)).map((context) => `${context.icon} ${getAdventureContextLabel(context, locale)}`);
-    const target = getAdventureContextConditionTarget(condition);
-    return `${t(locale, "adventureContext.condition")} · ${t(locale, `adventureContext.target.${target}`)} · ${target === "primaryAndAnySecondary" ? t(locale, "adventureContext.conditionMode.any") : t(locale, `adventureContext.conditionMode.${condition.mode}`)} · ${labels.length > 0 ? labels.join(", ") : t(locale, "adventureContext.none")}`;
+    return `${t(locale, "adventureContext.condition")} · ${t(locale, `adventureContext.conditionMode.${condition.mode}`)} · ${labels.length > 0 ? labels.join(", ") : t(locale, "adventureContext.none")}`;
   }
   if (condition.type === "biome") {
     const biomeIds = condition.biomeIds ?? [];
@@ -125,7 +124,7 @@ const getDefaultCondition = (project: CalendarProject, type: ConditionTypeToAdd)
   if (type === "biome") return { type: "biome", biomeIds: [project.weatherBiome?.currentBiomeId ?? "temperate"] };
   if (type === "adventureContext") {
     const state = normalizeAdventureContext(project.adventureContext);
-    return { type: "adventureContext", mode: "any", target: "allContexts", contextIds: [state.primaryContextId ?? state.availableContexts[0]?.id ?? "road"].filter(Boolean), includePrimary: true, includeSecondary: true };
+    return { type: "adventureContext", mode: "any", contextIds: [state.activeContextIds[0] ?? state.availableContexts[0]?.id ?? "road"].filter(Boolean) };
   }
   return { type: "metric", metric: "temperature", operator: "gte", value: 35 };
 };
@@ -208,16 +207,7 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
         {condition.type === "moonPhase" ? (project.moons.length === 0 ? <div style={{ ...hint, color: "#fca5a5" }}>{t(project.locale, "weatherEvents.noMoonAvailable")}</div> : <><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.moon")} help={t(project.locale, "weatherEvents.help.moonPhase")} /><select value={condition.moonId} onChange={(e) => updateDraftCondition(index, { ...condition, moonId: e.target.value })} style={mergedInputStyle}>{project.moons.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label style={field}><FieldLabel label={t(project.locale, "weatherEvents.moonPhase")} help={t(project.locale, "weatherEvents.help.moonPhase")} /><select value={condition.phaseId} onChange={(e) => updateDraftCondition(index, { ...condition, phaseId: e.target.value as MoonPhaseId })} style={mergedInputStyle}>{moonPhases.map((p) => <option key={p} value={p}>{t(project.locale, `moon.phase.${p}`)}</option>)}</select></label></>) : null}
         {condition.type === "adventureContext" ? <div style={condCard}>
           <FieldLabel label={t(project.locale, "adventureContext.condition")} help={t(project.locale, "adventureContext.current")} />
-          {(() => {
-            const target = getAdventureContextConditionTarget(condition);
-            return <>
-              <label style={field}><div style={labelStyle}>{t(project.locale, "adventureContext.target")}</div><select value={target} onChange={(event) => {
-                const nextTarget = event.target.value as "allContexts" | "primaryOnly" | "secondaryOnly" | "primaryAndAnySecondary";
-                updateDraftCondition(index, { ...condition, target: nextTarget, mode: nextTarget === "primaryAndAnySecondary" ? "any" : condition.mode });
-              }} style={mergedInputStyle}><option value="allContexts">{t(project.locale, "adventureContext.target.allContexts")}</option><option value="primaryOnly">{t(project.locale, "adventureContext.target.primaryOnly")}</option><option value="secondaryOnly">{t(project.locale, "adventureContext.target.secondaryOnly")}</option><option value="primaryAndAnySecondary">{t(project.locale, "adventureContext.target.primaryAndAnySecondary")}</option></select></label>
-              {target === "primaryAndAnySecondary" ? <div style={hint}>{t(project.locale, "adventureContext.primaryAndSecondaryHelp")}</div> : <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.conditionMode")}</div><select value={condition.mode} onChange={(event) => updateDraftCondition(index, { ...condition, mode: event.target.value as "any" | "all" | "none" })} style={mergedInputStyle}><option value="any">{t(project.locale, "adventureContext.conditionMode.any")}</option><option value="all">{t(project.locale, "adventureContext.conditionMode.all")}</option><option value="none">{t(project.locale, "adventureContext.conditionMode.none")}</option></select></label>}
-            </>;
-          })()}
+          <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.conditionMode")}</div><select value={condition.mode} onChange={(event) => updateDraftCondition(index, { ...condition, mode: event.target.value as "any" | "all" | "none" })} style={mergedInputStyle}><option value="any">{t(project.locale, "adventureContext.conditionMode.any")}</option><option value="all">{t(project.locale, "adventureContext.conditionMode.all")}</option><option value="none">{t(project.locale, "adventureContext.conditionMode.none")}</option></select></label>
           <div style={labelStyle}>{t(project.locale, "adventureContext.requiredContexts")}</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 4 }}>
             {normalizeAdventureContext(project.adventureContext).availableContexts.filter((context) => context.enabled).map((context) => {
