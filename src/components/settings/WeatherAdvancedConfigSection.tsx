@@ -3,6 +3,7 @@ import { DEFAULT_WEATHER_DOMINANCE_CONFIGS, WEATHER_TRENDS, getWeatherAdvancedSe
 import { fromDisplayRain, fromDisplayTemperature, fromDisplayTemperatureDelta, fromDisplayWindSpeed, toDisplayRain, toDisplayTemperature, toDisplayTemperatureDelta, toDisplayWindSpeed } from "../../calendar/weatherUnits";
 import { WEATHER_STATES } from "../../calendar/weatherStates";
 import type { CalendarProject, LocaleCode, WeatherAdvancedSettings, WeatherAdvancedThresholds, WeatherDominanceConfig, WeatherState, WeatherStateConfig, WeatherTrendConfig, WeatherTrendKind } from "../../domain/types";
+import type { WeatherBiomeId } from "../../calendar/weather/biomes/types";
 import { t } from "../../i18n/messages";
 import { CollapsibleSection } from "../CollapsibleSection";
 
@@ -10,6 +11,7 @@ const cardStyle: CSSProperties = { border: "1px solid #374151", borderRadius: 8,
 const rowStyle: CSSProperties = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 };
 const trendIdentityRowStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 6 };
 const helpStyle: CSSProperties = { fontSize: 12, color: "#9ca3af", marginBottom: 8 };
+const sectionHintStyle: CSSProperties = { ...helpStyle, border: "1px solid #374151", borderRadius: 8, padding: "7px 8px", background: "#0f172a" };
 const metaStyle: CSSProperties = { fontSize: 11, color: "#94a3b8" };
 const buttonStyle: CSSProperties = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "5px 8px", fontSize: 12, cursor: "pointer" };
 
@@ -44,6 +46,8 @@ const resetBuiltinEntries = (project: CalendarProject, section: keyof WeatherAdv
 
 const textPatch = (label: Partial<Record<LocaleCode, string>> | undefined, locale: LocaleCode, value: string) => ({ ...(label ?? {}), [locale]: value });
 const numberOrUndefined = (value: string) => value === "" ? undefined : Number(value);
+const formatTags = (tags: string[] | undefined) => (tags ?? []).join(", ");
+const parseTags = (value: string) => value.split(",").map((tag) => tag.trim()).filter(Boolean) as WeatherBiomeId[];
 
 const ThresholdInput = ({ label, value, onChange, inputStyle, toDisplay = (next: number) => next, fromDisplay = (next: number) => next }: { label: string; value: number | undefined; onChange: (value: number | undefined) => void; inputStyle: CSSProperties; toDisplay?: (value: number) => number; fromDisplay?: (value: number) => number }) => (
   <label style={{ display: "block" }}>
@@ -52,7 +56,7 @@ const ThresholdInput = ({ label, value, onChange, inputStyle, toDisplay = (next:
   </label>
 );
 
-const ThresholdGrid = ({ project, thresholds, onChange, inputStyle, includeChances = false }: { project: CalendarProject; thresholds: WeatherAdvancedThresholds; onChange: (thresholds: WeatherAdvancedThresholds) => void; inputStyle: CSSProperties; includeChances?: boolean }) => {
+const ThresholdGrid = ({ project, thresholds, onChange, inputStyle, includeAdvanced = false }: { project: CalendarProject; thresholds: WeatherAdvancedThresholds; onChange: (thresholds: WeatherAdvancedThresholds) => void; inputStyle: CSSProperties; includeAdvanced?: boolean }) => {
   const displayTemperature = (value: number) => toDisplayTemperature(value, project.units.temperature);
   const storeTemperature = (value: number) => fromDisplayTemperature(value, project.units.temperature);
   const displayWind = (value: number) => toDisplayWindSpeed(value, project.units.windSpeed);
@@ -65,9 +69,11 @@ const ThresholdGrid = ({ project, thresholds, onChange, inputStyle, includeChanc
     <ThresholdInput label={t(project.locale, "weatherAdvanced.maxTemperature")} value={thresholds.maxTemperature} onChange={(value) => onChange({ ...thresholds, maxTemperature: value })} inputStyle={inputStyle} toDisplay={displayTemperature} fromDisplay={storeTemperature} />
     <ThresholdInput label={t(project.locale, "weatherAdvanced.minWindSpeed")} value={thresholds.minWindSpeed} onChange={(value) => onChange({ ...thresholds, minWindSpeed: value })} inputStyle={inputStyle} toDisplay={displayWind} fromDisplay={storeWind} />
     <ThresholdInput label={t(project.locale, "weatherAdvanced.maxWindSpeed")} value={thresholds.maxWindSpeed} onChange={(value) => onChange({ ...thresholds, maxWindSpeed: value })} inputStyle={inputStyle} toDisplay={displayWind} fromDisplay={storeWind} />
-    <ThresholdInput label={t(project.locale, includeChances ? "weatherAdvanced.minDailyRainTotal" : "weatherAdvanced.minRain")} value={thresholds.minRain ?? thresholds.minDailyRainTotal} onChange={(value) => onChange({ ...thresholds, minRain: includeChances ? thresholds.minRain : value, minDailyRainTotal: includeChances ? value : thresholds.minDailyRainTotal })} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} />
-    <ThresholdInput label={t(project.locale, includeChances ? "weatherAdvanced.maxDailyRainTotal" : "weatherAdvanced.maxRain")} value={thresholds.maxRain ?? thresholds.maxDailyRainTotal} onChange={(value) => onChange({ ...thresholds, maxRain: includeChances ? thresholds.maxRain : value, maxDailyRainTotal: includeChances ? value : thresholds.maxDailyRainTotal })} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} />
-    {includeChances ? <>
+    <ThresholdInput label={t(project.locale, "weatherAdvanced.minRain")} value={thresholds.minRain} onChange={(value) => onChange({ ...thresholds, minRain: value })} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} />
+    <ThresholdInput label={t(project.locale, "weatherAdvanced.maxRain")} value={thresholds.maxRain} onChange={(value) => onChange({ ...thresholds, maxRain: value })} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} />
+    {includeAdvanced ? <>
+      <ThresholdInput label={t(project.locale, "weatherAdvanced.minDailyRainTotal")} value={thresholds.minDailyRainTotal} onChange={(value) => onChange({ ...thresholds, minDailyRainTotal: value })} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} />
+      <ThresholdInput label={t(project.locale, "weatherAdvanced.maxDailyRainTotal")} value={thresholds.maxDailyRainTotal} onChange={(value) => onChange({ ...thresholds, maxDailyRainTotal: value })} inputStyle={inputStyle} toDisplay={displayRain} fromDisplay={storeRain} />
       <ThresholdInput label={t(project.locale, "weatherAdvanced.minPrecipitationChance")} value={thresholds.minPrecipitationChance} onChange={(value) => onChange({ ...thresholds, minPrecipitationChance: value })} inputStyle={inputStyle} />
       <ThresholdInput label={t(project.locale, "weatherAdvanced.minStormChance")} value={thresholds.minStormChance} onChange={(value) => onChange({ ...thresholds, minStormChance: value })} inputStyle={inputStyle} />
       <ThresholdInput label={t(project.locale, "weatherAdvanced.minFogChance")} value={thresholds.minFogChance} onChange={(value) => onChange({ ...thresholds, minFogChance: value })} inputStyle={inputStyle} />
@@ -82,29 +88,6 @@ const StatusBadges = ({ project, custom, enabled }: { project: CalendarProject; 
 </span>;
 
 const weatherFrProject = (project: CalendarProject): CalendarProject => ({ ...project, locale: "fr" });
-
-const StateConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { project: CalendarProject; config: WeatherStateConfig; inputStyle: CSSProperties; onProjectUpdate: (project: CalendarProject) => void }) => {
-  const patch = (next: Partial<WeatherStateConfig>) => onProjectUpdate(patchAdvancedSettings(project, { stateConfigs: { [config.id]: { ...config, ...next } } }));
-  const reset = () => onProjectUpdate(removeConfigEntry(project, "stateConfigs", config.id));
-  return (
-    <CollapsibleSection title={`${config.icon ?? "•"} ${getWeatherStateLabel(project, config.id as WeatherState)} · ${config.enabled ? t(project.locale, "weatherAdvanced.enabled") : t(project.locale, "weatherAdvanced.disabled")}`} storageKey={`calendar-obr.settings.weatherAdvanced.state.${config.id}`}>
-      <div style={cardStyle}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><span style={metaStyle}>{config.id}</span><StatusBadges project={project} custom={false} enabled={config.enabled} /></div>
-        <div style={metaStyle}>{t(project.locale, "weatherAdvanced.thresholdsHelp")}</div>
-        <label><input type="checkbox" checked={config.enabled} onChange={(event) => patch({ enabled: event.target.checked })} /> {t(project.locale, "weatherAdvanced.enabled")}</label>
-        <div style={rowStyle}>
-          <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.icon")}</div><input value={config.icon ?? ""} onChange={(event) => patch({ icon: event.target.value })} style={inputStyle} /></label>
-          <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.priority")}</div><input type="number" value={config.priority ?? 0} onChange={(event) => patch({ priority: Number(event.target.value) })} style={inputStyle} /></label>
-          <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelFr")}</div><input value={config.label?.fr ?? ""} onChange={(event) => patch({ label: textPatch(config.label, "fr", event.target.value) })} style={inputStyle} /></label>
-          <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelEn")}</div><input value={config.label?.en ?? ""} onChange={(event) => patch({ label: textPatch(config.label, "en", event.target.value) })} style={inputStyle} /></label>
-        </div>
-        <div style={{ fontWeight: 700, fontSize: 12 }}>{t(project.locale, "weatherAdvanced.thresholds")}</div>
-        <ThresholdGrid project={project} thresholds={config.thresholds ?? {}} onChange={(thresholds) => patch({ thresholds })} inputStyle={inputStyle} />
-        <button type="button" onClick={reset} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetDefaults")}</button>
-      </div>
-    </CollapsibleSection>
-  );
-};
 
 const TrendConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { project: CalendarProject; config: WeatherTrendConfig; inputStyle: CSSProperties; onProjectUpdate: (project: CalendarProject) => void }) => {
   const patch = (next: Partial<WeatherTrendConfig>) => onProjectUpdate(patchAdvancedSettings(project, { trendConfigs: { [config.id]: { ...config, ...next } } }));
@@ -143,68 +126,123 @@ const TrendConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { pro
   );
 };
 
-const DominanceConfigCard = ({ project, config, inputStyle, onProjectUpdate }: { project: CalendarProject; config: WeatherDominanceConfig; inputStyle: CSSProperties; onProjectUpdate: (project: CalendarProject) => void }) => {
-  const settings = getWeatherAdvancedSettings(project);
+const DominantRuleEditor = ({ project, config, inputStyle, onProjectUpdate, showStateSelect = false }: { project: CalendarProject; config: WeatherDominanceConfig; inputStyle: CSSProperties; onProjectUpdate: (project: CalendarProject) => void; showStateSelect?: boolean }) => {
   const isCustom = config.custom === true || !DEFAULT_WEATHER_DOMINANCE_CONFIGS[config.id];
   const patch = (next: Partial<WeatherDominanceConfig>) => onProjectUpdate(patchAdvancedSettings(project, { dominanceConfigs: { [config.id]: { ...config, ...next, custom: isCustom } } }));
   const reset = () => onProjectUpdate(removeConfigEntry(project, "dominanceConfigs", config.id));
   const remove = () => {
-    if (typeof window !== "undefined" && !window.confirm(t(project.locale, "weatherAdvanced.confirmDeleteDominanceRule"))) return;
+    if (typeof window !== "undefined" && !window.confirm(t(project.locale, "weatherAdvanced.confirmDeleteDominantRule"))) return;
     onProjectUpdate(removeConfigEntry(project, "dominanceConfigs", config.id));
   };
-  const stateConfig = settings.stateConfigs[config.stateId as WeatherState];
   const statusLabel = config.enabled ? t(project.locale, "weatherAdvanced.enabled") : t(project.locale, "weatherAdvanced.disabled");
-  const title = `${stateConfig?.icon ?? "•"} ${getWeatherStateLabel(weatherFrProject(project), config.stateId as WeatherState)} · ${statusLabel}`;
+  const title = `${t(project.locale, "weatherAdvanced.dominantRule")} · ${t(project.locale, "weatherAdvanced.priority")} ${config.priority ?? 0} · ${statusLabel}`;
   return (
-    <CollapsibleSection title={title} storageKey={`calendar-obr.settings.weatherAdvanced.dominanceRule.${config.id}`}>
+    <CollapsibleSection title={title} storageKey={`calendar-obr.settings.weatherAdvanced.dominantRule.${config.id}`}>
       <div style={cardStyle}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><span style={metaStyle}>{config.id}</span><StatusBadges project={project} custom={isCustom} enabled={config.enabled} /></div>
         <label><input type="checkbox" checked={config.enabled} onChange={(event) => patch({ enabled: event.target.checked })} /> {t(project.locale, "weatherAdvanced.enabled")}</label>
         <div style={rowStyle}>
-          <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.state")}</div><select value={config.stateId} onChange={(event) => patch({ stateId: event.target.value })} style={inputStyle}>{WEATHER_STATES.map((state) => <option key={state} value={state}>{getWeatherStateLabel(project, state)}</option>)}</select></label>
+          {showStateSelect ? <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.state")}</div><select value={config.stateId} onChange={(event) => patch({ stateId: event.target.value })} style={inputStyle}>{WEATHER_STATES.map((state) => <option key={state} value={state}>{getWeatherStateLabel(project, state)}</option>)}</select></label> : null}
           <ThresholdInput label={t(project.locale, "weatherAdvanced.priority")} value={config.priority} onChange={(value) => patch({ priority: value })} inputStyle={inputStyle} />
         </div>
-        <div style={{ fontWeight: 700, fontSize: 12 }}>{t(project.locale, "weatherAdvanced.thresholds")}</div>
-        <ThresholdGrid project={project} thresholds={config.thresholds ?? {}} onChange={(thresholds) => patch({ thresholds })} inputStyle={inputStyle} includeChances />
+        <div style={{ fontWeight: 700, fontSize: 12 }}>{t(project.locale, "weatherAdvanced.dominantRuleConditions")}</div>
+        <ThresholdGrid project={project} thresholds={config.thresholds ?? {}} onChange={(thresholds) => patch({ thresholds })} inputStyle={inputStyle} includeAdvanced />
         <div style={toolbarStyle}>
           {!isCustom ? <button type="button" onClick={reset} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetDefaults")}</button> : null}
-          {isCustom ? <button type="button" onClick={remove} style={dangerButtonStyle}>{t(project.locale, "weatherAdvanced.deleteDominanceRule")}</button> : null}
+          {isCustom ? <button type="button" onClick={remove} style={dangerButtonStyle}>{t(project.locale, "weatherAdvanced.deleteDominantRule")}</button> : null}
         </div>
       </div>
     </CollapsibleSection>
   );
 };
 
-const addCustomDominanceRule = (project: CalendarProject): CalendarProject => {
+const StateConfigCard = ({ project, config, dominanceRules, inputStyle, onProjectUpdate }: { project: CalendarProject; config: WeatherStateConfig; dominanceRules: WeatherDominanceConfig[]; inputStyle: CSSProperties; onProjectUpdate: (project: CalendarProject) => void }) => {
+  const patch = (next: Partial<WeatherStateConfig>) => onProjectUpdate(patchAdvancedSettings(project, { stateConfigs: { [config.id]: { ...config, ...next } } }));
+  const reset = () => onProjectUpdate(removeConfigEntry(project, "stateConfigs", config.id));
+  const addDominantRule = () => onProjectUpdate(addCustomDominanceRule(project, config.id));
+  const statusLabel = config.enabled ? t(project.locale, "weatherAdvanced.enabled") : t(project.locale, "weatherAdvanced.disabled");
+  const title = `${config.icon ?? "•"} ${getWeatherStateLabel(weatherFrProject(project), config.id as WeatherState)} · ${statusLabel}`;
+  const sortedDominanceRules = [...dominanceRules].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+  return (
+    <CollapsibleSection title={title} storageKey={`calendar-obr.settings.weatherAdvanced.state.${config.id}`}>
+      <div style={cardStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><span style={metaStyle}>{config.id}</span><StatusBadges project={project} custom={config.custom} enabled={config.enabled} /></div>
+        <CollapsibleSection title={t(project.locale, "weatherAdvanced.stateDefinition")} storageKey={`calendar-obr.settings.weatherAdvanced.state.${config.id}.definition`}>
+          <div style={cardStyle}>
+            <label><input type="checkbox" checked={config.enabled} onChange={(event) => patch({ enabled: event.target.checked })} /> {t(project.locale, "weatherAdvanced.enabled")}</label>
+            <div style={rowStyle}>
+              <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelFr")}</div><input value={config.label?.fr ?? ""} onChange={(event) => patch({ label: textPatch(config.label, "fr", event.target.value) })} style={inputStyle} /></label>
+              <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.labelEn")}</div><input value={config.label?.en ?? ""} onChange={(event) => patch({ label: textPatch(config.label, "en", event.target.value) })} style={inputStyle} /></label>
+              <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.icon")}</div><input value={config.icon ?? ""} onChange={(event) => patch({ icon: event.target.value })} style={inputStyle} /></label>
+              <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.priority")}</div><input type="number" value={config.priority ?? 0} onChange={(event) => patch({ priority: Number(event.target.value) })} style={inputStyle} /></label>
+              <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.descriptionFr")}</div><input value={config.description?.fr ?? ""} onChange={(event) => patch({ description: textPatch(config.description, "fr", event.target.value) })} style={inputStyle} /></label>
+              <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.descriptionEn")}</div><input value={config.description?.en ?? ""} onChange={(event) => patch({ description: textPatch(config.description, "en", event.target.value) })} style={inputStyle} /></label>
+              <label><div style={{ fontSize: 12 }}>{t(project.locale, "weatherAdvanced.biomeTags")}</div><input value={formatTags(config.biomeTags)} onChange={(event) => patch({ biomeTags: parseTags(event.target.value) })} style={inputStyle} /></label>
+            </div>
+            <button type="button" onClick={reset} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetDefaults")}</button>
+          </div>
+        </CollapsibleSection>
+        <CollapsibleSection title={t(project.locale, "weatherAdvanced.immediateConditions")} storageKey={`calendar-obr.settings.weatherAdvanced.state.${config.id}.conditions`}>
+          <div style={cardStyle}>
+            <div style={metaStyle}>{t(project.locale, "weatherAdvanced.immediateConditionsHelp")}</div>
+            <ThresholdGrid project={project} thresholds={config.thresholds ?? {}} onChange={(thresholds) => patch({ thresholds })} inputStyle={inputStyle} includeAdvanced />
+          </div>
+        </CollapsibleSection>
+        <CollapsibleSection title={t(project.locale, "weatherAdvanced.dominantStateRules")} storageKey={`calendar-obr.settings.weatherAdvanced.state.${config.id}.dominantRules`}>
+          <div style={cardStyle}>
+            <div style={metaStyle}>{t(project.locale, "weatherAdvanced.dominantStateRulesHelp")}</div>
+            {sortedDominanceRules.length === 0 ? <div style={metaStyle}>{t(project.locale, "weatherAdvanced.noDominantRuleForState")}</div> : null}
+            <div style={{ display: "grid", gap: 8 }}>{sortedDominanceRules.map((rule) => <DominantRuleEditor key={rule.id} project={project} config={rule} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
+            <button type="button" onClick={addDominantRule} style={buttonStyle}>{t(project.locale, "weatherAdvanced.addDominantRule")}</button>
+          </div>
+        </CollapsibleSection>
+      </div>
+    </CollapsibleSection>
+  );
+};
+
+const addCustomDominanceRule = (project: CalendarProject, stateId?: string): CalendarProject => {
   const id = `custom-dominance-${Date.now()}`;
-  const enabledState = WEATHER_STATES.find((state) => getWeatherAdvancedSettings(project).stateConfigs[state].enabled) ?? "overcast";
+  const enabledState = stateId ?? WEATHER_STATES.find((state) => getWeatherAdvancedSettings(project).stateConfigs[state].enabled) ?? "overcast";
   return patchAdvancedSettings(project, { dominanceConfigs: { [id]: { id, custom: true, enabled: true, stateId: enabledState, priority: 50, thresholds: {} } } });
 };
 
 export const WeatherAdvancedConfigSection = ({ project, onProjectUpdate, inputStyle }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; inputStyle: CSSProperties }) => {
   const settings = getWeatherAdvancedSettings(project);
+  const stateConfigs = Object.values(settings.stateConfigs).sort((a, b) => {
+    const indexA = WEATHER_STATES.indexOf(a.id as WeatherState);
+    const indexB = WEATHER_STATES.indexOf(b.id as WeatherState);
+    if (indexA !== -1 || indexB !== -1) return (indexA === -1 ? Number.MAX_SAFE_INTEGER : indexA) - (indexB === -1 ? Number.MAX_SAFE_INTEGER : indexB);
+    return (a.priority ?? 0) - (b.priority ?? 0);
+  });
+  const stateIds = new Set(stateConfigs.map((state) => state.id));
+  const dominanceRulesByState = Object.values(settings.dominanceConfigs).reduce<Record<string, WeatherDominanceConfig[]>>((groups, rule) => {
+    if (!stateIds.has(rule.stateId)) return groups;
+    groups[rule.stateId] = [...(groups[rule.stateId] ?? []), rule];
+    return groups;
+  }, {});
+  const orphanDominanceRules = Object.values(settings.dominanceConfigs).filter((rule) => !stateIds.has(rule.stateId));
   const resetAllStates = () => onProjectUpdate(resetBuiltinEntries(project, "stateConfigs", WEATHER_STATES));
   const resetAllTrends = () => onProjectUpdate(resetBuiltinEntries(project, "trendConfigs", WEATHER_TRENDS));
   const resetAllDominance = () => onProjectUpdate(resetBuiltinEntries(project, "dominanceConfigs", Object.keys(DEFAULT_WEATHER_DOMINANCE_CONFIGS)));
   return <div>
     <div style={helpStyle}>{t(project.locale, "settings.weatherAdvancedConfigHelp")}</div>
-    <CollapsibleSection title={t(project.locale, "settings.weatherTrends")} storageKey="calendar-obr.settings.weatherAdvanced.trends">
+    <CollapsibleSection title={t(project.locale, "settings.weatherStates")} storageKey="calendar-obr.settings.weatherAdvanced.states" defaultOpen>
+      <div style={sectionHintStyle}>{t(project.locale, "settings.weatherStatesIntegratedHelp")}</div>
+      <div style={toolbarStyle}><button type="button" onClick={resetAllStates} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllStates")}</button><button type="button" onClick={resetAllDominance} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllDominantRules")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.builtinStatesLocked")}</span></div>
+      <div style={{ display: "grid", gap: 8 }}>{stateConfigs.map((state) => <StateConfigCard key={state.id} project={project} config={state} dominanceRules={dominanceRulesByState[state.id] ?? []} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
+      {orphanDominanceRules.length > 0 ? <CollapsibleSection title={t(project.locale, "weatherAdvanced.orphanDominantRules")} storageKey="calendar-obr.settings.weatherAdvanced.orphanDominanceRules">
+        <div style={cardStyle}>
+          <div style={metaStyle}>{t(project.locale, "weatherAdvanced.orphanDominantRulesHelp")}</div>
+          <div style={{ display: "grid", gap: 8 }}>{orphanDominanceRules.map((rule) => <DominantRuleEditor key={rule.id} project={project} config={rule} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} showStateSelect />)}</div>
+        </div>
+      </CollapsibleSection> : null}
+    </CollapsibleSection>
+    <CollapsibleSection title={t(project.locale, "settings.weatherTrendsEvolution")} storageKey="calendar-obr.settings.weatherAdvanced.trends">
       <div style={helpStyle}>{t(project.locale, "settings.weatherTrendsHelp")}</div>
-      <div style={helpStyle}>{t(project.locale, "settings.weatherTrendsConceptHelp")}</div>
+      <div style={sectionHintStyle}>{t(project.locale, "settings.weatherTrendsConceptHelp")}</div>
       <div style={toolbarStyle}><button type="button" onClick={resetAllTrends} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllTrends")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.builtinTrendsLocked")}</span></div>
       <div style={{ display: "grid", gap: 8 }}>{WEATHER_TRENDS.map((trend) => <TrendConfigCard key={trend} project={project} config={settings.trendConfigs[trend]} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
-    </CollapsibleSection>
-    <CollapsibleSection title={t(project.locale, "settings.weatherDominanceRules")} storageKey="calendar-obr.settings.weatherAdvanced.dominance">
-      <div style={helpStyle}>{t(project.locale, "settings.weatherDominanceHelp")}</div>
-      <div style={helpStyle}>{t(project.locale, "settings.weatherDominanceConceptHelp")}</div>
-      <div style={toolbarStyle}><button type="button" onClick={() => onProjectUpdate(addCustomDominanceRule(project))} style={buttonStyle}>{t(project.locale, "weatherAdvanced.addDominanceRule")}</button><button type="button" onClick={resetAllDominance} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllDominanceRules")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.customDominanceHelp")}</span></div>
-      <div style={{ display: "grid", gap: 8 }}>{Object.values(settings.dominanceConfigs).sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0)).map((rule) => <DominanceConfigCard key={rule.id} project={project} config={rule} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
-    </CollapsibleSection>
-    <CollapsibleSection title={t(project.locale, "settings.weatherStates")} storageKey="calendar-obr.settings.weatherAdvanced.states">
-      <div style={helpStyle}>{t(project.locale, "settings.weatherStatesHelp")}</div>
-      <div style={helpStyle}>{t(project.locale, "settings.weatherStatesConceptHelp")}</div>
-      <div style={toolbarStyle}><button type="button" onClick={resetAllStates} style={buttonStyle}>{t(project.locale, "weatherAdvanced.resetAllStates")}</button><span style={metaStyle}>{t(project.locale, "weatherAdvanced.builtinStatesLocked")}</span></div>
-      <div style={{ display: "grid", gap: 8 }}>{WEATHER_STATES.map((state) => <StateConfigCard key={state} project={project} config={settings.stateConfigs[state]} inputStyle={inputStyle} onProjectUpdate={onProjectUpdate} />)}</div>
     </CollapsibleSection>
   </div>;
 };
