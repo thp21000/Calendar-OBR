@@ -31,6 +31,34 @@ describe("calendarImportExport", () => {
     expect(imported.project.units).toEqual(project.units);
   });
 
+  it("preserves moon event biome and adventure context conditions", () => {
+    const project = createDefaultCalendarProject();
+    const moon = project.moons[0];
+    project.moonEvents = [{
+      id: "tide",
+      name: "Tide",
+      summary: "",
+      moonId: moon.id,
+      phaseId: "new",
+      visibility: "gm",
+      enabled: true,
+      notifyOnTrigger: true,
+      status: "active",
+      conditions: {
+        seasonIds: [],
+        monthIds: [],
+        eventConditions: [
+          { type: "biome", biomeIds: ["coast", "sea"] },
+          { type: "adventureContext", mode: "any", contextIds: ["on-water", "navigation"] }
+        ]
+      }
+    }];
+    const imported = importCalendarProject(exportCalendarProject(project), createDefaultCalendarProject());
+    expect(imported.ok).toBe(true);
+    if (!imported.ok) return;
+    expect(imported.project.moonEvents?.[0]?.conditions?.eventConditions).toEqual(project.moonEvents[0].conditions?.eventConditions);
+  });
+
   it("sanitizes invalid unit settings to metric defaults", () => {
     const project = createDefaultCalendarProject();
     const imported = importCalendarProject(JSON.stringify({ ...project, units: { temperature: "kelvin", windSpeed: "knots", rain: "drops" } }), project);

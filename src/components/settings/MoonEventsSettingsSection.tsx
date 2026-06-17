@@ -3,6 +3,8 @@ import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
 import { getNextMoonEventActivationDate } from "../../calendar/moonEventsLogic";
 import { getMoonPhaseForDate } from "../../calendar/moonLogic";
 import { addMoonEvent, createDefaultMoonEvent, deleteMoonEvent, duplicateMoonEvent, updateMoonEvent } from "../../calendar/moonEventsLogic";
+import { getAdventureContextLabel, normalizeAdventureContext } from "../../calendar/adventureContext";
+import { getWeatherBiomeDefinition } from "../../calendar/weather/biomes";
 import type { CalendarProject, MoonEvent, MoonPhaseId } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { Badge, EmptyState, PrimaryButton, SecondaryButton, SectionCard, SectionHeader } from "../ui";
@@ -218,6 +220,18 @@ const getMoonEventConditionBadges = (project: CalendarProject, event: MoonEvent)
     if (monthName) badges.push(t(project.locale, "moonEvents.conditionMonth").replace("{month}", monthName));
   } else if (monthIds.length > 1) {
     badges.push(t(project.locale, "moonEvents.conditionSeveralMonths").replace("{count}", String(monthIds.length)));
+  }
+  const eventConditions = conditions.eventConditions ?? [];
+  const biomeCondition = eventConditions.find((condition) => condition.type === "biome");
+  if (biomeCondition?.type === "biome" && biomeCondition.biomeIds.length > 0) {
+    const biomes = biomeCondition.biomeIds.map((id) => t(project.locale, getWeatherBiomeDefinition(id).nameKey)).join(", ");
+    badges.push(t(project.locale, "moonEvents.conditionBiomeNames").replace("{biomes}", biomes));
+  }
+  const adventureContextCondition = eventConditions.find((condition) => condition.type === "adventureContext");
+  if (adventureContextCondition?.type === "adventureContext" && adventureContextCondition.contextIds.length > 0) {
+    const contextState = normalizeAdventureContext(project.adventureContext);
+    const contexts = adventureContextCondition.contextIds.map((id) => contextState.availableContexts.find((context) => context.id === id)).filter((context): context is NonNullable<typeof context> => Boolean(context)).map((context) => `${context.icon} ${getAdventureContextLabel(context, project.locale)}`).join(", ");
+    badges.push(t(project.locale, "moonEvents.conditionContextNames").replace("{contexts}", contexts));
   }
   const repeatMode = event.repeatMode ?? "everyOccurrence";
   if (repeatMode === "once") badges.push(t(project.locale, "moonEvents.conditionNoRepeat"));

@@ -1,7 +1,9 @@
 import { absoluteDayToCalendarDate } from "./dateEngine";
 import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
-import type { CalendarDate, CalendarProject, InternalTime, MoonEvent } from "../domain/types";
+import { isAdventureContextConditionMet } from "./adventureContext";
+import { getWeatherBiomeState } from "./weather/biomes";
+import type { CalendarDate, CalendarProject, InternalTime, MoonEvent, MoonEventCondition } from "../domain/types";
 
 export const createDefaultMoonEvent = (project: CalendarProject): MoonEvent => ({
   id: `moon-event-${Date.now()}`,
@@ -14,7 +16,7 @@ export const createDefaultMoonEvent = (project: CalendarProject): MoonEvent => (
   enabled: true,
   notifyOnTrigger: true,
   status: "active",
-  conditions: { seasonIds: [], monthIds: [] },
+  conditions: { seasonIds: [], monthIds: [], eventConditions: [] },
   repeatMode: "everyOccurrence",
   lastTriggeredAbsoluteDay: undefined
 });
@@ -201,15 +203,26 @@ const moonEventMatchesActivationRules = (project: CalendarProject, moonEvent: Mo
 };
 
 const matchesMoonEventExtraConditions = (project: CalendarProject, moonEvent: MoonEvent, absoluteDay: number): boolean => {
-  const conditions = moonEvent.conditions ?? { seasonIds: [], monthIds: [] };
+  const conditions = moonEvent.conditions ?? { seasonIds: [], monthIds: [], eventConditions: [] };
   const monthIds = conditions.monthIds ?? [];
   const seasonIds = conditions.seasonIds ?? [];
+  const eventConditions = conditions.eventConditions ?? [];
   const date = absoluteDayToCalendarDate({ absoluteDay, hour: 0, minute: 0 }, project.calendarSystem);
   if (monthIds.length > 0 && !monthIds.includes(date.monthId)) return false;
   if (seasonIds.length > 0) {
     const season = getSeasonForDate(project, date);
     if (!season || !seasonIds.includes(season.id)) return false;
   }
+  return eventConditions.every((condition) => matchesMoonEventCondition(project, condition));
+};
+
+const matchesMoonEventCondition = (project: CalendarProject, condition: MoonEventCondition): boolean => {
+  if (condition.type === "biome") {
+    const biomeIds = condition.biomeIds ?? [];
+    if (biomeIds.length === 0) return true;
+    return biomeIds.includes(getWeatherBiomeState(project).currentBiomeId);
+  }
+  if (condition.type === "adventureContext") return isAdventureContextConditionMet(project, condition);
   return true;
 };
 

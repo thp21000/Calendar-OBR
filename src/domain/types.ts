@@ -495,9 +495,14 @@ export type MoonEvent = {
 
 export type MoonEventRepeatMode = "once" | "everyOccurrence" | "everyOtherOccurrence";
 
+export type MoonEventCondition =
+  | { type: "biome"; biomeIds: WeatherBiomeId[] }
+  | AdventureContextCondition;
+
 export type MoonEventExtraConditions = {
   seasonIds?: string[];
   monthIds?: string[];
+  eventConditions?: MoonEventCondition[];
 };
 
 export type DayNote = {

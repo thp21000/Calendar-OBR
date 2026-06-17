@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
 import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getPlayerVisibleMoonEvents, getTriggeredMoonEvents, isMoonEventTriggered } from "../moonEventsLogic";
+import { setActiveAdventureContexts } from "../adventureContext";
+import type { MoonEvent } from "../../domain/types";
 
 describe("moonEventsLogic", () => {
   it("full moon can trigger", () => {
@@ -38,6 +40,25 @@ describe("moonEventsLogic", () => {
     project.moonEvents = [{ id: "m1", name: "A", summary: "", moonId: moon.id, phaseId: "new", visibility: "gm", enabled: true, notifyOnTrigger: true, status: "archived" }];
     expect(getTriggeredMoonEvents(project, 0)).toEqual([]);
   });
+
+  it("filters moon events by biome conditions", () => {
+    const project = createDefaultCalendarProject();
+    const moon = project.moons[0];
+    project.weatherBiome = { currentBiomeId: "coast", previousBiomeId: "temperate", biomeChangedAtMinutes: 0, transitionDurationMinutes: 0 };
+    const event: MoonEvent = { id: "tide", name: "Tide", summary: "", moonId: moon.id, phaseId: "new", visibility: "gm", enabled: true, notifyOnTrigger: true, status: "active", conditions: { seasonIds: [], monthIds: [], eventConditions: [{ type: "biome", biomeIds: ["coast", "sea"] }] } };
+    expect(isMoonEventTriggered(project, event, 0)).toBe(true);
+    expect(isMoonEventTriggered({ ...project, weatherBiome: { ...project.weatherBiome, currentBiomeId: "desert" } }, event, 0)).toBe(false);
+  });
+
+  it("filters moon events by simplified adventure context conditions", () => {
+    let project = createDefaultCalendarProject();
+    const moon = project.moons[0];
+    project = setActiveAdventureContexts(project, ["woods", "hunting"]);
+    const event: MoonEvent = { id: "forest-light", name: "Forest light", summary: "", moonId: moon.id, phaseId: "new", visibility: "gm", enabled: true, notifyOnTrigger: true, status: "active", conditions: { seasonIds: [], monthIds: [], eventConditions: [{ type: "adventureContext", mode: "all", contextIds: ["woods", "hunting"] }] } };
+    expect(isMoonEventTriggered(project, event, 0)).toBe(true);
+    expect(isMoonEventTriggered(setActiveAdventureContexts(project, ["woods"]), event, 0)).toBe(false);
+  });
+
   it("newly triggered between days", () => {
     const project = createDefaultCalendarProject();
     const moon = project.moons[0];

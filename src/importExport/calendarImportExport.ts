@@ -1,4 +1,4 @@
-import type { AdventureContextCondition, CalendarProject, LocaleCode } from "../domain/types";
+import type { AdventureContextCondition, CalendarProject, LocaleCode, MoonEventCondition } from "../domain/types";
 import type { WeatherBiomeId, WeatherBiomeProfile, WeatherValueRange } from "../calendar/weather/biomes";
 import type { SeasonWeatherModifier } from "../calendar/weather/seasonModifiers";
 import { assertCalendarSystem } from "../calendar/dateEngine";
@@ -26,6 +26,25 @@ const sanitizeAdventureContextCondition = (condition: Record<string, unknown>): 
     ? Array.from(new Set(condition.contextIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)))
     : []
 });
+
+const sanitizeMoonEventExtraConditions = (conditions: unknown) => {
+  if (!isRecord(conditions)) return { seasonIds: [], monthIds: [], eventConditions: [] };
+  const eventConditions: MoonEventCondition[] = Array.isArray(conditions.eventConditions)
+    ? conditions.eventConditions.filter(isRecord).flatMap((condition): MoonEventCondition[] => {
+        if (condition.type === "biome") {
+          const biomeIds = Array.isArray(condition.biomeIds) ? Array.from(new Set(condition.biomeIds.filter(isWeatherBiomeId))) : [];
+          return biomeIds.length > 0 ? [{ type: "biome" as const, biomeIds }] : [];
+        }
+        if (condition.type === "adventureContext" && Array.isArray(condition.contextIds)) return [sanitizeAdventureContextCondition(condition)];
+        return [];
+      })
+    : [];
+  return {
+    seasonIds: Array.isArray(conditions.seasonIds) ? Array.from(new Set(conditions.seasonIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0))) : [],
+    monthIds: Array.isArray(conditions.monthIds) ? Array.from(new Set(conditions.monthIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0))) : [],
+    eventConditions
+  };
+};
 
 const isWindDirection = (value: unknown): boolean =>
   value === "N" || value === "NE" || value === "E" || value === "SE" || value === "S" || value === "SW" || value === "W" || value === "NW";
@@ -506,6 +525,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         if (typeof next.summary !== "string") next.summary = "";
         if (typeof next.gmDescription !== "string") delete next.gmDescription;
         if (typeof next.playerDescription !== "string") delete next.playerDescription;
+        next.conditions = sanitizeMoonEventExtraConditions(next.conditions);
         if (typeof next.moonId !== "string") next.moonId = "";
         if (!(next.phaseId === "new" || next.phaseId === "waxingCrescent" || next.phaseId === "firstQuarter" || next.phaseId === "waxingGibbous" || next.phaseId === "full" || next.phaseId === "waningGibbous" || next.phaseId === "lastQuarter" || next.phaseId === "waningCrescent")) next.phaseId = "full";
         if (!(next.visibility === "gm" || next.visibility === "players" || next.visibility === "revealOnTrigger")) next.visibility = "gm";

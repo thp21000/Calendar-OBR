@@ -206,6 +206,7 @@ Le détail du jour affiche :
 * événements publics ;
 * événements MJ ;
 * notes du MJ ;
+* événements lunaires filtrés par phase, lune, biome et contexte d’aventure optionnels ;
 * bouton pour créer un événement ce jour-là.
 
 ## 6.3. Écran “Événements”

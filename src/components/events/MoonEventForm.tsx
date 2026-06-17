@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type { CalendarProject, MoonEvent, MoonEventRepeatMode, MoonPhaseId } from "../../domain/types";
+import type { CalendarProject, MoonEvent, MoonEventCondition, MoonEventRepeatMode, MoonPhaseId } from "../../domain/types";
 import { t } from "../../i18n/messages";
+import { getAdventureContextLabel, normalizeAdventureContext } from "../../calendar/adventureContext";
+import { WEATHER_BIOME_DEFINITIONS, type WeatherBiomeId } from "../../calendar/weather/biomes";
 
 const phases: MoonPhaseId[] = ["new", "waxingCrescent", "firstQuarter", "waxingGibbous", "full", "waningGibbous", "lastQuarter", "waningCrescent"];
 
@@ -43,16 +45,21 @@ export const MoonEventForm = ({
     ...event,
     conditions: {
       seasonIds: event.conditions?.seasonIds ?? [],
-      monthIds: event.conditions?.monthIds ?? []
+      monthIds: event.conditions?.monthIds ?? [],
+      eventConditions: event.conditions?.eventConditions ?? []
     },
     repeatMode: event.repeatMode ?? "everyOccurrence"
   });
 
   const months = [...project.calendarSystem.months].sort((a, b) => a.order - b.order);
   const repeatMode = draft.repeatMode ?? "everyOccurrence";
-  const conditions = draft.conditions ?? { seasonIds: [], monthIds: [] };
+  const conditions = draft.conditions ?? { seasonIds: [], monthIds: [], eventConditions: [] };
   const seasonIds = conditions.seasonIds ?? [];
   const monthIds = conditions.monthIds ?? [];
+  const eventConditions = conditions.eventConditions ?? [];
+  const biomeCondition = eventConditions.find((condition): condition is Extract<MoonEventCondition, { type: "biome" }> => condition.type === "biome");
+  const adventureContextCondition = eventConditions.find((condition): condition is Extract<MoonEventCondition, { type: "adventureContext" }> => condition.type === "adventureContext");
+  const adventureContextState = normalizeAdventureContext(project.adventureContext);
 
   useEffect(() => {
     onDraftChange?.(draft);
@@ -65,7 +72,7 @@ export const MoonEventForm = ({
       const nextSeasonIds = prevSeasonIds.includes(seasonId)
         ? prevSeasonIds.filter((id) => id !== seasonId)
         : [...prevSeasonIds, seasonId];
-      return { ...prev, conditions: { seasonIds: nextSeasonIds, monthIds: prevMonthIds } };
+      return { ...prev, conditions: { seasonIds: nextSeasonIds, monthIds: prevMonthIds, eventConditions: prev.conditions?.eventConditions ?? [] } };
     });
   };
 
@@ -76,7 +83,7 @@ export const MoonEventForm = ({
       const nextMonthIds = prevMonthIds.includes(monthId)
         ? prevMonthIds.filter((id) => id !== monthId)
         : [...prevMonthIds, monthId];
-      return { ...prev, conditions: { seasonIds: prevSeasonIds, monthIds: nextMonthIds } };
+      return { ...prev, conditions: { seasonIds: prevSeasonIds, monthIds: nextMonthIds, eventConditions: prev.conditions?.eventConditions ?? [] } };
     });
   };
 
@@ -85,7 +92,8 @@ export const MoonEventForm = ({
       ...prev,
       conditions: {
         seasonIds: project.seasons.map((season) => season.id),
-        monthIds: prev.conditions?.monthIds ?? []
+        monthIds: prev.conditions?.monthIds ?? [],
+        eventConditions: prev.conditions?.eventConditions ?? []
       }
     }));
   };
@@ -95,7 +103,8 @@ export const MoonEventForm = ({
       ...prev,
       conditions: {
         seasonIds: [],
-        monthIds: prev.conditions?.monthIds ?? []
+        monthIds: prev.conditions?.monthIds ?? [],
+        eventConditions: prev.conditions?.eventConditions ?? []
       }
     }));
   };
@@ -105,7 +114,8 @@ export const MoonEventForm = ({
       ...prev,
       conditions: {
         seasonIds: prev.conditions?.seasonIds ?? [],
-        monthIds: months.map((month) => month.id)
+        monthIds: months.map((month) => month.id),
+        eventConditions: prev.conditions?.eventConditions ?? []
       }
     }));
   };
@@ -115,9 +125,55 @@ export const MoonEventForm = ({
       ...prev,
       conditions: {
         seasonIds: prev.conditions?.seasonIds ?? [],
-        monthIds: []
+        monthIds: [],
+        eventConditions: prev.conditions?.eventConditions ?? []
       }
     }));
+  };
+  const setEventCondition = (nextCondition: MoonEventCondition | undefined) => {
+    setDraft((prev) => {
+      const existing = prev.conditions?.eventConditions ?? [];
+      const nextEventConditions = nextCondition
+        ? [...existing.filter((condition) => condition.type !== nextCondition.type), nextCondition]
+        : existing;
+      return {
+        ...prev,
+        conditions: {
+          seasonIds: prev.conditions?.seasonIds ?? [],
+          monthIds: prev.conditions?.monthIds ?? [],
+          eventConditions: nextEventConditions
+        }
+      };
+    });
+  };
+
+  const removeEventCondition = (type: MoonEventCondition["type"]) => {
+    setDraft((prev) => ({
+      ...prev,
+      conditions: {
+        seasonIds: prev.conditions?.seasonIds ?? [],
+        monthIds: prev.conditions?.monthIds ?? [],
+        eventConditions: (prev.conditions?.eventConditions ?? []).filter((condition) => condition.type !== type)
+      }
+    }));
+  };
+
+  const toggleBiomeCondition = (biomeId: WeatherBiomeId) => {
+    const current = new Set(biomeCondition?.biomeIds ?? []);
+    if (current.has(biomeId)) current.delete(biomeId);
+    else current.add(biomeId);
+    const biomeIds = Array.from(current) as WeatherBiomeId[];
+    if (biomeIds.length === 0) removeEventCondition("biome");
+    else setEventCondition({ type: "biome", biomeIds });
+  };
+
+  const toggleAdventureContextCondition = (contextId: string) => {
+    const current = new Set(adventureContextCondition?.contextIds ?? []);
+    if (current.has(contextId)) current.delete(contextId);
+    else current.add(contextId);
+    const contextIds = Array.from(current);
+    if (contextIds.length === 0) removeEventCondition("adventureContext");
+    else setEventCondition({ type: "adventureContext", mode: adventureContextCondition?.mode ?? "any", contextIds });
   };
 
   const getMoonEventAutoSummary = (): string => {
@@ -139,6 +195,9 @@ export const MoonEventForm = ({
     } else if (monthIds.length > 1) {
       parts.push(t(project.locale, "moonEvents.selectedMonths").replace("{count}", String(monthIds.length)));
     }
+
+    if (biomeCondition?.biomeIds.length) parts.push(t(project.locale, "moonEvents.conditionBiomeCount").replace("{count}", String(biomeCondition.biomeIds.length)));
+    if (adventureContextCondition?.contextIds.length) parts.push(t(project.locale, "moonEvents.conditionContextCount").replace("{count}", String(adventureContextCondition.contextIds.length)));
 
     if (repeatMode === "once") parts.push(t(project.locale, "moonEvents.conditionNoRepeat"));
     if (repeatMode === "everyOtherOccurrence") parts.push(t(project.locale, "moonEvents.conditionEveryOtherMoon"));
@@ -243,6 +302,57 @@ export const MoonEventForm = ({
             })}
           </div>
         </div>
+
+        <div>
+          <div style={conditionHeaderRowStyle}>
+            <strong style={conditionTitleStyle}>{t(project.locale, "moonEvents.conditionBiomes")}</strong>
+            <div style={conditionActionRowStyle}>
+              <button type="button" style={miniButtonStyle} onClick={() => setEventCondition({ type: "biome", biomeIds: WEATHER_BIOME_DEFINITIONS.map((definition) => definition.id) })}>{t(project.locale, "moonEvents.selectAll")}</button>
+              <button type="button" style={miniButtonStyle} onClick={() => removeEventCondition("biome")}>{t(project.locale, "moonEvents.clearFilter")}</button>
+            </div>
+          </div>
+          <div style={conditionStateStyle}>{biomeCondition?.biomeIds.length ? t(project.locale, "moonEvents.selectedBiomes").replace("{count}", String(biomeCondition.biomeIds.length)) : t(project.locale, "moonEvents.allBiomes")}</div>
+          <div style={badgeGridStyle}>
+            {WEATHER_BIOME_DEFINITIONS.map((definition) => {
+              const selected = Boolean(biomeCondition?.biomeIds.includes(definition.id));
+              return (
+                <button key={definition.id} type="button" onClick={() => toggleBiomeCondition(definition.id)} style={{ ...badgeButtonStyle, ...(selected ? badgeButtonActiveStyle : badgeButtonInactiveStyle) }}>
+                  {definition.icon} {t(project.locale, definition.nameKey)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div style={conditionHeaderRowStyle}>
+            <strong style={conditionTitleStyle}>{t(project.locale, "moonEvents.conditionAdventureContexts")}</strong>
+            <div style={conditionActionRowStyle}>
+              <button type="button" style={miniButtonStyle} onClick={() => removeEventCondition("adventureContext")}>{t(project.locale, "moonEvents.clearFilter")}</button>
+            </div>
+          </div>
+          <div style={conditionStateStyle}>{adventureContextCondition?.contextIds.length ? t(project.locale, "moonEvents.selectedContexts").replace("{count}", String(adventureContextCondition.contextIds.length)) : t(project.locale, "moonEvents.allContexts")}</div>
+          {adventureContextCondition?.contextIds.length ? (
+            <>
+              <label style={label}>{t(project.locale, "weatherEvents.conditionMode")}</label>
+              <select value={adventureContextCondition.mode} onChange={(e) => setEventCondition({ ...adventureContextCondition, mode: e.target.value as "any" | "all" | "none" })} style={inputStyle}>
+                <option value="any">{t(project.locale, "adventureContext.conditionMode.any")}</option>
+                <option value="all">{t(project.locale, "adventureContext.conditionMode.all")}</option>
+                <option value="none">{t(project.locale, "adventureContext.conditionMode.none")}</option>
+              </select>
+            </>
+          ) : null}
+          <div style={badgeGridStyle}>
+            {adventureContextState.availableContexts.filter((context) => context.enabled).map((context) => {
+              const selected = Boolean(adventureContextCondition?.contextIds.includes(context.id));
+              return (
+                <button key={context.id} type="button" title={context.description?.[project.locale]} onClick={() => toggleAdventureContextCondition(context.id)} style={{ ...badgeButtonStyle, ...(selected ? badgeButtonActiveStyle : badgeButtonInactiveStyle) }}>
+                  {context.icon} {getAdventureContextLabel(context, project.locale)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </MoonEventFormSection>
 
       <MoonEventFormSection title={t(project.locale, "moonEvents.repeatSection")}>
@@ -274,7 +384,7 @@ export const MoonEventForm = ({
 
       <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
         <button type="button" onClick={onCancel} style={buttonStyle}>{t(project.locale, "moonEvents.cancel")}</button>
-        <button type="button" onClick={() => onSubmit({ ...draft, conditions: { seasonIds: seasonIds ?? [], monthIds: monthIds ?? [] }, repeatMode: draft.repeatMode ?? "everyOccurrence" })} style={buttonStyle}>{mode === "create" ? t(project.locale, "moonEvents.create") : t(project.locale, "moonEvents.update")}</button>
+        <button type="button" onClick={() => onSubmit({ ...draft, conditions: { seasonIds: seasonIds ?? [], monthIds: monthIds ?? [], eventConditions }, repeatMode: draft.repeatMode ?? "everyOccurrence" })} style={buttonStyle}>{mode === "create" ? t(project.locale, "moonEvents.create") : t(project.locale, "moonEvents.update")}</button>
       </div>
     </div>
   );
