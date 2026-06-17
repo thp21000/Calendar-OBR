@@ -32,7 +32,7 @@ export const SettingsView = ({
   const switchToEvents = () => onProjectUpdate({ ...project, uiSettings: { ...project.uiSettings, activeTab: "events" } });
 
   return (
-    <div style={{ maxHeight: 380, overflowY: "auto", overflowX: "hidden", paddingRight: 2 }}>
+    <div style={{ minHeight: 0, overflowY: "auto", overflowX: "hidden", paddingRight: 2, paddingBottom: 12 }}>
       {saveError ? <div style={{ color: "#fca5a5", marginBottom: 8 }}>{t(project.locale, "settings.saveError")}</div> : null}
 
       <SettingsGroup title={t(project.locale, "settings.group.essential")} help={t(project.locale, "settings.group.essentialHelp")} storageKey="calendar-obr.settings.group.essential" defaultOpen>
