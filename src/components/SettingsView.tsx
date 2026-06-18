@@ -7,6 +7,7 @@ import { CurrentTimeSettingsSection } from "./settings/CurrentTimeSettingsSectio
 import { DataSettingsSection } from "./settings/DataSettingsSection";
 import { DisplaySettingsSection } from "./settings/DisplaySettingsSection";
 import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
+import { EventDisplaySettingsSection } from "./settings/EventDisplaySettingsSection";
 import { MoonsSettingsSection } from "./settings/MoonsSettingsSection";
 import { PacksSettingsSection } from "./settings/PacksSettingsSection";
 import { PlayerViewSettingsSection } from "./settings/PlayerViewSettingsSection";
@@ -74,6 +75,10 @@ export const SettingsView = ({
         <CollapsibleSection title={t(project.locale, "settings.weatherLayer.events")} storageKey="calendar-obr.settings.weatherLayer.events">
           <HelpText text={t(project.locale, "settings.weatherLayer.eventsHelp")} />
           <button type="button" onClick={switchToEvents} style={buttonStyle}>{t(project.locale, "settings.weatherLayer.openEvents")}</button>
+        </CollapsibleSection>
+        <CollapsibleSection title={t(project.locale, "eventDisplay.smartDisplay")} storageKey="calendar-obr.settings.weatherLayer.smartDisplay">
+          <HelpText text={t(project.locale, "eventDisplay.smartDisplayHelp")} />
+          <EventDisplaySettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
         </CollapsibleSection>
         <CollapsibleSection title={t(project.locale, "weatherSimulation.title")} storageKey="calendar-obr.settings.weatherSimulation">
           <HelpText text={t(project.locale, "weatherSimulation.help")} />
