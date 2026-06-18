@@ -3,6 +3,7 @@ import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
 import { isAdventureContextConditionMet } from "./adventureContext";
 import { getWeatherBiomeState } from "./weather/biomes";
+import { cleanManualPublications } from "./eventPublicationLogic";
 import type { CalendarDate, CalendarProject, InternalTime, MoonEvent, MoonEventCondition } from "../domain/types";
 
 export const createDefaultMoonEvent = (project: CalendarProject): MoonEvent => ({
@@ -13,6 +14,7 @@ export const createDefaultMoonEvent = (project: CalendarProject): MoonEvent => (
   moonId: project.moons[0]?.id ?? "",
   phaseId: "full",
   visibility: "gm",
+  visibilityMode: "auto",
   enabled: true,
   notifyOnTrigger: true,
   status: "active",
@@ -22,8 +24,8 @@ export const createDefaultMoonEvent = (project: CalendarProject): MoonEvent => (
 });
 
 export const addMoonEvent = (project: CalendarProject, event: MoonEvent): CalendarProject => ({ ...project, moonEvents: [...(project.moonEvents ?? []), event] });
-export const updateMoonEvent = (project: CalendarProject, eventId: string, patch: Partial<MoonEvent>): CalendarProject => ({ ...project, moonEvents: (project.moonEvents ?? []).map((e) => (e.id === eventId ? { ...e, ...patch } : e)) });
-export const deleteMoonEvent = (project: CalendarProject, eventId: string): CalendarProject => ({ ...project, moonEvents: (project.moonEvents ?? []).filter((e) => e.id !== eventId) });
+export const updateMoonEvent = (project: CalendarProject, eventId: string, patch: Partial<MoonEvent>): CalendarProject => cleanManualPublications({ ...project, moonEvents: (project.moonEvents ?? []).map((e) => (e.id === eventId ? { ...e, ...patch } : e)) });
+export const deleteMoonEvent = (project: CalendarProject, eventId: string): CalendarProject => cleanManualPublications({ ...project, moonEvents: (project.moonEvents ?? []).filter((e) => e.id !== eventId) });
 export const duplicateMoonEvent = (project: CalendarProject, eventId: string): CalendarProject => {
   const sourceEvent = (project.moonEvents ?? []).find((event) => event.id === eventId);
   if (!sourceEvent) return project;

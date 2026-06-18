@@ -6,6 +6,7 @@ import { createNotificationsFromTriggers, createReminderNotifications, type Cale
 import * as moonLogic from "../calendar/moonLogic";
 import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../calendar/eventDisplayLogic";
+import { cleanManualPublicationsForActiveEvents, normalizeManualPublications, setLunarEventManualPublication, setWeatherEventManualPublication } from "../calendar/eventPublicationLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import {
   getCurrentlyMatchingWeatherEvents,
@@ -84,6 +85,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const absoluteMinutes = project.currentTime.absoluteDay * 1440 + project.currentTime.hour * 60 + project.currentTime.minute;
   const displaySettings = normalizeEventDisplaySettings(project.eventDisplaySettings);
   const displayHistory = normalizeEventDisplayHistory(project.eventDisplayHistory);
+  const manualPublications = normalizeManualPublications(project.manualPublications);
   const weatherDisplaySelection = selectVisibleWeatherEvents({
     activeEvents: triggeredWeatherEvents,
     settings: displaySettings,
@@ -113,6 +115,14 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const selectedEvent = selectedEventId ? project.events.find((event) => event.id === selectedEventId) ?? null : null;
   const selectedMoonEvent = selectedMoonEventId ? (project.moonEvents ?? []).find((event) => event.id === selectedMoonEventId) ?? null : null;
   const selectedWeatherEvent = selectedWeatherEventId ? project.weatherEvents.find((event) => event.id === selectedWeatherEventId) ?? null : null;
+
+  const toggleWeatherPublication = (eventId: string, published: boolean) => {
+    onProjectUpdate(setWeatherEventManualPublication(project, eventId, published));
+  };
+
+  const toggleMoonPublication = (eventId: string, published: boolean) => {
+    onProjectUpdate(setLunarEventManualPublication(project, eventId, published));
+  };
 
   const readDismissed = (): Set<string> => {
     try {
@@ -164,7 +174,10 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       });
       const withEventsCompletion = applyEventCompletionActions(weatherLifecycle.project, completed);
       const withMoonEventStatus = applyMoonEventTriggerActions(withEventsCompletion, triggeredMoon, nextTime.absoluteDay);
-      onProjectUpdate(withMoonEventStatus);
+      const nextConditionWeather = generateWeatherForEventConditions(withMoonEventStatus, nextTime);
+      const nextActiveWeatherIds = nextConditionWeather ? getCurrentlyMatchingWeatherEvents(withMoonEventStatus, nextConditionWeather, nextTime).map((event) => event.id) : [];
+      const nextActiveMoonIds = getTriggeredMoonEvents(withMoonEventStatus, nextTime.absoluteDay).map((event) => event.id);
+      onProjectUpdate(cleanManualPublicationsForActiveEvents(withMoonEventStatus, nextActiveWeatherIds, nextActiveMoonIds));
       return;
     } else {
       setLastTriggeredEvents([]);
@@ -172,7 +185,11 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       setLastTriggeredMoonEvents([]);
     }
 
-    onProjectUpdate({ ...project, currentTime: nextTime });
+    const nextProject = { ...project, currentTime: nextTime };
+    const nextConditionWeather = generateWeatherForEventConditions(nextProject, nextTime);
+    const nextActiveWeatherIds = nextConditionWeather ? getCurrentlyMatchingWeatherEvents(nextProject, nextConditionWeather, nextTime).map((event) => event.id) : [];
+    const nextActiveMoonIds = getTriggeredMoonEvents(nextProject, nextTime.absoluteDay).map((event) => event.id);
+    onProjectUpdate(cleanManualPublicationsForActiveEvents(nextProject, nextActiveWeatherIds, nextActiveMoonIds));
   };
 
   const quickActionsCard = (
@@ -253,8 +270,10 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
           weatherUnits={weatherUnits}
           currentMoonPhases={currentMoonPhases}
           onSelectWeatherEvent={setSelectedWeatherEventId}
+        onToggleWeatherPublication={toggleWeatherPublication}
+          publishedWeatherEventIds={manualPublications.weatherEventIds}
         />}
-        events={<TodayEventsCard project={project} eventsToday={eventsToday} moonEventsToday={moonDisplaySelection.visibleEvents} hiddenMoonEvents={moonDisplaySelection.hiddenEvents} hiddenMoonEventReasons={moonDisplaySelection.hiddenReasons} onSelectEvent={setSelectedEventId} onSelectMoonEvent={setSelectedMoonEventId} />}
+        events={<TodayEventsCard project={project} eventsToday={eventsToday} moonEventsToday={moonDisplaySelection.visibleEvents} hiddenMoonEvents={moonDisplaySelection.hiddenEvents} hiddenMoonEventReasons={moonDisplaySelection.hiddenReasons} onSelectEvent={setSelectedEventId} onSelectMoonEvent={setSelectedMoonEventId} onToggleMoonPublication={toggleMoonPublication} publishedMoonEventIds={manualPublications.lunarEventIds} />}
         forecast={<WeatherForecastCard project={project} hourlyForecast={hourlyForecast} weatherUnits={weatherUnits} />}
         quickActions={quickActionsCard}
       />

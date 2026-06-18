@@ -438,6 +438,7 @@ export type WeatherEventTriggerHistoryEntry = {
 };
 
 export type EventDisplaySeverity = "ambient" | "minor" | "standard" | "major" | "critical";
+export type EventVisibilityMode = "auto" | "gmOnly" | "manual";
 
 export type EventDisplayRules = {
   displayFamilyId?: string;
@@ -495,6 +496,7 @@ export type WeatherEvent = EventDisplayRules & {
   gmDescription?: string;
   playerDescription?: string;
   visibility?: "gm" | "players" | "revealOnTrigger";
+  visibilityMode?: EventVisibilityMode;
   notifyOnTrigger?: boolean;
   status?: "active" | "triggered" | "archived" | "disabled";
   lastTriggeredAtMinutes?: number;
@@ -522,6 +524,7 @@ export type MoonEvent = EventDisplayRules & {
   moonId: string;
   phaseId: MoonPhaseId;
   visibility: "gm" | "players" | "revealOnTrigger";
+  visibilityMode?: EventVisibilityMode;
   enabled: boolean;
   notifyOnTrigger: boolean;
   status: "active" | "triggered" | "archived" | "disabled";
@@ -551,6 +554,11 @@ export type DayNote = {
   updatedAt: number;
 };
 
+export type ManualPublications = {
+  weatherEventIds: string[];
+  lunarEventIds: string[];
+};
+
 export type CalendarProject = {
   schemaVersion: number;
   appVersion: string;
@@ -575,6 +583,7 @@ export type CalendarProject = {
   adventureContext?: AdventureContextState;
   eventDisplaySettings?: EventDisplaySettings;
   eventDisplayHistory?: EventDisplayHistory;
+  manualPublications?: ManualPublications;
   uiSettings: UiSettings;
 };
 

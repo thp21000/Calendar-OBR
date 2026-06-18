@@ -4,6 +4,7 @@ import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
 import { getWeatherBiomeState } from "./weather/biomes";
 import { getAdventureContextConditionDetails, isAdventureContextConditionMet } from "./adventureContext";
+import { cleanManualPublications } from "./eventPublicationLogic";
 import type { CalendarProject, InternalTime, WeatherCondition, WeatherConditionMetric, WeatherEvent, WeatherEventTriggerHistoryEntry, WeatherSnapshot, WeatherState, WeatherOverride } from "../domain/types";
 
 export type PlayerVisibleWeatherEvent = {
@@ -489,6 +490,7 @@ export const createDefaultWeatherEvent = (locale: CalendarProject["locale"]): We
   gmDescription: "",
   playerDescription: "",
   visibility: "gm",
+  visibilityMode: "auto",
   notifyOnTrigger: true,
   status: "active",
   archiveAfterTrigger: false,
@@ -551,12 +553,12 @@ export const updateWeatherEvent = (
   project: CalendarProject,
   eventId: string,
   patch: Partial<WeatherEvent>
-): CalendarProject => ({
+): CalendarProject => cleanManualPublications({
   ...project,
   weatherEvents: project.weatherEvents.map((event) => (event.id === eventId ? { ...event, ...patch } : event))
 });
 
-export const deleteWeatherEvent = (project: CalendarProject, eventId: string): CalendarProject => ({
+export const deleteWeatherEvent = (project: CalendarProject, eventId: string): CalendarProject => cleanManualPublications({
   ...project,
   weatherEvents: project.weatherEvents.filter((event) => event.id !== eventId)
 });

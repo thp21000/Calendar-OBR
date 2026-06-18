@@ -263,6 +263,15 @@ export const MoonEventForm = ({
         </select>
       </MoonEventFormSection>
 
+      <MoonEventFormSection title={t(project.locale, "eventPublication.visibility")}>
+        <label style={label}>{t(project.locale, "eventPublication.visibility")}</label>
+        <select value={draft.visibilityMode ?? "auto"} onChange={(e) => setDraft((prev) => ({ ...prev, visibilityMode: e.target.value as MoonEvent["visibilityMode"] }))} style={inputStyle}>
+          <option value="auto">{t(project.locale, "eventPublication.mode.auto")}</option>
+          <option value="gmOnly">{t(project.locale, "eventPublication.mode.gmOnly")}</option>
+          <option value="manual">{t(project.locale, "eventPublication.mode.manual")}</option>
+        </select>
+      </MoonEventFormSection>
+
       <MoonEventFormSection title={t(project.locale, "moonEvents.sectionTrigger")}>
         <label style={label}>{t(project.locale, "moonEvents.moon")}</label>
         <select value={draft.moonId} onChange={(e) => setDraft((prev) => ({ ...prev, moonId: e.target.value }))} style={inputStyle}>

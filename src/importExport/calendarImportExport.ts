@@ -12,6 +12,7 @@ import { isWeatherState } from "../calendar/weatherStates";
 import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
 import { normalizeAdventureContext } from "../calendar/adventureContext";
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, sanitizeEventDisplayRules } from "../calendar/eventDisplayLogic";
+import { cleanManualPublications, normalizeManualPublications } from "../calendar/eventPublicationLogic";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -205,7 +206,8 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
   maybeCompat.adventureContext = normalizeAdventureContext((data as Record<string, unknown>).adventureContext);
   maybeCompat.eventDisplaySettings = normalizeEventDisplaySettings((data as Record<string, unknown>).eventDisplaySettings);
   maybeCompat.eventDisplayHistory = normalizeEventDisplayHistory((data as Record<string, unknown>).eventDisplayHistory);
-  
+  maybeCompat.manualPublications = normalizeManualPublications((data as Record<string, unknown>).manualPublications);
+
   if (isRecord(maybeCompat.units)) {
     const units = maybeCompat.units as Record<string, unknown>;
     maybeCompat.units = {
@@ -473,6 +475,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         if (typeof next.gmDescription !== "string") delete next.gmDescription;
         if (typeof next.playerDescription !== "string") delete next.playerDescription;
         if (!(next.visibility === "gm" || next.visibility === "players" || next.visibility === "revealOnTrigger")) next.visibility = "gm";
+        if (!(next.visibilityMode === "auto" || next.visibilityMode === "gmOnly" || next.visibilityMode === "manual")) next.visibilityMode = "auto";
         if (typeof next.notifyOnTrigger !== "boolean") next.notifyOnTrigger = true;
         if (!(next.status === "active" || next.status === "triggered" || next.status === "archived" || next.status === "disabled")) next.status = "active";
         if (typeof next.lastTriggeredAtMinutes !== "number" || !Number.isFinite(next.lastTriggeredAtMinutes) || next.lastTriggeredAtMinutes < 0) delete next.lastTriggeredAtMinutes;
@@ -539,6 +542,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         if (typeof next.moonId !== "string") next.moonId = "";
         if (!(next.phaseId === "new" || next.phaseId === "waxingCrescent" || next.phaseId === "firstQuarter" || next.phaseId === "waxingGibbous" || next.phaseId === "full" || next.phaseId === "waningGibbous" || next.phaseId === "lastQuarter" || next.phaseId === "waningCrescent")) next.phaseId = "full";
         if (!(next.visibility === "gm" || next.visibility === "players" || next.visibility === "revealOnTrigger")) next.visibility = "gm";
+        if (!(next.visibilityMode === "auto" || next.visibilityMode === "gmOnly" || next.visibilityMode === "manual")) next.visibilityMode = "auto";
         if (typeof next.enabled !== "boolean") next.enabled = true;
         if (typeof next.notifyOnTrigger !== "boolean") next.notifyOnTrigger = true;
         if (!(next.status === "active" || next.status === "triggered" || next.status === "archived" || next.status === "disabled")) next.status = "active";
@@ -572,7 +576,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
     delete maybeCompat.weatherAdvancedSettings;
   }
 
-  const validation = validateImportedCalendarProject(ensureDefaultSceneWeatherProfiles(maybeCompat as CalendarProject));
+  const validation = validateImportedCalendarProject(cleanManualPublications(ensureDefaultSceneWeatherProfiles(maybeCompat as CalendarProject)));
   if (!validation.valid) return { ok: false, error: validation.error };
   return { ok: true, project: validation.project };
 };

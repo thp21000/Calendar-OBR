@@ -4,13 +4,14 @@ import { getPlayerVisibleEventsForCurrentDay } from "../../calendar/eventsLogic"
 import { formatDisplayDate } from "../../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../../calendar/formatEvent";
 import { getCurrentMoonPhases } from "../../calendar/moonLogic";
-import { getPlayerVisibleMoonEvents } from "../../calendar/moonEventsLogic";
+import { getTriggeredMoonEvents } from "../../calendar/moonEventsLogic";
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../../calendar/eventDisplayLogic";
+import { filterPlayerPublishableLunarEvents, filterPlayerPublishableWeatherEvents } from "../../calendar/eventPublicationLogic";
 import { normalizePlayerViewSettings } from "../../calendar/playerViewSettings";
 import { getCurrentSeason } from "../../calendar/seasonsLogic";
 import { getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { getCurrentWeatherBiomeDefinition } from "../../calendar/weather/biomes";
-import { getPlayerVisibleWeatherEvents } from "../../calendar/weatherEventsLogic";
+import { getCurrentlyMatchingWeatherEvents } from "../../calendar/weatherEventsLogic";
 import { getCurrentWeather, getHourlyWeatherForecast } from "../../calendar/weatherLogic";
 import { formatRain, formatRainTotal, formatTemperature, formatWindSpeed } from "../../calendar/weatherUnits";
 import type { CalendarProject, LocaleCode, PlayerForecastDetailLevel, PlayerViewSettings, PlayerWeatherDetailLevel, WeatherSnapshot, WeatherState, WeatherTrendKind, WindDirection } from "../../domain/types";
@@ -432,13 +433,15 @@ export const buildPlayerViewModelFromProject = (project: CalendarProject, rawSet
   const currentWeather = getCurrentWeather(project);
   const currentBiome = getCurrentWeatherBiomeDefinition(project);
   const currentMoonPhases = getCurrentMoonPhases(project);
-  const visibleWeatherEvents = currentWeather ? getPlayerVisibleWeatherEvents(project, currentWeather, project.currentTime) : [];
-  const visibleMoonEvents = getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay);
+  const activeWeatherEvents = currentWeather ? getCurrentlyMatchingWeatherEvents(project, currentWeather, project.currentTime) : [];
+  const activeMoonEvents = getTriggeredMoonEvents(project, project.currentTime.absoluteDay);
   const absoluteMinutes = project.currentTime.absoluteDay * 1440 + project.currentTime.hour * 60 + project.currentTime.minute;
   const eventDisplaySettings = normalizeEventDisplaySettings(project.eventDisplaySettings);
   const eventDisplayHistory = normalizeEventDisplayHistory(project.eventDisplayHistory);
-  const arbitratedWeatherEvents = selectVisibleWeatherEvents({ activeEvents: visibleWeatherEvents as any, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
-  const arbitratedMoonEvents = selectVisibleLunarEvents({ activeEvents: visibleMoonEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
+  const arbitratedWeatherEvents = selectVisibleWeatherEvents({ activeEvents: activeWeatherEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
+  const arbitratedMoonEvents = selectVisibleLunarEvents({ activeEvents: activeMoonEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
+  const publishedWeatherEvents = filterPlayerPublishableWeatherEvents(project, arbitratedWeatherEvents, settings.today.showWeatherEvents);
+  const publishedMoonEvents = filterPlayerPublishableLunarEvents(project, arbitratedMoonEvents, settings.today.showMoonEvents);
   const visibleDayNotes = getPlayerVisibleDayNotesForDay(project, displayDate);
 
   return {
@@ -471,7 +474,7 @@ export const buildPlayerViewModelFromProject = (project: CalendarProject, rawSet
       timeLabel: formatEventTimeShort(project, event),
       link: event.link || undefined
     }))) : [],
-    weatherEvents: settings.today.showWeatherEvents ? compactPublicEvents(arbitratedWeatherEvents.map((event) => ({
+    weatherEvents: settings.today.showWeatherEvents ? compactPublicEvents(publishedWeatherEvents.map((event) => ({
       id: event.id,
       name: event.name,
       icon: event.icon,
@@ -479,7 +482,7 @@ export const buildPlayerViewModelFromProject = (project: CalendarProject, rawSet
       playerDescription: event.playerDescription || undefined,
       link: event.link || undefined
     }))) : [],
-    moonEvents: settings.today.showMoonEvents ? compactPublicEvents(visibleMoonEvents.map((event) => {
+    moonEvents: settings.today.showMoonEvents ? compactPublicEvents(publishedMoonEvents.map((event) => {
       const moon = project.moons.find((item) => item.id === event.moonId);
       return {
         id: event.id,

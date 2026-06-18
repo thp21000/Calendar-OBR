@@ -181,6 +181,10 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
       <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.visibility")}</div><select value={draft.visibility ?? "gm"} onChange={(e) => updateDraft({ visibility: e.target.value as WeatherEvent["visibility"] })} style={mergedInputStyle}><option value="gm">{t(project.locale, "weatherEvents.visibilityGm")}</option><option value="players">{t(project.locale, "weatherEvents.visibilityPlayers")}</option><option value="revealOnTrigger">{t(project.locale, "weatherEvents.visibilityRevealOnTrigger")}</option></select></label>
     </WeatherEventFormSection>
 
+    <WeatherEventFormSection title={t(project.locale, "eventPublication.visibility")}>
+      <label style={field}><div style={labelStyle}>{t(project.locale, "eventPublication.visibility")}</div><select value={draft.visibilityMode ?? "auto"} onChange={(e) => updateDraft({ visibilityMode: e.target.value as WeatherEvent["visibilityMode"] })} style={mergedInputStyle}><option value="auto">{t(project.locale, "eventPublication.mode.auto")}</option><option value="gmOnly">{t(project.locale, "eventPublication.mode.gmOnly")}</option><option value="manual">{t(project.locale, "eventPublication.mode.manual")}</option></select></label>
+    </WeatherEventFormSection>
+    
     <WeatherEventFormSection title={t(project.locale, "weatherEvents.sectionTriggerOptions")}>
       <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.triggerChancePercent")} help={t(project.locale, "weatherEvents.triggerChanceHelp")} /><input type="number" min={0} max={100} step={1} value={draft.triggerChancePercent ?? 100} onChange={(e) => updateDraft({ triggerChancePercent: Math.max(0, Math.min(100, Math.trunc(Number(e.target.value) || 0))) })} style={mergedInputStyle} /></label>
       <label style={checkLabel}><input type="checkbox" checked={draft.notifyOnTrigger !== false} onChange={(e) => updateDraft({ notifyOnTrigger: e.target.checked })} />{t(project.locale, "weatherEvents.notifyOnTrigger")}</label>
