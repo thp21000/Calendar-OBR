@@ -1259,6 +1259,7 @@ export const enMessages = {
   "adventureContext.localRequirementMode": "Local context mode",
   "adventureContext.localMode.primaryOnly": "Primary context",
   "adventureContext.localMode.primaryAndAnySecondary": "Primary + secondary",
+  "adventureContext.primaryContext": "Primary context",
   "adventureContext.primaryContexts": "Primary contexts",
   "adventureContext.secondaryContexts": "Secondary contexts",
   "adventureContext.legacyCondition": "legacy model",

@@ -167,16 +167,19 @@ export const MoonEventForm = ({
     else setEventCondition({ type: "biome", biomeIds });
   };
 
-  const toggleAdventureContextCondition = (contextId: string) => {
-    const current = new Set(adventureContextCondition?.contextIds ?? []);
-    if (current.has(contextId)) current.delete(contextId);
-    else current.add(contextId);
-    const contextIds = Array.from(current);
-    if (contextIds.length === 0) removeEventCondition("adventureContext");
-    else setEventCondition({ ...adventureContextCondition, type: "adventureContext", mode: adventureContextCondition?.mode ?? "any", contextIds });
+  const setPrimaryAdventureContext = (contextId: string) => {
+    setEventCondition({
+      ...adventureContextCondition,
+      type: "adventureContext",
+      mode: adventureContextCondition?.mode ?? "any",
+      contextIds: contextId ? [contextId] : [],
+      primaryContextIds: contextId ? [contextId] : [],
+      secondaryContextIds: adventureContextCondition?.secondaryContextIds ?? [],
+      contextRequirementMode: adventureContextCondition?.contextRequirementMode ?? "primaryOnly"
+    });
   };
 
-  const toggleLocalAdventureContext = (contextId: string, field: "primaryContextIds" | "secondaryContextIds") => {
+  const toggleLocalAdventureContext = (contextId: string, field: "secondaryContextIds") => {
     const current = new Set(adventureContextCondition?.[field] ?? []);
     if (current.has(contextId)) current.delete(contextId);
     else current.add(contextId);
@@ -185,8 +188,8 @@ export const MoonEventForm = ({
       type: "adventureContext",
       mode: adventureContextCondition?.mode ?? "any",
       contextIds: adventureContextCondition?.contextIds ?? [],
-      primaryContextIds: field === "primaryContextIds" ? Array.from(current) : adventureContextCondition?.primaryContextIds ?? [],
-      secondaryContextIds: field === "secondaryContextIds" ? Array.from(current) : adventureContextCondition?.secondaryContextIds ?? [],
+      primaryContextIds: adventureContextCondition?.primaryContextIds ?? [],
+      secondaryContextIds: Array.from(current),
       contextRequirementMode: adventureContextCondition?.contextRequirementMode ?? "primaryOnly"
     });
   };
@@ -212,7 +215,8 @@ export const MoonEventForm = ({
     }
 
     if (biomeCondition?.biomeIds.length) parts.push(t(project.locale, "moonEvents.conditionBiomeCount").replace("{count}", String(biomeCondition.biomeIds.length)));
-    if (adventureContextCondition?.contextIds.length) parts.push(t(project.locale, "moonEvents.conditionContextCount").replace("{count}", String(adventureContextCondition.contextIds.length)));
+    const primaryAdventureContextCount = adventureContextCondition?.primaryContextIds?.length ?? adventureContextCondition?.contextIds.length ?? 0;
+    if (primaryAdventureContextCount > 0) parts.push(t(project.locale, "moonEvents.conditionContextCount").replace("{count}", String(primaryAdventureContextCount)));
 
     if (repeatMode === "once") parts.push(t(project.locale, "moonEvents.conditionNoRepeat"));
     if (repeatMode === "everyOtherOccurrence") parts.push(t(project.locale, "moonEvents.conditionEveryOtherMoon"));
@@ -364,21 +368,19 @@ export const MoonEventForm = ({
               <button type="button" style={miniButtonStyle} onClick={() => removeEventCondition("adventureContext")}>{t(project.locale, "moonEvents.clearFilter")}</button>
             </div>
           </div>
-          <div style={conditionStateStyle}>{adventureContextCondition?.contextIds.length ? t(project.locale, "moonEvents.selectedContexts").replace("{count}", String(adventureContextCondition.contextIds.length)) : t(project.locale, "moonEvents.allContexts")}</div>
+          <div style={conditionStateStyle}>{(adventureContextCondition?.primaryContextIds?.length ?? 0) > 0 ? t(project.locale, "moonEvents.selectedContexts").replace("{count}", String(adventureContextCondition?.primaryContextIds?.length ?? 0)) : t(project.locale, "moonEvents.allContexts")}</div>
+          <label style={label}>{t(project.locale, "adventureContext.localRequirementMode")}</label>
+          <select value={adventureContextCondition?.contextRequirementMode ?? "primaryOnly"} onChange={(e) => setEventCondition({ ...adventureContextCondition, type: "adventureContext", mode: adventureContextCondition?.mode ?? "any", contextIds: adventureContextCondition?.contextIds ?? [], primaryContextIds: adventureContextCondition?.primaryContextIds ?? [], secondaryContextIds: adventureContextCondition?.secondaryContextIds ?? [], contextRequirementMode: e.target.value as "primaryOnly" | "primaryAndAnySecondary" })} style={inputStyle}>
+            <option value="primaryOnly">{t(project.locale, "adventureContext.localMode.primaryOnly")}</option>
+            <option value="primaryAndAnySecondary">{t(project.locale, "adventureContext.localMode.primaryAndAnySecondary")}</option>
+          </select>
+          <label style={label}>{t(project.locale, "adventureContext.primaryContext")}</label>
+          <select value={adventureContextCondition?.primaryContextIds?.[0] ?? adventureContextCondition?.contextIds[0] ?? ""} onChange={(event) => setPrimaryAdventureContext(event.target.value)} style={inputStyle}>
+            <option value="">{t(project.locale, "adventureContext.none")}</option>
+            {adventureContextState.availableContexts.filter((context) => context.enabled).map((context) => <option key={context.id} value={context.id}>{context.icon} {getAdventureContextLabel(context, project.locale)}</option>)}
+          </select>
           {adventureContextCondition ? (
             <>
-              <label style={label}>{t(project.locale, "adventureContext.localRequirementMode")}</label>
-              <select value={adventureContextCondition.contextRequirementMode ?? "primaryOnly"} onChange={(e) => setEventCondition({ ...adventureContextCondition, contextRequirementMode: e.target.value as "primaryOnly" | "primaryAndAnySecondary" })} style={inputStyle}>
-                <option value="primaryOnly">{t(project.locale, "adventureContext.localMode.primaryOnly")}</option>
-                <option value="primaryAndAnySecondary">{t(project.locale, "adventureContext.localMode.primaryAndAnySecondary")}</option>
-              </select>
-              <div style={conditionStateStyle}>{t(project.locale, "adventureContext.primaryContexts")}: {(adventureContextCondition.primaryContextIds ?? []).length}</div>
-              <div style={badgeGridStyle}>
-                {adventureContextState.availableContexts.filter((context) => context.enabled).map((context) => {
-                  const selected = Boolean(adventureContextCondition.primaryContextIds?.includes(context.id));
-                  return <button key={`primary-${context.id}`} type="button" title={context.description?.[project.locale]} onClick={() => toggleLocalAdventureContext(context.id, "primaryContextIds")} style={{ ...badgeButtonStyle, ...(selected ? badgeButtonActiveStyle : badgeButtonInactiveStyle) }}>{context.icon} {getAdventureContextLabel(context, project.locale)}</button>;
-                })}
-              </div>
               <div style={conditionStateStyle}>{t(project.locale, "adventureContext.secondaryContexts")}: {(adventureContextCondition.secondaryContextIds ?? []).length}</div>
               <div style={badgeGridStyle}>
                 {adventureContextState.availableContexts.filter((context) => context.enabled).map((context) => {
@@ -386,24 +388,8 @@ export const MoonEventForm = ({
                   return <button key={`secondary-${context.id}`} type="button" title={context.description?.[project.locale]} onClick={() => toggleLocalAdventureContext(context.id, "secondaryContextIds")} style={{ ...badgeButtonStyle, ...(selected ? badgeButtonActiveStyle : badgeButtonInactiveStyle) }}>{context.icon} {getAdventureContextLabel(context, project.locale)}</button>;
                 })}
               </div>
-              <label style={label}>{t(project.locale, "weatherEvents.conditionMode")}</label>
-              <select value={adventureContextCondition.mode} onChange={(e) => setEventCondition({ ...adventureContextCondition, mode: e.target.value as "any" | "all" | "none" })} style={inputStyle}>
-                <option value="any">{t(project.locale, "adventureContext.conditionMode.any")}</option>
-                <option value="all">{t(project.locale, "adventureContext.conditionMode.all")}</option>
-                <option value="none">{t(project.locale, "adventureContext.conditionMode.none")}</option>
-              </select>
             </>
           ) : null}
-          <div style={badgeGridStyle}>
-            {adventureContextState.availableContexts.filter((context) => context.enabled).map((context) => {
-              const selected = Boolean(adventureContextCondition?.contextIds.includes(context.id));
-              return (
-                <button key={context.id} type="button" title={context.description?.[project.locale]} onClick={() => toggleAdventureContextCondition(context.id)} style={{ ...badgeButtonStyle, ...(selected ? badgeButtonActiveStyle : badgeButtonInactiveStyle) }}>
-                  {context.icon} {getAdventureContextLabel(context, project.locale)}
-                </button>
-              );
-            })}
-          </div>
         </div>
       </MoonEventFormSection>
 

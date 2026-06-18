@@ -91,8 +91,9 @@ export const conditionSummary = (project: CalendarProject, condition: WeatherCon
   if (condition.type === "moonPhase") return `${t(locale, "weatherEvents.moon")}=${project.moons.find((m) => m.id === condition.moonId)?.name ?? condition.moonId} · ${t(locale, `moon.phase.${condition.phaseId}`)}`;
   if (condition.type === "adventureContext") {
     const state = normalizeAdventureContext(project.adventureContext);
-    const labels = condition.contextIds.map((id) => state.availableContexts.find((context) => context.id === id)).filter((context): context is NonNullable<typeof context> => Boolean(context)).map((context) => `${context.icon} ${getAdventureContextLabel(context, locale)}`);
-    return `${t(locale, "adventureContext.condition")} · ${t(locale, `adventureContext.conditionMode.${condition.mode}`)} · ${labels.length > 0 ? labels.join(", ") : t(locale, "adventureContext.none")}`;
+    const primaryIds = condition.primaryContextIds?.length ? condition.primaryContextIds : condition.contextIds;
+    const labels = primaryIds.map((id) => state.availableContexts.find((context) => context.id === id)).filter((context): context is NonNullable<typeof context> => Boolean(context)).map((context) => `${context.icon} ${getAdventureContextLabel(context, locale)}`);
+    return `${t(locale, "adventureContext.condition")} · ${t(locale, `adventureContext.localMode.${condition.contextRequirementMode ?? "primaryOnly"}`)} · ${labels.length > 0 ? labels.join(", ") : t(locale, "adventureContext.none")}`;
   }
   if (condition.type === "biome") {
     const biomeIds = condition.biomeIds ?? [];
@@ -214,21 +215,7 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
         {condition.type === "adventureContext" ? <div style={condCard}>
           <FieldLabel label={t(project.locale, "adventureContext.condition")} help={t(project.locale, "adventureContext.current")} />
           <label style={field}><div style={labelStyle}>{t(project.locale, "adventureContext.localRequirementMode")}</div><select value={condition.contextRequirementMode ?? "primaryOnly"} onChange={(event) => updateDraftCondition(index, { ...condition, contextRequirementMode: event.target.value as "primaryOnly" | "primaryAndAnySecondary" })} style={mergedInputStyle}><option value="primaryOnly">{t(project.locale, "adventureContext.localMode.primaryOnly")}</option><option value="primaryAndAnySecondary">{t(project.locale, "adventureContext.localMode.primaryAndAnySecondary")}</option></select></label>
-          <div style={labelStyle}>{t(project.locale, "adventureContext.primaryContexts")}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 4 }}>
-            {normalizeAdventureContext(project.adventureContext).availableContexts.filter((context) => context.enabled).map((context) => {
-              const checked = (condition.primaryContextIds ?? []).includes(context.id);
-              return <label key={context.id} style={{ ...checkLabel, marginBottom: 0, fontSize: 12 }}>
-                <input type="checkbox" checked={checked} onChange={(event) => {
-                  const current = new Set(condition.primaryContextIds ?? []);
-                  if (event.target.checked) current.add(context.id);
-                  else current.delete(context.id);
-                  updateDraftCondition(index, { ...condition, primaryContextIds: Array.from(current) });
-                }} />
-                <span>{context.icon} {getAdventureContextLabel(context, project.locale)}</span>
-              </label>;
-            })}
-          </div>
+          <label style={field}><div style={labelStyle}>{t(project.locale, "adventureContext.primaryContext")}</div><select value={condition.primaryContextIds?.[0] ?? condition.contextIds[0] ?? ""} onChange={(event) => updateDraftCondition(index, { ...condition, contextIds: event.target.value ? [event.target.value] : [], primaryContextIds: event.target.value ? [event.target.value] : [] })} style={mergedInputStyle}><option value="">{t(project.locale, "adventureContext.none")}</option>{normalizeAdventureContext(project.adventureContext).availableContexts.filter((context) => context.enabled).map((context) => <option key={context.id} value={context.id}>{context.icon} {getAdventureContextLabel(context, project.locale)}</option>)}</select></label>
           <div style={labelStyle}>{t(project.locale, "adventureContext.secondaryContexts")}</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 4 }}>
             {normalizeAdventureContext(project.adventureContext).availableContexts.filter((context) => context.enabled).map((context) => {
@@ -239,22 +226,6 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
                   if (event.target.checked) current.add(context.id);
                   else current.delete(context.id);
                   updateDraftCondition(index, { ...condition, secondaryContextIds: Array.from(current) });
-                }} />
-                <span>{context.icon} {getAdventureContextLabel(context, project.locale)}</span>
-              </label>;
-            })}
-          </div>
-          <label style={field}><div style={labelStyle}>{t(project.locale, "weatherEvents.conditionMode")}</div><select value={condition.mode} onChange={(event) => updateDraftCondition(index, { ...condition, mode: event.target.value as "any" | "all" | "none" })} style={mergedInputStyle}><option value="any">{t(project.locale, "adventureContext.conditionMode.any")}</option><option value="all">{t(project.locale, "adventureContext.conditionMode.all")}</option><option value="none">{t(project.locale, "adventureContext.conditionMode.none")}</option></select></label>
-          <div style={labelStyle}>{t(project.locale, "adventureContext.requiredContexts")} ({t(project.locale, "adventureContext.legacyCondition")})</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 4 }}>
-            {normalizeAdventureContext(project.adventureContext).availableContexts.filter((context) => context.enabled).map((context) => {
-              const checked = condition.contextIds.includes(context.id);
-              return <label key={context.id} style={{ ...checkLabel, marginBottom: 0, fontSize: 12 }}>
-                <input type="checkbox" checked={checked} onChange={(event) => {
-                  const current = new Set(condition.contextIds);
-                  if (event.target.checked) current.add(context.id);
-                  else current.delete(context.id);
-                  updateDraftCondition(index, { ...condition, contextIds: Array.from(current) });
                 }} />
                 <span>{context.icon} {getAdventureContextLabel(context, project.locale)}</span>
               </label>;

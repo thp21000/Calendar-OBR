@@ -1259,6 +1259,7 @@ export const frMessages = {
   "adventureContext.localRequirementMode": "Mode de contexte local",
   "adventureContext.localMode.primaryOnly": "Contexte principal",
   "adventureContext.localMode.primaryAndAnySecondary": "Principal + secondaire",
+  "adventureContext.primaryContext": "Contexte principal",
   "adventureContext.primaryContexts": "Contextes principaux",
   "adventureContext.secondaryContexts": "Contextes secondaires",
   "adventureContext.legacyCondition": "ancien modèle",
