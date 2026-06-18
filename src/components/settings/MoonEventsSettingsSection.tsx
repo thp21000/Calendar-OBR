@@ -193,7 +193,7 @@ export const MoonEventsSettingsSection = ({ project, onProjectUpdate, inputStyle
     </SectionCard>
 
     {isCreatePopupOpen ? <MoonEventPopup project={project} event={createDefaultMoonEvent(project)} mode="create" onClose={() => setIsCreatePopupOpen(false)} onSubmit={(event) => { onProjectUpdate(addMoonEvent(project, event)); setIsCreatePopupOpen(false); }} /> : null}
-    {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={contextDateLabel} /> : null}
+    {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={contextDateLabel} onProjectUpdate={onProjectUpdate} /> : null}
     {editingMoonEvent ? <MoonEventPopup project={project} event={editingMoonEvent} mode="edit" onClose={() => setEditingMoonEventId(null)} onSubmit={(event) => { onProjectUpdate(updateMoonEvent(project, event.id, event)); setEditingMoonEventId(null); }} /> : null}
   </>;
 };

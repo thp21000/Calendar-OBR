@@ -77,7 +77,7 @@ export const MonthView = ({ project, onProjectUpdate, initialSelectedDate }: { p
         selectedDay={dayDetails ? <DayDetailsPanel project={project} dayDetails={dayDetails} notes={notes} onClose={() => setSelectedDate(null)} onCreateEventForDate={setCreateEventDate} onProjectUpdate={onProjectUpdate} onOpenEvent={setSelectedEventId} onOpenMoonEvent={setSelectedMoonEventId} /> : null}
       />
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={onProjectUpdate ? (updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent)) : undefined} /> : null}
-      {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={selectedMoonEventDateLabel} /> : null}
+      {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={selectedMoonEventDateLabel} onProjectUpdate={onProjectUpdate} /> : null}
       {createEventDate ? <EventCreatePopup project={project} date={createEventDate} onClose={() => setCreateEventDate(null)} onCreate={(event) => {
         if (onProjectUpdate) onProjectUpdate(addCalendarEvent(project, event));
         setCreateEventDate(null);

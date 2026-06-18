@@ -189,7 +189,7 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
     </SectionCard>
 
     {isCreatePopupOpen ? <WeatherEventPopup project={project} event={createDefaultWeatherEvent(project.locale)} mode="create" onClose={() => setIsCreatePopupOpen(false)} onSubmit={(event) => { onProjectUpdate(addWeatherEvent(project, event)); setIsCreatePopupOpen(false); }} /> : null}
-    {selectedWeatherEvent ? <WeatherEventDetailsPopup project={project} event={selectedWeatherEvent} onClose={() => setSelectedWeatherEventId(null)} /> : null}
+    {selectedWeatherEvent ? <WeatherEventDetailsPopup project={project} event={selectedWeatherEvent} onClose={() => setSelectedWeatherEventId(null)} onProjectUpdate={onProjectUpdate} /> : null}
     {editingWeatherEvent ? <WeatherEventPopup project={project} event={editingWeatherEvent} mode="edit" onClose={() => setEditingWeatherEventId(null)} onSubmit={(event) => { onProjectUpdate(updateWeatherEvent(project, event.id, event)); setEditingWeatherEventId(null); }} /> : null}
   </>;
 };

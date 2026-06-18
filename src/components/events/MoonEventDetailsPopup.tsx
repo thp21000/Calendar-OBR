@@ -1,8 +1,9 @@
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
+import { isLunarEventManuallyPublished } from "../../calendar/eventPublicationLogic";
 import { getNextMoonEventActivationDays } from "../../calendar/moonEventsLogic";
 import type { CalendarProject, MoonEvent } from "../../domain/types";
 import { t } from "../../i18n/messages";
-import { sendPopupNotification } from "../../obr/popupNotifications";
+import { notifyMoonEventToPlayers, setMoonEventPublicationFromUi } from "./manualEventPublication";
 import { Badge, CollapsibleDetailSection, SecondaryButton } from "../ui";
 
 
@@ -15,7 +16,7 @@ const formatMoonEventVisibility = (project: CalendarProject, visibility: "gm" | 
 const formatMoonCountMeta = (project: CalendarProject, count: number): string =>
   count === 0 ? t(project.locale, "moonEvents.nextActivationUnknown") : t(project.locale, "common.datesCount").replace("{count}", String(count));
 
-export const MoonEventDetailsPopup = ({ project, event, onClose, contextDateLabel }: { project: CalendarProject; event: MoonEvent; onClose: () => void; contextDateLabel?: string }) => {
+export const MoonEventDetailsPopup = ({ project, event, onClose, contextDateLabel, onProjectUpdate }: { project: CalendarProject; event: MoonEvent; onClose: () => void; contextDateLabel?: string; onProjectUpdate?: (project: CalendarProject) => void }) => {
   const moon = project.moons.find((item) => item.id === event.moonId);
   const nextActivationDays = getNextMoonEventActivationDays(project, event, project.currentTime.absoluteDay, 3);
   const nextActivationLabels = nextActivationDays.map((absoluteDay) => {
@@ -25,7 +26,9 @@ export const MoonEventDetailsPopup = ({ project, event, onClose, contextDateLabe
   });
 
   const canSendToPlayers = event.visibility === "players" || (event.visibility === "revealOnTrigger" && event.status === "triggered");
-
+  const isManualPublication = event.visibilityMode === "manual";
+  const isPublished = isLunarEventManuallyPublished(project, event.id);
+  
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 12 }} onClick={onClose}>
       <div style={{ width: "100%", maxWidth: 360, maxHeight: "85vh", overflow: "auto", border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827" }} onClick={(e) => e.stopPropagation()}>
@@ -68,25 +71,10 @@ export const MoonEventDetailsPopup = ({ project, event, onClose, contextDateLabe
           </CollapsibleDetailSection>
         </div>
 
-        {canSendToPlayers ? (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-            <SecondaryButton
-              type="button"
-              onClick={() =>
-                sendPopupNotification({
-                  type: "moon",
-                  audience: "players",
-                  title: event.name,
-                  body: event.playerDescription?.trim() || event.summary || event.name,
-                  date: contextDateLabel ?? "",
-                  icon: event.icon,
-                  summary: event.summary,
-                  playerDescription: event.playerDescription
-                })
-              }
-            >
-              {t(project.locale, "moonEvents.sendToPlayers")}
-            </SecondaryButton>
+        {canSendToPlayers || isManualPublication ? (
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+            {isManualPublication && onProjectUpdate ? <Badge tone={isPublished ? "success" : "warning"}>{t(project.locale, isPublished ? "eventPublication.published" : "eventPublication.notPublished")}</Badge> : null}
+            {isManualPublication && onProjectUpdate ? <SecondaryButton type="button" onClick={() => setMoonEventPublicationFromUi(project, event, !isPublished, onProjectUpdate, contextDateLabel)}>{t(project.locale, isPublished ? "eventPublication.removeFromPlayers" : "eventPublication.sendToPlayers")}</SecondaryButton> : <SecondaryButton type="button" onClick={() => notifyMoonEventToPlayers(project, event, contextDateLabel)}>{t(project.locale, "moonEvents.sendToPlayers")}</SecondaryButton>}
           </div>
         ) : null}
       </div>

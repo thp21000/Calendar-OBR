@@ -6,7 +6,7 @@ import { createNotificationsFromTriggers, createReminderNotifications, type Cale
 import * as moonLogic from "../calendar/moonLogic";
 import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../calendar/eventDisplayLogic";
-import { cleanManualPublicationsForActiveEvents, normalizeManualPublications, setLunarEventManualPublication, setWeatherEventManualPublication } from "../calendar/eventPublicationLogic";
+import { cleanManualPublicationsForActiveEvents, normalizeManualPublications } from "../calendar/eventPublicationLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import {
   getCurrentlyMatchingWeatherEvents,
@@ -23,6 +23,7 @@ import { TodayLayout } from "./today/TodayLayout";
 import { TodayStatusSummary, WeatherForecastCard } from "./today/WeatherAndSeasonCard";
 import { EventDetailsPopup } from "./events/EventDetailsPopup";
 import { MoonEventDetailsPopup } from "./events/MoonEventDetailsPopup";
+import { setMoonEventPublicationFromUi, setWeatherEventPublicationFromUi } from "./events/manualEventPublication";
 import { WeatherEventDetailsPopup } from "./events/WeatherEventDetailsPopup";
 import { WeatherBiomePickerPopup } from "./weather/WeatherBiomePickerPopup";
 import { AdventureContextPickerPopup } from "./adventure/AdventureContextPickerPopup";
@@ -117,11 +118,15 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const selectedWeatherEvent = selectedWeatherEventId ? project.weatherEvents.find((event) => event.id === selectedWeatherEventId) ?? null : null;
 
   const toggleWeatherPublication = (eventId: string, published: boolean) => {
-    onProjectUpdate(setWeatherEventManualPublication(project, eventId, published));
+    const event = project.weatherEvents.find((item) => item.id === eventId);
+    if (!event) return;
+    setWeatherEventPublicationFromUi(project, event, published, onProjectUpdate);
   };
 
   const toggleMoonPublication = (eventId: string, published: boolean) => {
-    onProjectUpdate(setLunarEventManualPublication(project, eventId, published));
+    const event = (project.moonEvents ?? []).find((item) => item.id === eventId);
+    if (!event) return;
+    setMoonEventPublicationFromUi(project, event, published, onProjectUpdate, todayDateLabel);
   };
 
   const readDismissed = (): Set<string> => {
@@ -279,8 +284,8 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       />
 
       {selectedEvent ? <EventDetailsPopup project={project} event={selectedEvent} onClose={() => setSelectedEventId(null)} onUpdate={(updatedEvent) => onProjectUpdate(updateCalendarEvent(project, updatedEvent.id, updatedEvent))} /> : null}
-      {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={todayDateLabel} /> : null}
-      {selectedWeatherEvent ? <WeatherEventDetailsPopup project={project} event={selectedWeatherEvent} onClose={() => setSelectedWeatherEventId(null)} /> : null}
+      {selectedMoonEvent ? <MoonEventDetailsPopup project={project} event={selectedMoonEvent} onClose={() => setSelectedMoonEventId(null)} contextDateLabel={todayDateLabel} onProjectUpdate={onProjectUpdate} /> : null}
+      {selectedWeatherEvent ? <WeatherEventDetailsPopup project={project} event={selectedWeatherEvent} onClose={() => setSelectedWeatherEventId(null)} onProjectUpdate={onProjectUpdate} /> : null}
       {biomePickerOpen ? <WeatherBiomePickerPopup project={project} onClose={() => setBiomePickerOpen(false)} onApply={onProjectUpdate} /> : null}
       {adventureContextOpen ? <AdventureContextPickerPopup project={project} onClose={() => setAdventureContextOpen(false)} onApply={onProjectUpdate} /> : null}
     </>

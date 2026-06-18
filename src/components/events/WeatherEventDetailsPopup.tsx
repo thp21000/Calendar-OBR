@@ -1,4 +1,5 @@
 import { absoluteDayToCalendarDate } from "../../calendar/dateEngine";
+import { isWeatherEventManuallyPublished } from "../../calendar/eventPublicationLogic";
 import { getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { getWeatherBiomeDefinition, getWeatherBiomeState } from "../../calendar/weather/biomes";
 import { formatRain, formatRainTotal, formatTemperature, formatWindSpeed } from "../../calendar/weatherUnits";
@@ -7,32 +8,13 @@ import { getWeatherEventDiagnostics, getWeatherEventUpcomingTriggerWindows, type
 import { getCurrentWeather } from "../../calendar/weatherLogic";
 import type { CalendarProject, WeatherEvent, WeatherEventEffect } from "../../domain/types";
 import { t } from "../../i18n/messages";
-import { sendPopupNotification } from "../../obr/popupNotifications";
+import { notifyWeatherEventToPlayers, setWeatherEventPublicationFromUi } from "./manualEventPublication";
 import { Badge, CollapsibleDetailSection, SecondaryButton } from "../ui";
 
 const formatVisibility = (project: CalendarProject, visibility: WeatherEvent["visibility"] = "gm") => {
   if (visibility === "players") return t(project.locale, "weatherEvents.visibilityPlayers");
   if (visibility === "revealOnTrigger") return t(project.locale, "weatherEvents.visibilityRevealOnTrigger");
   return t(project.locale, "weatherEvents.visibilityGm");
-};
-
-const getCurrentDateLabel = (project: CalendarProject): string => {
-  const date = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
-  return `${date.weekdayName ?? ""} ${date.dayOfMonth} ${date.monthName} ${date.year}`.trim();
-};
-
-const sendWeatherEventToPlayers = (project: CalendarProject, event: WeatherEvent) => {
-  sendPopupNotification({
-    type: "weather",
-    audience: "players",
-    title: event.name,
-    body: event.playerDescription?.trim() || event.summary || event.name,
-    date: getCurrentDateLabel(project),
-    icon: event.icon,
-    summary: event.summary,
-    playerDescription: event.playerDescription,
-    timeLabel: t(project.locale, "weatherEvents.activeWhileConditionsMet")
-  });
 };
 
 const getEffectLines = (project: CalendarProject, effect: WeatherEventEffect | undefined): string[] => {
@@ -85,7 +67,7 @@ const formatWeatherHistoryDate = (project: CalendarProject, triggeredAtMinutes: 
 };
 const textStyle = { whiteSpace: "pre-wrap" as const, color: "#d1d5db" };
 
-export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project: CalendarProject; event: WeatherEvent; onClose: () => void }) => {
+export const WeatherEventDetailsPopup = ({ project, event, onClose, onProjectUpdate }: { project: CalendarProject; event: WeatherEvent; onClose: () => void; onProjectUpdate?: (project: CalendarProject) => void }) => {
   const kind = event.kind ?? "informational";
   const triggerChance = Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100)));
   const effectLines = getEffectLines(project, event.effect);
@@ -95,6 +77,8 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
   const diagnostics = currentWeather ? getWeatherEventDiagnostics(project, event, project.currentTime, currentWeather) : undefined;
   const upcomingWindows = getWeatherEventUpcomingTriggerWindows(project, event, project.currentTime, 48);
   const currentBiomeDefinition = getWeatherBiomeDefinition(getWeatherBiomeState(project).currentBiomeId);
+  const isManualPublication = event.visibilityMode === "manual";
+  const isPublished = isWeatherEventManuallyPublished(project, event.id);
   const currentWeatherSummary = currentWeather
     ? [
         currentWeather.state ? `${t(project.locale, "weatherEvents.state")}: ${getWeatherStateLabel(project, currentWeather.state)}` : undefined,
@@ -202,8 +186,9 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
           </CollapsibleDetailSection>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 10 }}>
-          <SecondaryButton type="button" onClick={() => sendWeatherEventToPlayers(project, event)}>{t(project.locale, "common.send")}</SecondaryButton>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+          {isManualPublication && onProjectUpdate ? <Badge tone={isPublished ? "success" : "warning"}>{t(project.locale, isPublished ? "eventPublication.published" : "eventPublication.notPublished")}</Badge> : null}
+          {isManualPublication && onProjectUpdate ? <SecondaryButton type="button" onClick={() => setWeatherEventPublicationFromUi(project, event, !isPublished, onProjectUpdate)}>{t(project.locale, isPublished ? "eventPublication.removeFromPlayers" : "eventPublication.sendToPlayers")}</SecondaryButton> : <SecondaryButton type="button" onClick={() => notifyWeatherEventToPlayers(project, event)}>{t(project.locale, "common.send")}</SecondaryButton>}
           <SecondaryButton type="button" onClick={onClose}>{t(project.locale, "month.closeDayDetails")}</SecondaryButton>
         </div>
       </div>
