@@ -76,6 +76,12 @@ export type WeatherSimulationSummary = {
   hiddenWeatherEventOccurrences: Record<string, number>;
   visibleMoonEventOccurrences: Record<string, number>;
   hiddenMoonEventOccurrences: Record<string, number>;
+  weatherEventDays: Record<string, number>;
+  moonEventDays: Record<string, number>;
+  visibleWeatherEventDays: Record<string, number>;
+  hiddenWeatherEventDays: Record<string, number>;
+  visibleMoonEventDays: Record<string, number>;
+  hiddenMoonEventDays: Record<string, number>;
   maxVisibleWeatherEventsAtOnce: number;
   maxHiddenWeatherEventsAtOnce: number;
   maxVisibleMoonEventsAtOnce: number;
@@ -152,6 +158,12 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
     hiddenWeatherEventOccurrences: {},
     visibleMoonEventOccurrences: {},
     hiddenMoonEventOccurrences: {},
+    weatherEventDays: {},
+    moonEventDays: {},
+    visibleWeatherEventDays: {},
+    hiddenWeatherEventDays: {},
+    visibleMoonEventDays: {},
+    hiddenMoonEventDays: {},
     maxVisibleWeatherEventsAtOnce: 0,
     maxHiddenWeatherEventsAtOnce: 0,
     maxVisibleMoonEventsAtOnce: 0,
@@ -165,6 +177,12 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
     const absoluteDay = startAbsoluteDay + dayOffset;
     let dayRain = false;
     let daySnow = false;
+    const weatherEventsSeenToday = new Set<string>();
+    const moonEventsSeenToday = new Set<string>();
+    const visibleWeatherEventsSeenToday = new Set<string>();
+    const hiddenWeatherEventsSeenToday = new Set<string>();
+    const visibleMoonEventsSeenToday = new Set<string>();
+    const hiddenMoonEventsSeenToday = new Set<string>();
     for (let hour = 0; hour < 24; hour += 1) {
       const time = { absoluteDay, hour, minute: 0 };
       const simProject = { ...simProjectBase, currentTime: time };
@@ -194,12 +212,36 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
         stats.hours += 1;
         seasonStats[seasonName] = stats;
       }
-      for (const event of activeWeatherEvents) increment(summary.weatherEventOccurrences, event.name || event.id);
-      for (const event of activeMoonEvents) increment(summary.moonEventOccurrences, event.name || event.id);
-      for (const event of visibleWeatherSelection.visibleEvents) increment(summary.visibleWeatherEventOccurrences, event.name || event.id);
-      for (const event of visibleWeatherSelection.hiddenEvents) increment(summary.hiddenWeatherEventOccurrences, event.name || event.id);
-      for (const event of visibleMoonSelection.visibleEvents) increment(summary.visibleMoonEventOccurrences, event.name || event.id);
-      for (const event of visibleMoonSelection.hiddenEvents) increment(summary.hiddenMoonEventOccurrences, event.name || event.id);
+      for (const event of activeWeatherEvents) {
+        const key = event.name || event.id;
+        increment(summary.weatherEventOccurrences, key);
+        weatherEventsSeenToday.add(key);
+      }
+      for (const event of activeMoonEvents) {
+        const key = event.name || event.id;
+        increment(summary.moonEventOccurrences, key);
+        moonEventsSeenToday.add(key);
+      }
+      for (const event of visibleWeatherSelection.visibleEvents) {
+        const key = event.name || event.id;
+        increment(summary.visibleWeatherEventOccurrences, key);
+        visibleWeatherEventsSeenToday.add(key);
+      }
+      for (const event of visibleWeatherSelection.hiddenEvents) {
+        const key = event.name || event.id;
+        increment(summary.hiddenWeatherEventOccurrences, key);
+        hiddenWeatherEventsSeenToday.add(key);
+      }
+      for (const event of visibleMoonSelection.visibleEvents) {
+        const key = event.name || event.id;
+        increment(summary.visibleMoonEventOccurrences, key);
+        visibleMoonEventsSeenToday.add(key);
+      }
+      for (const event of visibleMoonSelection.hiddenEvents) {
+        const key = event.name || event.id;
+        increment(summary.hiddenMoonEventOccurrences, key);
+        hiddenMoonEventsSeenToday.add(key);
+      }
       summary.maxVisibleWeatherEventsAtOnce = Math.max(summary.maxVisibleWeatherEventsAtOnce, visibleWeatherSelection.visibleEvents.length);
       summary.maxHiddenWeatherEventsAtOnce = Math.max(summary.maxHiddenWeatherEventsAtOnce, visibleWeatherSelection.hiddenEvents.length);
       summary.maxVisibleMoonEventsAtOnce = Math.max(summary.maxVisibleMoonEventsAtOnce, visibleMoonSelection.visibleEvents.length);
@@ -236,6 +278,12 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
     if (dayRain) summary.rainyDays += 1;
     else summary.dryDays += 1;
     if (daySnow) summary.snowyDays += 1;
+    for (const key of weatherEventsSeenToday) increment(summary.weatherEventDays, key);
+    for (const key of moonEventsSeenToday) increment(summary.moonEventDays, key);
+    for (const key of visibleWeatherEventsSeenToday) increment(summary.visibleWeatherEventDays, key);
+    for (const key of hiddenWeatherEventsSeenToday) increment(summary.hiddenWeatherEventDays, key);
+    for (const key of visibleMoonEventsSeenToday) increment(summary.visibleMoonEventDays, key);
+    for (const key of hiddenMoonEventsSeenToday) increment(summary.hiddenMoonEventDays, key);
   }
 
   for (const [seasonName, stats] of Object.entries(seasonStats)) {

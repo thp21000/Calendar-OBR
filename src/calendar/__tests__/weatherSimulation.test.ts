@@ -24,4 +24,21 @@ describe("weatherSimulation", () => {
     expect(csv).toContain("absoluteDay,year,monthName");
     expect(csv).toContain("summary");
   });
+
+  it("counts event presence by day in addition to hourly occurrences", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherEvents = [{
+      id: "always-windy",
+      name: "Vent constant",
+      enabled: true,
+      status: "active",
+      requireAllConditions: true,
+      conditions: [{ metric: "temperature", operator: "gte", value: -100 }],
+      visibilityMode: "auto"
+    }];
+    const result = runWeatherSimulation(project, { startAbsoluteDay: 0, durationDays: 1, seed: "daily-counts" });
+    expect(result.summary.weatherEventOccurrences["Vent constant"]).toBe(24);
+    expect(result.summary.weatherEventDays["Vent constant"]).toBe(1);
+    expect(result.summary.visibleWeatherEventDays["Vent constant"]).toBe(1);
+  });
 });

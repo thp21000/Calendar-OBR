@@ -5,6 +5,7 @@ import {
   cleanManualPublicationsForActiveEvents,
   filterPlayerPublishableLunarEvents,
   filterPlayerPublishableWeatherEvents,
+  getPlayerWeatherEventDisplayCandidates,
   normalizeManualPublications,
   setLunarEventManualPublication,
   setWeatherEventManualPublication
@@ -51,6 +52,17 @@ describe("eventPublicationLogic", () => {
     project.moonEvents = [moonEvent("auto", "auto"), moonEvent("manual", "manual"), moonEvent("gm", "gmOnly")];
     project = setLunarEventManualPublication(project, "manual", true);
     expect(filterPlayerPublishableLunarEvents(project, project.moonEvents ?? [], true).map((event) => event.id)).toEqual(["auto", "manual"]);
+  });
+
+  it("réintègre les événements manuels publiés même s'ils sont masqués par l'affichage intelligent", () => {
+    let project = createDefaultCalendarProject();
+    const autoVisible = weatherEvent("auto-visible", "auto");
+    const manualHidden = weatherEvent("manual-hidden", "manual");
+    const autoHidden = weatherEvent("auto-hidden", "auto");
+    project = setWeatherEventManualPublication(project, "manual-hidden", true);
+    const candidates = getPlayerWeatherEventDisplayCandidates(project, [autoVisible], [manualHidden, autoHidden]);
+    expect(candidates.map((event) => event.id)).toEqual(["auto-visible", "manual-hidden"]);
+    expect(filterPlayerPublishableWeatherEvents(project, candidates, true).map((event) => event.id)).toEqual(["auto-visible", "manual-hidden"]);
   });
 
   it("retire les publications lorsque les événements ne sont plus actifs", () => {

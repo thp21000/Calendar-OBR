@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_EVENT_DISPLAY_SETTINGS } from "../../calendar/eventDisplayLogic";
 import { DEFAULT_PLAYER_VIEW_SETTINGS } from "../../calendar/playerViewSettings";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
 import { buildPublicMonthSnapshot, createPublicCalendarTodaySnapshot } from "../publicSnapshot";
@@ -87,6 +88,22 @@ describe("publicSnapshot moon events", () => {
     expect(serialized).not.toContain("secret");
     expect(serialized).not.toContain("conditions");
   });
+
+  it("includes manually published weather events hidden by smart display arbitration", () => {
+    const project = createDefaultCalendarProject();
+    project.seasons = [{ id: "s1", name: "S", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];
+    project.eventDisplaySettings = { ...DEFAULT_EVENT_DISPLAY_SETTINGS, weatherDisplayLimitEnabled: true, maxVisibleWeatherEvents: 1 };
+    project.manualPublications = { weatherEventIds: ["manual-hidden"], lunarEventIds: [] };
+    project.weatherEvents = [
+      { id: "auto-visible", name: "Auto", visibilityMode: "auto", displayPriority: 100, enabled: true, requireAllConditions: true, conditions: [{ metric: "temperature", operator: "gte", value: -100 }] },
+      { id: "manual-hidden", name: "Manual", visibilityMode: "manual", displayPriority: 1, enabled: true, requireAllConditions: true, conditions: [{ metric: "temperature", operator: "gte", value: -100 }] }
+    ];
+
+    const snapshot = createPublicCalendarTodaySnapshot(project, 1);
+
+    expect(snapshot.weatherEventsToday.map((event) => event.id)).toEqual(["auto-visible", "manual-hidden"]);
+  });
+  
 it("does not leak weather overrides internals and keeps final weather", () => {
     const project = createDefaultCalendarProject();
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];

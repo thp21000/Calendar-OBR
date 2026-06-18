@@ -6,7 +6,7 @@ import { formatEventTimeShort } from "../../calendar/formatEvent";
 import { getCurrentMoonPhases } from "../../calendar/moonLogic";
 import { getTriggeredMoonEvents } from "../../calendar/moonEventsLogic";
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../../calendar/eventDisplayLogic";
-import { filterPlayerPublishableLunarEvents, filterPlayerPublishableWeatherEvents } from "../../calendar/eventPublicationLogic";
+import { filterPlayerPublishableLunarEvents, filterPlayerPublishableWeatherEvents, getPlayerLunarEventDisplayCandidates, getPlayerWeatherEventDisplayCandidates } from "../../calendar/eventPublicationLogic";
 import { normalizePlayerViewSettings } from "../../calendar/playerViewSettings";
 import { getCurrentSeason } from "../../calendar/seasonsLogic";
 import { getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
@@ -438,10 +438,12 @@ export const buildPlayerViewModelFromProject = (project: CalendarProject, rawSet
   const absoluteMinutes = project.currentTime.absoluteDay * 1440 + project.currentTime.hour * 60 + project.currentTime.minute;
   const eventDisplaySettings = normalizeEventDisplaySettings(project.eventDisplaySettings);
   const eventDisplayHistory = normalizeEventDisplayHistory(project.eventDisplayHistory);
-  const arbitratedWeatherEvents = selectVisibleWeatherEvents({ activeEvents: activeWeatherEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
-  const arbitratedMoonEvents = selectVisibleLunarEvents({ activeEvents: activeMoonEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
-  const publishedWeatherEvents = filterPlayerPublishableWeatherEvents(project, arbitratedWeatherEvents, settings.today.showWeatherEvents);
-  const publishedMoonEvents = filterPlayerPublishableLunarEvents(project, arbitratedMoonEvents, settings.today.showMoonEvents);
+  const arbitratedWeatherEvents = selectVisibleWeatherEvents({ activeEvents: activeWeatherEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id });
+  const arbitratedMoonEvents = selectVisibleLunarEvents({ activeEvents: activeMoonEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id });
+  const weatherCandidates = getPlayerWeatherEventDisplayCandidates(project, arbitratedWeatherEvents.visibleEvents, arbitratedWeatherEvents.hiddenEvents);
+  const moonCandidates = getPlayerLunarEventDisplayCandidates(project, arbitratedMoonEvents.visibleEvents, arbitratedMoonEvents.hiddenEvents);
+  const publishedWeatherEvents = filterPlayerPublishableWeatherEvents(project, weatherCandidates, settings.today.showWeatherEvents);
+  const publishedMoonEvents = filterPlayerPublishableLunarEvents(project, moonCandidates, settings.today.showMoonEvents);
   const visibleDayNotes = getPlayerVisibleDayNotesForDay(project, displayDate);
 
   return {

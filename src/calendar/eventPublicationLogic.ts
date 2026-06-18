@@ -90,6 +90,21 @@ export const filterPlayerPublishableWeatherEvents = (
   });
 };
 
+export const getPlayerWeatherEventDisplayCandidates = (
+  project: CalendarProject,
+  visibleEvents: WeatherEvent[],
+  hiddenEvents: WeatherEvent[]
+): WeatherEvent[] => {
+  const publications = normalizeManualPublications(project.manualPublications);
+  const visibleIds = new Set(visibleEvents.map((event) => event.id));
+  const publishedHiddenEvents = hiddenEvents.filter((event) =>
+    event.visibilityMode === "manual"
+    && publications.weatherEventIds.includes(event.id)
+    && !visibleIds.has(event.id)
+  );
+  return [...visibleEvents, ...publishedHiddenEvents];
+};
+
 export const filterPlayerPublishableLunarEvents = (
   project: CalendarProject,
   events: MoonEvent[],
@@ -108,4 +123,19 @@ export const filterPlayerPublishableLunarEvents = (
     if (mode === "manual") return publications.lunarEventIds.includes(event.id);
     return mode === "auto";
   });
+};
+
+export const getPlayerLunarEventDisplayCandidates = (
+  project: CalendarProject,
+  visibleEvents: MoonEvent[],
+  hiddenEvents: MoonEvent[]
+): MoonEvent[] => {
+  const publications = normalizeManualPublications(project.manualPublications);
+  const visibleIds = new Set(visibleEvents.map((event) => event.id));
+  const publishedHiddenEvents = hiddenEvents.filter((event) =>
+    event.visibilityMode === "manual"
+    && publications.lunarEventIds.includes(event.id)
+    && !visibleIds.has(event.id)
+  );
+  return [...visibleEvents, ...publishedHiddenEvents];
 };
