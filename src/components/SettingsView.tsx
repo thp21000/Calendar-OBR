@@ -31,8 +31,6 @@ export const SettingsView = ({
   scope: StorageScope;
   onReset: () => void;
 }) => {
-  const switchToEvents = () => onProjectUpdate({ ...project, uiSettings: { ...project.uiSettings, activeTab: "events" } });
-
   return (
     <div style={{ minHeight: 0, overflowY: "auto", overflowX: "hidden", paddingRight: 2, paddingBottom: 12 }}>
       {saveError ? <div style={{ color: "#fca5a5", marginBottom: 8 }}>{t(project.locale, "settings.saveError")}</div> : null}
@@ -72,10 +70,6 @@ export const SettingsView = ({
           <SeasonsSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
         </CollapsibleSection>
         <WeatherAdvancedConfigSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
-        <CollapsibleSection title={t(project.locale, "settings.weatherLayer.events")} storageKey="calendar-obr.settings.weatherLayer.events">
-          <HelpText text={t(project.locale, "settings.weatherLayer.eventsHelp")} />
-          <button type="button" onClick={switchToEvents} style={buttonStyle}>{t(project.locale, "settings.weatherLayer.openEvents")}</button>
-        </CollapsibleSection>
         <CollapsibleSection title={t(project.locale, "eventDisplay.smartDisplay")} storageKey="calendar-obr.settings.weatherLayer.smartDisplay">
           <HelpText text={t(project.locale, "eventDisplay.smartDisplayHelp")} />
           <EventDisplaySettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
@@ -131,5 +125,4 @@ const SettingsGroup = ({ title, help, storageKey, defaultOpen, children }: { tit
 const HelpText = ({ text }: { text: string }) => <div style={{ fontSize: 12, color: "#9ca3af", lineHeight: 1.4, marginBottom: 8 }}>{text}</div>;
 
 const inputStyle = { width: "100%", margin: "4px 0 8px", background: "#1f2937", border: "1px solid #374151", color: "#e5e7eb", borderRadius: 6, padding: "6px 8px", boxSizing: "border-box" as const };
-const buttonStyle = { border: "1px solid #374151", borderRadius: 6, background: "#1f2937", color: "#e5e7eb", padding: "6px 10px", cursor: "pointer", fontSize: 12 };
 const resetButtonStyle = { width: "100%", border: "1px solid #f87171", borderRadius: 8, background: "#7f1d1d", color: "#fee2e2", padding: "9px 12px", cursor: "pointer", fontSize: 13, fontWeight: 800 };
