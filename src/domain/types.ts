@@ -100,6 +100,9 @@ export type AdventureContextCondition = {
   includePrimary?: boolean;
   /** @deprecated Legacy scope ignored by the simplified active-context evaluator. */
   includeSecondary?: boolean;
+  primaryContextIds?: string[];
+  secondaryContextIds?: string[];
+  contextRequirementMode?: "primaryOnly" | "primaryAndAnySecondary";
 };
 
 export type EventCondition = AdventureContextCondition;

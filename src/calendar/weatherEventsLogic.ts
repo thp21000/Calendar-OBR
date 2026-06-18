@@ -178,8 +178,6 @@ export const isWithinCooldownWindow = (endedAtMinutes: number, currentMinutes: n
 
 export const getWeatherEventDurationHours = (event: WeatherEvent): number | undefined => {
   if (typeof event.durationHours === "number") return event.durationHours;
-  if ((event.kind ?? "informational") === "weatherEffect") return 1;
-  if (normalizeTriggerChancePercent(event.triggerChancePercent) < 100) return 1;
   return undefined;
 };
 
@@ -291,9 +289,9 @@ export const updateWeatherEventLifecycles = (
   previousTime: InternalTime,
   nextTime: InternalTime
 ): { project: CalendarProject; newlyTriggered: WeatherEvent[]; ended: WeatherEvent[] } => {
-  const previousWeather = generateWeatherForEventConditions(project, previousTime);
+  void previousTime;
   const nextWeather = generateWeatherForEventConditions(project, nextTime);
-  if (!previousWeather || !nextWeather) return { project: { ...project, currentTime: nextTime }, newlyTriggered: [], ended: [] };
+  if (!nextWeather) return { project: { ...project, currentTime: nextTime }, newlyTriggered: [], ended: [] };
 
   const nextMinutes = toAbsoluteMinutes(nextTime);
   const newlyTriggered: WeatherEvent[] = [];
@@ -305,7 +303,6 @@ export const updateWeatherEventLifecycles = (
     if (event.enabled === false || status === "archived" || status === "disabled") return event;
 
     const wasActive = status === "triggered";
-    const conditionsWereMet = isWeatherEventTriggered(previousWeather, event, { project, time: previousTime });
     const conditionsAreMet = isWeatherEventTriggered(nextWeather, event, { project, time: nextTime });
 
     if (wasActive) {
@@ -326,7 +323,7 @@ export const updateWeatherEventLifecycles = (
       return finished;
     }
 
-    if (!conditionsAreMet || conditionsWereMet) return event;
+    if (!conditionsAreMet) return event;
     if (isWeatherEventBlockedByCooldown(event, nextMinutes)) return event;
     if (!didWeatherEventChanceSucceed(project, event, nextMinutes)) return event;
 

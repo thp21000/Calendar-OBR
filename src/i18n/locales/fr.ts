@@ -1260,4 +1260,10 @@ export const frMessages = {
   "popupNotification.type.dayNote": "Note",
   "popupNotification.audience.gm": "MJ",
   "popupNotification.audience.players": "Joueurs",
+  "adventureContext.localRequirementMode": "Mode de contexte local",
+  "adventureContext.localMode.primaryOnly": "Contexte principal",
+  "adventureContext.localMode.primaryAndAnySecondary": "Principal + secondaire",
+  "adventureContext.primaryContexts": "Contextes principaux",
+  "adventureContext.secondaryContexts": "Contextes secondaires",
+  "adventureContext.legacyCondition": "ancien modèle",
 } satisfies Record<string, string>;

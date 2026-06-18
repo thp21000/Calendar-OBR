@@ -151,12 +151,25 @@ export const getAdventureContextConditionDetails = (project: Pick<CalendarProjec
   const state = normalizeAdventureContext(project.adventureContext);
   const required = Array.from(new Set(condition.contextIds ?? []));
   const mode = normalizeLegacyConditionMode(condition);
-  const result = evaluateMode(mode, state.activeContextIds, required);
+  const primaryContextIds = Array.from(new Set(condition.primaryContextIds ?? []));
+  const secondaryContextIds = Array.from(new Set(condition.secondaryContextIds ?? []));
+  const active = new Set(state.activeContextIds);
+  const hasPrimary = primaryContextIds.length > 0 && primaryContextIds.some((id) => active.has(id));
+  const hasSecondary = secondaryContextIds.length > 0 && secondaryContextIds.some((id) => active.has(id));
+  const localContextResult = primaryContextIds.length > 0
+    ? condition.contextRequirementMode === "primaryAndAnySecondary" && secondaryContextIds.length > 0
+      ? hasPrimary && hasSecondary
+      : hasPrimary
+    : undefined;
+  const result = localContextResult ?? evaluateMode(mode, state.activeContextIds, required);
   const matchingContextIds = required.filter((id) => state.activeContextIds.includes(id));
   return {
     mode,
     activeContextIds: state.activeContextIds,
     contextIds: required,
+    primaryContextIds,
+    secondaryContextIds,
+    contextRequirementMode: condition.contextRequirementMode ?? "primaryOnly",
     matchingContextIds,
     result
   };

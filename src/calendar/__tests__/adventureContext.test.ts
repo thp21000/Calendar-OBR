@@ -77,6 +77,14 @@ describe("adventure context", () => {
     expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "none", contextIds: ["road"] })).toBe(false);
   });
 
+  it("evaluates local primary and secondary context requirements against active contexts", () => {
+    const project = setActiveAdventureContexts(createDefaultCalendarProject(), ["camp", "rest"]);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "none", contextIds: [], primaryContextIds: ["camp"], contextRequirementMode: "primaryOnly" })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "none", contextIds: [], primaryContextIds: ["camp"], secondaryContextIds: ["rest"], contextRequirementMode: "primaryAndAnySecondary" })).toBe(true);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "none", contextIds: [], primaryContextIds: ["camp"], secondaryContextIds: ["woods"], contextRequirementMode: "primaryAndAnySecondary" })).toBe(false);
+    expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "none", contextIds: [], primaryContextIds: ["camp"], secondaryContextIds: [], contextRequirementMode: "primaryAndAnySecondary" })).toBe(true);
+  });
+
   it("ignores legacy condition scope fields and keeps primaryAndAnySecondary permissive", () => {
     const project = setActiveAdventureContexts(createDefaultCalendarProject(), ["camp"]);
     expect(isAdventureContextConditionMet(project, { type: "adventureContext", mode: "any", target: "primaryOnly", contextIds: ["camp"], includePrimary: true, includeSecondary: false })).toBe(true);

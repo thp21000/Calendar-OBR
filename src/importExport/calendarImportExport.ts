@@ -19,13 +19,24 @@ const weatherBiomeIds = new Set(WEATHER_BIOME_DEFINITIONS.map((definition) => de
 const isWeatherBiomeId = (value: unknown): value is WeatherBiomeId =>
   typeof value === "string" && weatherBiomeIds.has(value as WeatherBiomeId);
 
-const sanitizeAdventureContextCondition = (condition: Record<string, unknown>): AdventureContextCondition => ({
-  type: "adventureContext",
-  mode: condition.target === "primaryAndAnySecondary" ? "any" : condition.mode === "all" || condition.mode === "none" ? condition.mode : "any",
-  contextIds: Array.isArray(condition.contextIds)
-    ? Array.from(new Set(condition.contextIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)))
-    : []
-});
+const sanitizeAdventureContextCondition = (condition: Record<string, unknown>): AdventureContextCondition => {
+  const primaryContextIds = Array.isArray(condition.primaryContextIds)
+    ? Array.from(new Set(condition.primaryContextIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)))
+    : [];
+  const secondaryContextIds = Array.isArray(condition.secondaryContextIds)
+    ? Array.from(new Set(condition.secondaryContextIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)))
+    : [];
+  return {
+    type: "adventureContext",
+    mode: condition.target === "primaryAndAnySecondary" ? "any" : condition.mode === "all" || condition.mode === "none" ? condition.mode : "any",
+    contextIds: Array.isArray(condition.contextIds)
+      ? Array.from(new Set(condition.contextIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)))
+      : [],
+    ...(primaryContextIds.length > 0 ? { primaryContextIds } : {}),
+    ...(secondaryContextIds.length > 0 ? { secondaryContextIds } : {}),
+    ...(primaryContextIds.length > 0 || secondaryContextIds.length > 0 ? { contextRequirementMode: condition.contextRequirementMode === "primaryAndAnySecondary" ? "primaryAndAnySecondary" : "primaryOnly" } : {})
+  };
+};
 
 const sanitizeMoonEventExtraConditions = (conditions: unknown) => {
   if (!isRecord(conditions)) return { seasonIds: [], monthIds: [], eventConditions: [] };
@@ -35,7 +46,7 @@ const sanitizeMoonEventExtraConditions = (conditions: unknown) => {
           const biomeIds = Array.isArray(condition.biomeIds) ? Array.from(new Set(condition.biomeIds.filter(isWeatherBiomeId))) : [];
           return biomeIds.length > 0 ? [{ type: "biome" as const, biomeIds }] : [];
         }
-        if (condition.type === "adventureContext" && Array.isArray(condition.contextIds)) return [sanitizeAdventureContextCondition(condition)];
+        if (condition.type === "adventureContext" && (Array.isArray(condition.contextIds) || Array.isArray(condition.primaryContextIds))) return [sanitizeAdventureContextCondition(condition)];
         return [];
       })
     : [];
@@ -408,7 +419,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
                     condition.direction === "W" ||
                     condition.direction === "NW")) ||
                 (condition.type === "season" && typeof condition.seasonId === "string" && condition.seasonId.trim().length > 0) ||
-                  (condition.type === "adventureContext" && Array.isArray(condition.contextIds)) ||
+                  (condition.type === "adventureContext" && (Array.isArray(condition.contextIds) || Array.isArray(condition.primaryContextIds))) ||
                   (condition.type === "biome" && (condition.biomeIds === undefined || Array.isArray(condition.biomeIds))) ||
                   (condition.type === "timeOfDay" &&
                     typeof condition.startHour === "number" &&
@@ -505,7 +516,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
       if (Array.isArray(next.conditions)) {
         next.conditions = next.conditions
           .filter(isRecord)
-          .filter((condition) => condition.type === "adventureContext" && Array.isArray(condition.contextIds))
+          .filter((condition) => condition.type === "adventureContext" && (Array.isArray(condition.contextIds) || Array.isArray(condition.primaryContextIds)))
           .map((condition) => sanitizeAdventureContextCondition(condition));
       } else {
         delete next.conditions;

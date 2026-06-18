@@ -1260,4 +1260,10 @@ export const enMessages = {
   "popupNotification.type.dayNote": "Note",
   "popupNotification.audience.gm": "GM",
   "popupNotification.audience.players": "Players",
+  "adventureContext.localRequirementMode": "Local context mode",
+  "adventureContext.localMode.primaryOnly": "Primary context",
+  "adventureContext.localMode.primaryAndAnySecondary": "Primary + secondary",
+  "adventureContext.primaryContexts": "Primary contexts",
+  "adventureContext.secondaryContexts": "Secondary contexts",
+  "adventureContext.legacyCondition": "legacy model",
 } satisfies Record<string, string>;

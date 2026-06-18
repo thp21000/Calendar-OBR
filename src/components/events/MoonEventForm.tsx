@@ -173,7 +173,22 @@ export const MoonEventForm = ({
     else current.add(contextId);
     const contextIds = Array.from(current);
     if (contextIds.length === 0) removeEventCondition("adventureContext");
-    else setEventCondition({ type: "adventureContext", mode: adventureContextCondition?.mode ?? "any", contextIds });
+    else setEventCondition({ ...adventureContextCondition, type: "adventureContext", mode: adventureContextCondition?.mode ?? "any", contextIds });
+  };
+
+  const toggleLocalAdventureContext = (contextId: string, field: "primaryContextIds" | "secondaryContextIds") => {
+    const current = new Set(adventureContextCondition?.[field] ?? []);
+    if (current.has(contextId)) current.delete(contextId);
+    else current.add(contextId);
+    setEventCondition({
+      ...adventureContextCondition,
+      type: "adventureContext",
+      mode: adventureContextCondition?.mode ?? "any",
+      contextIds: adventureContextCondition?.contextIds ?? [],
+      primaryContextIds: field === "primaryContextIds" ? Array.from(current) : adventureContextCondition?.primaryContextIds ?? [],
+      secondaryContextIds: field === "secondaryContextIds" ? Array.from(current) : adventureContextCondition?.secondaryContextIds ?? [],
+      contextRequirementMode: adventureContextCondition?.contextRequirementMode ?? "primaryOnly"
+    });
   };
 
   const getMoonEventAutoSummary = (): string => {
@@ -332,8 +347,27 @@ export const MoonEventForm = ({
             </div>
           </div>
           <div style={conditionStateStyle}>{adventureContextCondition?.contextIds.length ? t(project.locale, "moonEvents.selectedContexts").replace("{count}", String(adventureContextCondition.contextIds.length)) : t(project.locale, "moonEvents.allContexts")}</div>
-          {adventureContextCondition?.contextIds.length ? (
+          {adventureContextCondition ? (
             <>
+              <label style={label}>{t(project.locale, "adventureContext.localRequirementMode")}</label>
+              <select value={adventureContextCondition.contextRequirementMode ?? "primaryOnly"} onChange={(e) => setEventCondition({ ...adventureContextCondition, contextRequirementMode: e.target.value as "primaryOnly" | "primaryAndAnySecondary" })} style={inputStyle}>
+                <option value="primaryOnly">{t(project.locale, "adventureContext.localMode.primaryOnly")}</option>
+                <option value="primaryAndAnySecondary">{t(project.locale, "adventureContext.localMode.primaryAndAnySecondary")}</option>
+              </select>
+              <div style={conditionStateStyle}>{t(project.locale, "adventureContext.primaryContexts")}: {(adventureContextCondition.primaryContextIds ?? []).length}</div>
+              <div style={badgeGridStyle}>
+                {adventureContextState.availableContexts.filter((context) => context.enabled).map((context) => {
+                  const selected = Boolean(adventureContextCondition.primaryContextIds?.includes(context.id));
+                  return <button key={`primary-${context.id}`} type="button" title={context.description?.[project.locale]} onClick={() => toggleLocalAdventureContext(context.id, "primaryContextIds")} style={{ ...badgeButtonStyle, ...(selected ? badgeButtonActiveStyle : badgeButtonInactiveStyle) }}>{context.icon} {getAdventureContextLabel(context, project.locale)}</button>;
+                })}
+              </div>
+              <div style={conditionStateStyle}>{t(project.locale, "adventureContext.secondaryContexts")}: {(adventureContextCondition.secondaryContextIds ?? []).length}</div>
+              <div style={badgeGridStyle}>
+                {adventureContextState.availableContexts.filter((context) => context.enabled).map((context) => {
+                  const selected = Boolean(adventureContextCondition.secondaryContextIds?.includes(context.id));
+                  return <button key={`secondary-${context.id}`} type="button" title={context.description?.[project.locale]} onClick={() => toggleLocalAdventureContext(context.id, "secondaryContextIds")} style={{ ...badgeButtonStyle, ...(selected ? badgeButtonActiveStyle : badgeButtonInactiveStyle) }}>{context.icon} {getAdventureContextLabel(context, project.locale)}</button>;
+                })}
+              </div>
               <label style={label}>{t(project.locale, "weatherEvents.conditionMode")}</label>
               <select value={adventureContextCondition.mode} onChange={(e) => setEventCondition({ ...adventureContextCondition, mode: e.target.value as "any" | "all" | "none" })} style={inputStyle}>
                 <option value="any">{t(project.locale, "adventureContext.conditionMode.any")}</option>

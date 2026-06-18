@@ -428,7 +428,7 @@ it("événement désactivé non déclenché", () => {
     expect(result.map((e) => e.id)).toEqual(["new"]);
   });
 
-  it("ne retourne pas un événement déjà actif au départ", () => {
+  it("déclenche un événement inactif si ses conditions sont vraies à l'évaluation", () => {
     const project = buildProject([]);
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "m1", dayOfMonth: 1 }, end: { monthId: "m1", dayOfMonth: 30 } }];
     const fromTime = { absoluteDay: 0, hour: 10, minute: 0 };
@@ -436,7 +436,7 @@ it("événement désactivé non déclenché", () => {
     const fromWeather = generateWeatherForTime(project, fromTime.absoluteDay, fromTime.hour)!;
     const event = { ...createDefaultWeatherEvent("fr"), id: "already", conditions: [{ metric: "windSpeed" as const, operator: "gte" as const, value: fromWeather.windSpeed - 1 }] };
     const result = getNewlyTriggeredWeatherEventsBetween({ ...project, weatherEvents: [event] }, fromTime, toTime);
-    expect(result).toEqual([]);
+    expect(result.map((e) => e.id)).toEqual(["already"]);
   });
 
   it("retourne vide si aucun événement n'est actif à l'arrivée", () => {
