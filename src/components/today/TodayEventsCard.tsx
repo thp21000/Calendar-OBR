@@ -6,7 +6,7 @@ import { Badge, EmptyState, SectionCard, SectionHeader } from "../ui";
 import { ui } from "../ui/styles";
 import type { PublicEventDetails } from "../player/PublicEventDetailsPopup";
 
-export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], onSelectEvent, onSelectMoonEvent, mode = "gm", events, moonEvents, weatherEvents, dayNotes, onSelectPublicEvent }: { project: CalendarProject; eventsToday: CalendarProject["events"]; moonEventsToday?: NonNullable<CalendarProject["moonEvents"]>; onSelectEvent?: (eventId: string) => void; onSelectMoonEvent?: (eventId: string) => void; mode?: "gm" | "player"; readonly?: boolean; events?: PublicEventDetails[]; moonEvents?: PublicEventDetails[]; weatherEvents?: PublicEventDetails[]; dayNotes?: Array<{ id: string; playerNote: string }>; onSelectPublicEvent?: (event: PublicEventDetails) => void }) => {
+export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], hiddenMoonEvents = [], hiddenMoonEventReasons = {}, onSelectEvent, onSelectMoonEvent, mode = "gm", events, moonEvents, weatherEvents, dayNotes, onSelectPublicEvent }: { project: CalendarProject; eventsToday: CalendarProject["events"]; moonEventsToday?: NonNullable<CalendarProject["moonEvents"]>; hiddenMoonEvents?: NonNullable<CalendarProject["moonEvents"]>; hiddenMoonEventReasons?: Record<string, string>; onSelectEvent?: (eventId: string) => void; onSelectMoonEvent?: (eventId: string) => void; mode?: "gm" | "player"; readonly?: boolean; events?: PublicEventDetails[]; moonEvents?: PublicEventDetails[]; weatherEvents?: PublicEventDetails[]; dayNotes?: Array<{ id: string; playerNote: string }>; onSelectPublicEvent?: (event: PublicEventDetails) => void }) => {
   const rows = mode === "player"
     ? [
       ...(events ?? []).map((event) => <PublicEventRow key={`event-${event.id}`} project={project} event={event} background="#111827" onSelectPublicEvent={onSelectPublicEvent} />),
@@ -35,7 +35,8 @@ export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], on
           <Badge>{t(project.locale, "moonEvents.eventKind")}</Badge>
           <Badge>{t(project.locale, "events.visibility")}: {formatEventVisibility(project, event.visibility)}</Badge>
         </div>
-      </button>)
+      </button>),
+      ...(hiddenMoonEvents.length > 0 ? [<details key="hidden-moon" style={{ fontSize: 12, color: "#9ca3af" }}><summary>{t(project.locale, "eventDisplay.hiddenEvents")}</summary><div style={{ display: "grid", gap: 4, marginTop: 6 }}>{hiddenMoonEvents.map((event) => <button key={event.id} type="button" onClick={onSelectMoonEvent ? () => onSelectMoonEvent(event.id) : undefined} style={{ border: "1px dashed #374151", borderRadius: 6, padding: 6, background: "#0f172a", width: "100%", textAlign: "left", color: "#e5e7eb", cursor: onSelectMoonEvent ? "pointer" : "default" }}>{event.icon ?? "🌕"} {event.name} <span style={{ color: "#9ca3af" }}>— {t(project.locale, `eventDisplay.hiddenReason.${hiddenMoonEventReasons[event.id] ?? "priority"}`)}</span></button>)}</div></details>] : [])
     ];
   return <SectionCard>
     <SectionHeader title={t(project.locale, "events.eventsToday")} />

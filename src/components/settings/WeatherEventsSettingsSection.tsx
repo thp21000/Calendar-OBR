@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { addWeatherEvent, createDefaultWeatherEvent, deleteWeatherEvent, duplicateWeatherEvent, getWeatherEventDiagnostics, updateWeatherEvent } from "../../calendar/weatherEventsLogic";
+import { normalizeEventDisplaySettings } from "../../calendar/eventDisplayLogic";
 import { getCurrentWeather } from "../../calendar/weatherLogic";
 import type { CalendarProject, WeatherCondition, WeatherEvent } from "../../domain/types";
 import { t } from "../../i18n/messages";
@@ -60,6 +61,8 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
 
   const editingWeatherEvent = editingWeatherEventId ? project.weatherEvents.find((event) => event.id === editingWeatherEventId) : undefined;
   const selectedWeatherEvent = selectedWeatherEventId ? project.weatherEvents.find((event) => event.id === selectedWeatherEventId) : undefined;
+  const displaySettings = normalizeEventDisplaySettings(project.eventDisplaySettings);
+  const updateDisplaySettings = (patch: Partial<typeof displaySettings>) => onProjectUpdate({ ...project, eventDisplaySettings: normalizeEventDisplaySettings({ ...displaySettings, ...patch }) });
 
   const handleDuplicateWeatherEvent = (event: WeatherEvent) => {
     onProjectUpdate(duplicateWeatherEvent(project, event.id));
@@ -90,6 +93,19 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
 
   return <>
     <SectionCard>
+      <SectionHeader title={t(project.locale, "eventDisplay.smartDisplay")} />
+      <div style={{ display: "grid", gap: 6, marginBottom: 10, fontSize: 12 }}>
+        <label><input type="checkbox" checked={displaySettings.weatherFamilyArbitrationEnabled} onChange={(e) => updateDisplaySettings({ weatherFamilyArbitrationEnabled: e.target.checked })} /> {t(project.locale, "eventDisplay.weatherFamilyArbitration")}</label>
+        <label><input type="checkbox" checked={displaySettings.weatherDisplayLimitEnabled} onChange={(e) => updateDisplaySettings({ weatherDisplayLimitEnabled: e.target.checked })} /> {t(project.locale, "eventDisplay.weatherLimit")}</label>
+        <label>{t(project.locale, "eventDisplay.maxVisibleWeather")}<input type="number" min={1} max={20} value={displaySettings.maxVisibleWeatherEvents} onChange={(e) => updateDisplaySettings({ maxVisibleWeatherEvents: Number(e.target.value) })} style={inputStyle} /></label>
+        <label><input type="checkbox" checked={displaySettings.weatherAntiRepeatEnabled} onChange={(e) => updateDisplaySettings({ weatherAntiRepeatEnabled: e.target.checked })} /> {t(project.locale, "eventDisplay.weatherAntiRepeat")}</label>
+        <label>{t(project.locale, "eventDisplay.weatherAntiRepeatHours")}<input type="number" min={1} value={displaySettings.weatherAntiRepeatWindowHours} onChange={(e) => updateDisplaySettings({ weatherAntiRepeatWindowHours: Number(e.target.value) })} style={inputStyle} /></label>
+        <label><input type="checkbox" checked={displaySettings.lunarPhaseArbitrationEnabled} onChange={(e) => updateDisplaySettings({ lunarPhaseArbitrationEnabled: e.target.checked })} /> {t(project.locale, "eventDisplay.lunarPhaseArbitration")}</label>
+        <label><input type="checkbox" checked={displaySettings.lunarDisplayLimitEnabled} onChange={(e) => updateDisplaySettings({ lunarDisplayLimitEnabled: e.target.checked })} /> {t(project.locale, "eventDisplay.lunarLimit")}</label>
+        <label>{t(project.locale, "eventDisplay.maxVisibleLunar")}<input type="number" min={1} max={20} value={displaySettings.maxVisibleLunarEventsPerPhase} onChange={(e) => updateDisplaySettings({ maxVisibleLunarEventsPerPhase: Number(e.target.value) })} style={inputStyle} /></label>
+        <label><input type="checkbox" checked={displaySettings.lunarAntiRepeatEnabled} onChange={(e) => updateDisplaySettings({ lunarAntiRepeatEnabled: e.target.checked })} /> {t(project.locale, "eventDisplay.lunarAntiRepeat")}</label>
+        <label>{t(project.locale, "eventDisplay.lunarAntiRepeatHours")}<input type="number" min={1} value={displaySettings.lunarAntiRepeatWindowHours} onChange={(e) => updateDisplaySettings({ lunarAntiRepeatWindowHours: Number(e.target.value) })} style={inputStyle} /></label>
+      </div>
       <PrimaryButton type="button" onClick={() => setIsCreatePopupOpen(true)} style={{ marginBottom: 8 }}>{t(project.locale, "weatherEvents.openCreateForm")}</PrimaryButton>
       <div style={{ marginBottom: 8 }}>
         <label style={{ display: "block", fontSize: 12, marginBottom: 4 }}>{t(project.locale, "weatherEvents.search")}</label>
@@ -165,6 +181,10 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                 {event.notifyOnTrigger !== false ? <Badge>{t(project.locale, "events.triggerNotifyShort")}</Badge> : null}
                 {Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100))) < 100 ? <Badge>{t(project.locale, "weatherEvents.triggerChanceBadge").replace("{count}", String(Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100)))))}</Badge> : null}
                 {typeof event.cooldownHours === "number" ? <Badge>{t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(event.cooldownHours))}</Badge> : null}
+                <Badge>{t(project.locale, "eventDisplay.familyId")}: {event.displayFamilyId?.trim() || event.id}</Badge>
+                <Badge>{t(project.locale, "eventDisplay.priority")}: {event.displayPriority ?? 50}</Badge>
+                <Badge>{t(project.locale, "eventDisplay.severity")}: {t(project.locale, `eventDisplay.severity.${event.displaySeverity ?? "standard"}`)}</Badge>
+                {event.ignoreDisplayLimit ? <Badge>{t(project.locale, "eventDisplay.ignoreLimit")}</Badge> : null}
                 <Badge>{diagnosticLabel}</Badge>
               </div>
             </div>

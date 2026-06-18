@@ -5,6 +5,7 @@ import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { createNotificationsFromTriggers, createReminderNotifications, type CalendarNotification } from "../calendar/notifications";
 import * as moonLogic from "../calendar/moonLogic";
 import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
+import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../calendar/eventDisplayLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
 import {
   getCurrentlyMatchingWeatherEvents,
@@ -80,6 +81,23 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
     : [];
   const currentMoonPhases = moonLogic.getCurrentMoonPhases(project);
   const triggeredMoonEvents = getTriggeredMoonEvents(project, project.currentTime.absoluteDay);
+  const absoluteMinutes = project.currentTime.absoluteDay * 1440 + project.currentTime.hour * 60 + project.currentTime.minute;
+  const displaySettings = normalizeEventDisplaySettings(project.eventDisplaySettings);
+  const displayHistory = normalizeEventDisplayHistory(project.eventDisplayHistory);
+  const weatherDisplaySelection = selectVisibleWeatherEvents({
+    activeEvents: triggeredWeatherEvents,
+    settings: displaySettings,
+    history: displayHistory,
+    absoluteMinutes,
+    seed: project.weatherSettings.seed ?? project.id
+  });
+  const moonDisplaySelection = selectVisibleLunarEvents({
+    activeEvents: triggeredMoonEvents,
+    settings: displaySettings,
+    history: displayHistory,
+    absoluteMinutes,
+    seed: project.weatherSettings.seed ?? project.id
+  });
   const hourlyForecast = getHourlyWeatherForecast(project, 5);
   const weatherUnits = getWeatherUnitLabels(project.units);
   const eventsToday = getEventsForCurrentDay(project);
@@ -229,11 +247,14 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
           currentSeason={currentSeason}
           currentWeather={currentWeather}
           triggeredWeatherEvents={triggeredWeatherEvents}
+          visibleWeatherEvents={weatherDisplaySelection.visibleEvents}
+          hiddenWeatherEvents={weatherDisplaySelection.hiddenEvents}
+          hiddenWeatherEventReasons={weatherDisplaySelection.hiddenReasons}
           weatherUnits={weatherUnits}
           currentMoonPhases={currentMoonPhases}
           onSelectWeatherEvent={setSelectedWeatherEventId}
         />}
-        events={<TodayEventsCard project={project} eventsToday={eventsToday} moonEventsToday={triggeredMoonEvents} onSelectEvent={setSelectedEventId} onSelectMoonEvent={setSelectedMoonEventId} />}
+        events={<TodayEventsCard project={project} eventsToday={eventsToday} moonEventsToday={moonDisplaySelection.visibleEvents} hiddenMoonEvents={moonDisplaySelection.hiddenEvents} hiddenMoonEventReasons={moonDisplaySelection.hiddenReasons} onSelectEvent={setSelectedEventId} onSelectMoonEvent={setSelectedMoonEventId} />}
         forecast={<WeatherForecastCard project={project} hourlyForecast={hourlyForecast} weatherUnits={weatherUnits} />}
         quickActions={quickActionsCard}
       />

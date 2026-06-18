@@ -271,6 +271,24 @@ export const MoonEventForm = ({
         </select>
       </MoonEventFormSection>
 
+      <MoonEventFormSection title={t(project.locale, "eventDisplay.rules")}>
+        <label style={label}>{t(project.locale, "eventDisplay.familyId")}</label>
+        <input value={draft.displayFamilyId ?? ""} onChange={(e) => setDraft((prev) => ({ ...prev, displayFamilyId: e.target.value.trim() || undefined }))} style={inputStyle} />
+        <label style={label}>{t(project.locale, "eventDisplay.priority")}</label>
+        <input type="number" min={0} max={100} step={1} value={draft.displayPriority ?? 50} onChange={(e) => setDraft((prev) => ({ ...prev, displayPriority: Math.max(0, Math.min(100, Math.trunc(Number(e.target.value) || 0))) }))} style={inputStyle} />
+        <label style={label}>{t(project.locale, "eventDisplay.severity")}</label>
+        <select value={draft.displaySeverity ?? "standard"} onChange={(e) => setDraft((prev) => ({ ...prev, displaySeverity: e.target.value as MoonEvent["displaySeverity"] }))} style={inputStyle}>
+          <option value="ambient">{t(project.locale, "eventDisplay.severity.ambient")}</option>
+          <option value="minor">{t(project.locale, "eventDisplay.severity.minor")}</option>
+          <option value="standard">{t(project.locale, "eventDisplay.severity.standard")}</option>
+          <option value="major">{t(project.locale, "eventDisplay.severity.major")}</option>
+          <option value="critical">{t(project.locale, "eventDisplay.severity.critical")}</option>
+        </select>
+        <label style={label}>{t(project.locale, "eventDisplay.weight")}</label>
+        <input type="number" step={1} value={draft.displayWeight ?? 0} onChange={(e) => setDraft((prev) => ({ ...prev, displayWeight: Math.trunc(Number(e.target.value) || 0) }))} style={inputStyle} />
+        <label style={checkboxLabel}><input type="checkbox" checked={draft.ignoreDisplayLimit === true} onChange={(e) => setDraft((prev) => ({ ...prev, ignoreDisplayLimit: e.target.checked }))} />{t(project.locale, "eventDisplay.ignoreLimit")}</label>
+      </MoonEventFormSection>
+
       <MoonEventFormSection title={t(project.locale, "moonEvents.conditionsSection")}>
         <div>
           <div style={conditionHeaderRowStyle}>

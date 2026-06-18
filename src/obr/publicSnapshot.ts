@@ -4,6 +4,7 @@ import { getPlayerVisibleDayNotesForDay } from "../calendar/dayNotesLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../calendar/formatEvent";
 import { getPlayerVisibleMoonEvents } from "../calendar/moonEventsLogic";
+import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../calendar/eventDisplayLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
 import { getCurrentSeason, getSeasonForDate } from "../calendar/seasonsLogic";
 import { generateWeatherForTime, getCurrentWeather, getHourlyWeatherForecast } from "../calendar/weatherLogic";
@@ -324,6 +325,8 @@ export const buildPublicMonthSnapshot = (
   const weekdays = getCurrentMonthWeekdayNames(project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
   const leadingEmptyDays = getCurrentMonthFirstWeekdayIndex(viewedTime, project.calendarSystem, project.uiSettings.monthGridStartsOnWeekdayId);
   const weatherUnits = getWeatherUnitLabels(project.units);
+  const eventDisplaySettings = normalizeEventDisplaySettings(project.eventDisplaySettings);
+  const eventDisplayHistory = normalizeEventDisplayHistory(project.eventDisplayHistory);
   const days = monthDays.map((day) => {
     const date = absoluteDayToCalendarDate({ absoluteDay: day.absoluteDay, hour: 0, minute: 0 }, project.calendarSystem);
     const eventDate = { ...date, hour: 0, minute: 0 };
@@ -331,12 +334,17 @@ export const buildPublicMonthSnapshot = (
     const weather = settings.month.showWeatherSummary || settings.month.showWeatherEvents
       ? generateWeatherForTime(project, day.absoluteDay, 12)
       : undefined;
-    const weatherEvents = settings.month.showWeatherEvents && weather ? getPlayerVisibleWeatherEvents(project, weather, { absoluteDay: day.absoluteDay, hour: 12, minute: 0 }).map((event) => ({
+    const dayMinutes = day.absoluteDay * 1440 + 12 * 60;
+    const rawWeatherEvents = settings.month.showWeatherEvents && weather ? getPlayerVisibleWeatherEvents(project, weather, { absoluteDay: day.absoluteDay, hour: 12, minute: 0 }) : [];
+    const selectedWeatherEvents = selectVisibleWeatherEvents({ activeEvents: rawWeatherEvents as any, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes: dayMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
+    const weatherEvents = selectedWeatherEvents.map((event) => ({
       id: event.id, name: event.name, icon: event.icon, summary: event.summary || undefined, playerDescription: event.playerDescription || undefined, link: event.link || undefined
-    })) : [];
-    const moonEvents = settings.month.showMoonEvents ? getPlayerVisibleMoonEvents(project, day.absoluteDay).map((event) => ({
+    }));
+    const rawMoonEvents = settings.month.showMoonEvents ? getPlayerVisibleMoonEvents(project, day.absoluteDay) : [];
+    const selectedMoonEvents = selectVisibleLunarEvents({ activeEvents: rawMoonEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes: dayMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
+    const moonEvents = selectedMoonEvents.map((event) => ({
       id: event.id, name: event.name, icon: event.icon, summary: event.summary || undefined, playerDescription: event.playerDescription || undefined, moonName: project.moons.find((moon) => moon.id === event.moonId)?.name ?? "?", phaseId: event.phaseId
-    })) : [];
+    }));
     const dayNotes = settings.month.showDayNotes ? getPlayerVisibleDayNotesForDay(project, eventDate).filter((note) => Boolean(note.playerNote?.trim())).map((note) => ({ id: note.id, playerNote: note.playerNote?.trim() ?? "" })) : [];
     const season = settings.month.showWeatherSummary ? getSeasonForDate(project, eventDate) : undefined;
     const weatherState = weather?.state ?? "clear";
@@ -466,6 +474,11 @@ export const createPublicCalendarTodaySnapshot = (
   const visibleWeatherEvents = currentWeather
     ? getPlayerVisibleWeatherEvents(project, currentWeather, project.currentTime)
     : [];
+  const eventDisplaySettings = normalizeEventDisplaySettings(project.eventDisplaySettings);
+  const eventDisplayHistory = normalizeEventDisplayHistory(project.eventDisplayHistory);
+  const absoluteMinutes = project.currentTime.absoluteDay * 1440 + project.currentTime.hour * 60 + project.currentTime.minute;
+  const arbitratedWeatherEvents = selectVisibleWeatherEvents({ activeEvents: visibleWeatherEvents as any, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
+  const arbitratedMoonEvents = selectVisibleLunarEvents({ activeEvents: getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay), settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
 
   return {
     schemaVersion: 1,
@@ -498,7 +511,7 @@ export const createPublicCalendarTodaySnapshot = (
       link: event.link || undefined,
       timeLabel: formatEventTimeShort(project, event)
     })),
-    weatherEventsToday: visibleWeatherEvents.map((event) => ({
+    weatherEventsToday: arbitratedWeatherEvents.map((event) => ({
       id: event.id,
       name: event.name,
       icon: event.icon,
@@ -506,7 +519,7 @@ export const createPublicCalendarTodaySnapshot = (
       playerDescription: event.playerDescription || undefined,
       link: event.link || undefined
     })),
-    moonEventsToday: getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay).map((event) => ({
+    moonEventsToday: arbitratedMoonEvents.map((event) => ({
       id: event.id,
       name: event.name,
       icon: event.icon,

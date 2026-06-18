@@ -11,6 +11,7 @@ import { DEFAULT_UNITS } from "../calendar/weatherUnits";
 import { isWeatherState } from "../calendar/weatherStates";
 import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
 import { normalizeAdventureContext } from "../calendar/adventureContext";
+import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, sanitizeEventDisplayRules } from "../calendar/eventDisplayLogic";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -202,7 +203,9 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
   };
 
   maybeCompat.adventureContext = normalizeAdventureContext((data as Record<string, unknown>).adventureContext);
-
+  maybeCompat.eventDisplaySettings = normalizeEventDisplaySettings((data as Record<string, unknown>).eventDisplaySettings);
+  maybeCompat.eventDisplayHistory = normalizeEventDisplayHistory((data as Record<string, unknown>).eventDisplayHistory);
+  
   if (isRecord(maybeCompat.units)) {
     const units = maybeCompat.units as Record<string, unknown>;
     maybeCompat.units = {
@@ -339,7 +342,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         if (isTrendKind(sourceOverride.trendKind)) override.trendKind = sourceOverride.trendKind;
         if (typeof sourceOverride.gmNote === "string") override.gmNote = sourceOverride.gmNote;
         next.override = override;
-        return next;
+        return sanitizeEventDisplayRules(next);
       });
   }
 
@@ -391,7 +394,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         } else {
           next.reminderMinutesBefore = Math.trunc(next.reminderMinutesBefore);
         }
-        return next;
+        return sanitizeEventDisplayRules(next);
       });
   }
 

@@ -5,6 +5,7 @@ import { getSeasonForDate } from "./seasonsLogic";
 import { getCurrentlyMatchingWeatherEvents } from "./weatherEventsLogic";
 import { generateWeatherForTime } from "./weatherLogic";
 import { getTriggeredMoonEvents } from "./moonEventsLogic";
+import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "./eventDisplayLogic";
 import type { CalendarProject, WeatherState, WeatherTrendKind } from "../domain/types";
 import type { WeatherBiomeId } from "./weather/biomes";
 
@@ -46,6 +47,10 @@ export type WeatherSimulationRow = {
   moonPhases: string[];
   activeWeatherEvents: string[];
   activeMoonEvents: string[];
+  visibleWeatherEvents: string[];
+  hiddenWeatherEvents: string[];
+  visibleMoonEvents: string[];
+  hiddenMoonEvents: string[];
 };
 
 export type WeatherSimulationSummary = {
@@ -67,6 +72,14 @@ export type WeatherSimulationSummary = {
   dominantStateOccurrences: Record<string, number>;
   weatherEventOccurrences: Record<string, number>;
   moonEventOccurrences: Record<string, number>;
+  visibleWeatherEventOccurrences: Record<string, number>;
+  hiddenWeatherEventOccurrences: Record<string, number>;
+  visibleMoonEventOccurrences: Record<string, number>;
+  hiddenMoonEventOccurrences: Record<string, number>;
+  maxVisibleWeatherEventsAtOnce: number;
+  maxHiddenWeatherEventsAtOnce: number;
+  maxVisibleMoonEventsAtOnce: number;
+  maxHiddenMoonEventsAtOnce: number;
 };
 
 export type WeatherSimulationResult = {
@@ -134,8 +147,18 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
     stateOccurrences: {},
     dominantStateOccurrences: {},
     weatherEventOccurrences: {},
-    moonEventOccurrences: {}
+    moonEventOccurrences: {},
+    visibleWeatherEventOccurrences: {},
+    hiddenWeatherEventOccurrences: {},
+    visibleMoonEventOccurrences: {},
+    hiddenMoonEventOccurrences: {},
+    maxVisibleWeatherEventsAtOnce: 0,
+    maxHiddenWeatherEventsAtOnce: 0,
+    maxVisibleMoonEventsAtOnce: 0,
+    maxHiddenMoonEventsAtOnce: 0
   };
+  const displaySettings = normalizeEventDisplaySettings(simProjectBase.eventDisplaySettings);
+  const displayHistory = normalizeEventDisplayHistory(simProjectBase.eventDisplayHistory);
   const seasonStats: Record<string, SimulationSeasonStats> = {};
 
   for (let dayOffset = 0; dayOffset < durationDays; dayOffset += 1) {
@@ -150,6 +173,9 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
       const weather = generateWeatherForTime(simProject, absoluteDay, hour, 0);
       const activeWeatherEvents = weather ? getCurrentlyMatchingWeatherEvents(simProject, weather, time) : [];
       const activeMoonEvents = getTriggeredMoonEvents(simProject, absoluteDay);
+      const absoluteMinutes = absoluteDay * 1440 + hour * 60;
+      const visibleWeatherSelection = selectVisibleWeatherEvents({ activeEvents: activeWeatherEvents, settings: displaySettings, history: displayHistory, absoluteMinutes, seed: simProject.weatherSettings.seed ?? simProject.id });
+      const visibleMoonSelection = selectVisibleLunarEvents({ activeEvents: activeMoonEvents, settings: displaySettings, history: displayHistory, absoluteMinutes, seed: simProject.weatherSettings.seed ?? simProject.id });
       const moonPhases = simProject.moons.map((moon) => `${moon.name}:${getMoonPhaseForDate(moon, absoluteDay).id}`);
       const seasonName = season?.name ?? "";
       if (weather) {
@@ -170,6 +196,14 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
       }
       for (const event of activeWeatherEvents) increment(summary.weatherEventOccurrences, event.name || event.id);
       for (const event of activeMoonEvents) increment(summary.moonEventOccurrences, event.name || event.id);
+      for (const event of visibleWeatherSelection.visibleEvents) increment(summary.visibleWeatherEventOccurrences, event.name || event.id);
+      for (const event of visibleWeatherSelection.hiddenEvents) increment(summary.hiddenWeatherEventOccurrences, event.name || event.id);
+      for (const event of visibleMoonSelection.visibleEvents) increment(summary.visibleMoonEventOccurrences, event.name || event.id);
+      for (const event of visibleMoonSelection.hiddenEvents) increment(summary.hiddenMoonEventOccurrences, event.name || event.id);
+      summary.maxVisibleWeatherEventsAtOnce = Math.max(summary.maxVisibleWeatherEventsAtOnce, visibleWeatherSelection.visibleEvents.length);
+      summary.maxHiddenWeatherEventsAtOnce = Math.max(summary.maxHiddenWeatherEventsAtOnce, visibleWeatherSelection.hiddenEvents.length);
+      summary.maxVisibleMoonEventsAtOnce = Math.max(summary.maxVisibleMoonEventsAtOnce, visibleMoonSelection.visibleEvents.length);
+      summary.maxHiddenMoonEventsAtOnce = Math.max(summary.maxHiddenMoonEventsAtOnce, visibleMoonSelection.hiddenEvents.length);
       rows.push({
         absoluteDay,
         year: date.year,
@@ -192,7 +226,11 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
         trendKind: weather?.trendKind,
         moonPhases,
         activeWeatherEvents: activeWeatherEvents.map((event) => event.name || event.id),
-        activeMoonEvents: activeMoonEvents.map((event) => event.name || event.id)
+        activeMoonEvents: activeMoonEvents.map((event) => event.name || event.id),
+        visibleWeatherEvents: visibleWeatherSelection.visibleEvents.map((event) => event.name || event.id),
+        hiddenWeatherEvents: visibleWeatherSelection.hiddenEvents.map((event) => event.name || event.id),
+        visibleMoonEvents: visibleMoonSelection.visibleEvents.map((event) => event.name || event.id),
+        hiddenMoonEvents: visibleMoonSelection.hiddenEvents.map((event) => event.name || event.id)
       });
     }
     if (dayRain) summary.rainyDays += 1;

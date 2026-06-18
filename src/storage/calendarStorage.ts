@@ -6,6 +6,7 @@ import { DEFAULT_SCENE_WEATHER_PROFILES, ensureDefaultSceneWeatherProfiles } fro
 import { notifyCalendarProjectUpdated } from "./projectSync";
 import { DEFAULT_PLAYER_VIEW_SETTINGS } from "../calendar/playerViewSettings";
 import { createDefaultAdventureContext, ensureAdventureContext } from "../calendar/adventureContext";
+import { DEFAULT_EVENT_DISPLAY_HISTORY, DEFAULT_EVENT_DISPLAY_SETTINGS } from "../calendar/eventDisplayLogic";
 
 const STORAGE_KEY = "calendar-obr.project.local-dev";
 const DEFAULT_WEATHER_SEED = "default-calendar";
@@ -108,6 +109,8 @@ const defaultProject: CalendarProject = {
   weatherBiome: { currentBiomeId: DEFAULT_WEATHER_BIOME_ID },
   sceneWeatherProfiles: structuredClone(DEFAULT_SCENE_WEATHER_PROFILES),
   adventureContext: createDefaultAdventureContext(),
+  eventDisplaySettings: structuredClone(DEFAULT_EVENT_DISPLAY_SETTINGS),
+  eventDisplayHistory: structuredClone(DEFAULT_EVENT_DISPLAY_HISTORY),
   uiSettings: { activeTab: "today", compactMode: true, defaultMoonSystemInitialized: true, playerView: structuredClone(DEFAULT_PLAYER_VIEW_SETTINGS) }
 };
 

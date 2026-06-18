@@ -46,6 +46,9 @@ type Props = {
   currentWeather: WeatherSnapshot | undefined;
   hourlyForecast: Array<{ offsetHours: number; weather: WeatherSnapshot }>;
   triggeredWeatherEvents: CalendarProject["weatherEvents"];
+  visibleWeatherEvents?: CalendarProject["weatherEvents"];
+  hiddenWeatherEvents?: CalendarProject["weatherEvents"];
+  hiddenWeatherEventReasons?: Record<string, string>;
   weatherUnits: WeatherUnits;
   currentMoonPhases: Array<{ moon: CalendarProject["moons"][number]; phase: MoonPhase }>;
   onSelectWeatherEvent?: (eventId: string) => void;
@@ -56,6 +59,9 @@ export const TodayStatusSummary = ({
   currentSeason,
   currentWeather,
   triggeredWeatherEvents,
+  visibleWeatherEvents,
+  hiddenWeatherEvents,
+  hiddenWeatherEventReasons,
   weatherUnits,
   currentMoonPhases,
   onSelectWeatherEvent,
@@ -64,6 +70,9 @@ export const TodayStatusSummary = ({
   playerModel,
   onSelectPublicWeatherEvent
 }: Pick<Props, "project"|"currentSeason"|"currentWeather"|"triggeredWeatherEvents"|"weatherUnits"|"currentMoonPhases"|"onSelectWeatherEvent"> & {
+  visibleWeatherEvents?: CalendarProject["weatherEvents"];
+  hiddenWeatherEvents?: CalendarProject["weatherEvents"];
+  hiddenWeatherEventReasons?: Record<string, string>;
   mode?: "gm" | "player";
   readonly?: boolean;
   visibility?: Partial<TodayLayoutVisibility>;
@@ -149,9 +158,12 @@ export const TodayStatusSummary = ({
       ? `${currentWeather?.trendKind ? `${getConfiguredWeatherTrendIcon(project, currentWeather.trendKind)} ${t(project.locale, "weather.trend")}: ${getWeatherTrendLabel(project, currentWeather.trendKind)}` : ""}${currentWeather?.trendKind && currentWeather?.dominantState ? " · " : ""}${currentWeather?.dominantState ? `${t(project.locale, "weather.dominantState")}: ${getWeatherStateLabel(project, currentWeather.dominantState)}` : ""}`
       : "") : "";
 
+  const weatherEventsToDisplay = visibleWeatherEvents ?? triggeredWeatherEvents;
+  const hiddenWeatherEventsToDisplay = hiddenWeatherEvents ?? [];
   const weatherEventRows = showWeatherEvents ? [
     ...(!isPlayer && sceneWeatherOverride ? [<div key="scene" style={{ background: ui.colors.surface, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={sceneWeatherIcon} locale={project.locale} /><strong>{sceneWeatherName}</strong></div><div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{t(project.locale, "sceneWeather.activeAlert")}</div></div>] : []),
-    ...(isPlayer && playerModel ? playerModel.weatherEvents.map((event) => <PublicWeatherEventRow key={event.id} locale={playerModel.locale} event={event} onSelectEvent={onSelectPublicWeatherEvent} />) : triggeredWeatherEvents.map((event) => <div key={event.id} role={onSelectWeatherEvent ? "button" : undefined} tabIndex={onSelectWeatherEvent ? 0 : undefined} onClick={() => onSelectWeatherEvent?.(event.id)} onKeyDown={(keyEvent) => { if (!onSelectWeatherEvent || (keyEvent.key !== "Enter" && keyEvent.key !== " ")) return; keyEvent.preventDefault(); onSelectWeatherEvent(event.id); }} style={{ background: ui.colors.surface, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm, cursor: onSelectWeatherEvent ? "pointer" : undefined }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>{event.summary ? <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{event.summary}</div> : null}<div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 4 }} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>{event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: ui.colors.accent }}>{t(project.locale, "common.openLink")}</a> : null}</div></div>))
+    ...(isPlayer && playerModel ? playerModel.weatherEvents.map((event) => <PublicWeatherEventRow key={event.id} locale={playerModel.locale} event={event} onSelectEvent={onSelectPublicWeatherEvent} />) : weatherEventsToDisplay.map((event) => <div key={event.id} role={onSelectWeatherEvent ? "button" : undefined} tabIndex={onSelectWeatherEvent ? 0 : undefined} onClick={() => onSelectWeatherEvent?.(event.id)} onKeyDown={(keyEvent) => { if (!onSelectWeatherEvent || (keyEvent.key !== "Enter" && keyEvent.key !== " ")) return; keyEvent.preventDefault(); onSelectWeatherEvent(event.id); }} style={{ background: ui.colors.surface, border: `1px solid ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm, cursor: onSelectWeatherEvent ? "pointer" : undefined }}><div style={{ display: "flex", alignItems: "center", gap: 6 }}><EventIcon icon={event.icon} locale={project.locale} /><strong>{event.name}</strong></div>{event.summary ? <div style={{ marginTop: 2, fontSize: 12, color: ui.colors.textSecondary }}>{event.summary}</div> : null}<div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 4 }} onClick={(clickEvent) => clickEvent.stopPropagation()} onKeyDown={(keyEvent) => keyEvent.stopPropagation()}>{event.link?.trim() ? <a href={event.link} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: ui.colors.accent }}>{t(project.locale, "common.openLink")}</a> : null}</div></div>)),
+    ...(!isPlayer && hiddenWeatherEventsToDisplay.length > 0 ? [<details key="hidden-weather" style={{ fontSize: 12, color: ui.colors.textSecondary }}><summary>{t(project.locale, "eventDisplay.hiddenEvents")}</summary><div style={{ display: "grid", gap: 4, marginTop: 6 }}>{hiddenWeatherEventsToDisplay.map((event) => <button key={event.id} type="button" onClick={() => onSelectWeatherEvent?.(event.id)} style={{ border: `1px dashed ${ui.colors.border}`, borderRadius: ui.radius.md, padding: ui.spacing.sm, background: "#0f172a", color: ui.colors.textPrimary, textAlign: "left", cursor: onSelectWeatherEvent ? "pointer" : "default" }}><EventIcon icon={event.icon} locale={project.locale} /> {event.name} <span style={{ color: ui.colors.textSecondary }}>— {t(project.locale, `eventDisplay.hiddenReason.${hiddenWeatherEventReasons?.[event.id] ?? "priority"}`)}</span></button>)}</div></details>] : [])
   ] : [];
 
   if (topLineItems.length === 0 && !biomeView && weatherNodes.length === 0 && !trendText && !override && weatherEventRows.length === 0) return null;

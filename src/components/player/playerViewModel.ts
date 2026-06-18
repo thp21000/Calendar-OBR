@@ -5,6 +5,7 @@ import { formatDisplayDate } from "../../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../../calendar/formatEvent";
 import { getCurrentMoonPhases } from "../../calendar/moonLogic";
 import { getPlayerVisibleMoonEvents } from "../../calendar/moonEventsLogic";
+import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../../calendar/eventDisplayLogic";
 import { normalizePlayerViewSettings } from "../../calendar/playerViewSettings";
 import { getCurrentSeason } from "../../calendar/seasonsLogic";
 import { getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
@@ -433,6 +434,11 @@ export const buildPlayerViewModelFromProject = (project: CalendarProject, rawSet
   const currentMoonPhases = getCurrentMoonPhases(project);
   const visibleWeatherEvents = currentWeather ? getPlayerVisibleWeatherEvents(project, currentWeather, project.currentTime) : [];
   const visibleMoonEvents = getPlayerVisibleMoonEvents(project, project.currentTime.absoluteDay);
+  const absoluteMinutes = project.currentTime.absoluteDay * 1440 + project.currentTime.hour * 60 + project.currentTime.minute;
+  const eventDisplaySettings = normalizeEventDisplaySettings(project.eventDisplaySettings);
+  const eventDisplayHistory = normalizeEventDisplayHistory(project.eventDisplayHistory);
+  const arbitratedWeatherEvents = selectVisibleWeatherEvents({ activeEvents: visibleWeatherEvents as any, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
+  const arbitratedMoonEvents = selectVisibleLunarEvents({ activeEvents: visibleMoonEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id }).visibleEvents;
   const visibleDayNotes = getPlayerVisibleDayNotesForDay(project, displayDate);
 
   return {
@@ -465,7 +471,7 @@ export const buildPlayerViewModelFromProject = (project: CalendarProject, rawSet
       timeLabel: formatEventTimeShort(project, event),
       link: event.link || undefined
     }))) : [],
-    weatherEvents: settings.today.showWeatherEvents ? compactPublicEvents(visibleWeatherEvents.map((event) => ({
+    weatherEvents: settings.today.showWeatherEvents ? compactPublicEvents(arbitratedWeatherEvents.map((event) => ({
       id: event.id,
       name: event.name,
       icon: event.icon,

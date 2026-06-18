@@ -437,6 +437,41 @@ export type WeatherEventTriggerHistoryEntry = {
   windSpeed?: number;
 };
 
+export type EventDisplaySeverity = "ambient" | "minor" | "standard" | "major" | "critical";
+
+export type EventDisplayRules = {
+  displayFamilyId?: string;
+  displayPriority?: number;
+  displaySeverity?: EventDisplaySeverity;
+  displayWeight?: number;
+  ignoreDisplayLimit?: boolean;
+};
+
+export type EventDisplaySettings = {
+  weatherFamilyArbitrationEnabled: boolean;
+  weatherDisplayLimitEnabled: boolean;
+  maxVisibleWeatherEvents: number;
+  weatherAntiRepeatEnabled: boolean;
+  weatherAntiRepeatWindowHours: number;
+  lunarPhaseArbitrationEnabled: boolean;
+  lunarDisplayLimitEnabled: boolean;
+  maxVisibleLunarEventsPerPhase: number;
+  lunarAntiRepeatEnabled: boolean;
+  lunarAntiRepeatWindowHours: number;
+};
+
+export type EventDisplayHistoryEntry = {
+  lastDisplayedAtMinutes: number;
+  lastDisplayedDay?: number;
+};
+
+export type EventDisplayHistory = {
+  weatherEvents: Record<string, EventDisplayHistoryEntry>;
+  weatherFamilies: Record<string, EventDisplayHistoryEntry>;
+  lunarEvents: Record<string, EventDisplayHistoryEntry>;
+  lunarFamilies: Record<string, EventDisplayHistoryEntry>;
+};
+
 export type WeatherEventKind = "informational" | "weatherEffect";
 export type WeatherEventEffect = {
   temperature?: number;
@@ -451,7 +486,7 @@ export type WeatherEventEffect = {
   trendKind?: WeatherTrendKind;
 };
 
-export type WeatherEvent = {
+export type WeatherEvent = EventDisplayRules & {
   id: string;
   name: string;
   icon?: string;
@@ -477,7 +512,7 @@ export type WeatherEvent = {
   cooldownHours?: number;
 };
 
-export type MoonEvent = {
+export type MoonEvent = EventDisplayRules & {
   id: string;
   name: string;
   icon?: string;
@@ -538,6 +573,8 @@ export type CalendarProject = {
   weatherBiomeProfiles?: Partial<Record<WeatherBiomeId, WeatherBiomeProfile>>;
   sceneWeatherProfiles?: SceneWeatherProfile[];
   adventureContext?: AdventureContextState;
+  eventDisplaySettings?: EventDisplaySettings;
+  eventDisplayHistory?: EventDisplayHistory;
   uiSettings: UiSettings;
 };
 
