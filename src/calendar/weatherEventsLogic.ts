@@ -137,7 +137,6 @@ export const applyWeatherEventTriggerActions = (
   const at = toAbsoluteMinutes(triggerTime);
   return {
     ...project,
-    weatherOverrides: applyWeatherEffectsToOverrides(project, triggeredWeatherEvents, triggerTime),
     weatherEvents: project.weatherEvents.map((event) => {
       if (!ids.has(event.id)) return event;
       const nextStatus: NonNullable<WeatherEvent["status"]> = event.disableAfterTrigger ? "disabled" : event.archiveAfterTrigger ? "archived" : "triggered";
@@ -164,21 +163,10 @@ export const applyWeatherEventTriggerActions = (
 
 export const toAbsoluteMinutes = (time: InternalTime): number => time.absoluteDay * 24 * 60 + time.hour * 60 + time.minute;
 
-export const isWithinDurationWindow = (triggeredAtMinutes: number, currentMinutes: number, durationHours?: number): boolean => {
-  if (typeof durationHours !== "number") return false;
-  const safeHours = Math.max(0, durationHours);
-  return currentMinutes - triggeredAtMinutes < safeHours * 60;
-};
-
 export const isWithinCooldownWindow = (endedAtMinutes: number, currentMinutes: number, cooldownHours?: number): boolean => {
   if (typeof cooldownHours !== "number") return false;
   const safeHours = Math.max(0, cooldownHours);
   return currentMinutes - endedAtMinutes < safeHours * 60;
-};
-
-export const getWeatherEventDurationHours = (event: WeatherEvent): number | undefined => {
-  if (typeof event.durationHours === "number") return event.durationHours;
-  return undefined;
 };
 
 export const generateWeatherForEventConditions = (project: CalendarProject, time: InternalTime): WeatherSnapshot | undefined =>
@@ -382,7 +370,6 @@ export const getWeatherEventDiagnostics = (
   const lastTriggeredAtMinutes = event.lastTriggeredAtMinutes;
   const activeStartedAtMinutes = event.activeStartedAtMinutes;
   const lastEndedAtMinutes = event.lastEndedAtMinutes;
-  const durationHours = getWeatherEventDurationHours(event);
   const blockedByCooldown = typeof lastEndedAtMinutes === "number"
     ? isWithinCooldownWindow(lastEndedAtMinutes, nowMinutes, event.cooldownHours)
     : false;
@@ -397,7 +384,6 @@ export const getWeatherEventDiagnostics = (
     alreadyActive,
     status,
     triggerChancePercent: normalizeTriggerChancePercent(event.triggerChancePercent),
-    durationHours,
     lastTriggeredAtMinutes,
     activeStartedAtMinutes,
     lastEndedAtMinutes,
@@ -410,7 +396,7 @@ export const getWeatherEventDiagnostics = (
 export type WeatherEventUpcomingTriggerWindow = {
   startTime: InternalTime;
   endTime: InternalTime;
-  durationHours: number;
+  windowHours: number;
   matchedConditionsCount: number;
   totalConditionsCount: number;
 };
@@ -449,14 +435,14 @@ export const getWeatherEventUpcomingTriggerWindows = (
 
     if (activeWindow) {
       activeWindow.endTime = endTime;
-      activeWindow.durationHours += 1;
+      activeWindow.windowHours += 1;
       activeWindow.matchedConditionsCount = Math.max(activeWindow.matchedConditionsCount, matchedConditionsCount);
       activeWindow.totalConditionsCount = Math.max(activeWindow.totalConditionsCount, totalConditionsCount);
     } else {
       activeWindow = {
         startTime: scannedTime,
         endTime,
-        durationHours: 1,
+        windowHours: 1,
         matchedConditionsCount,
         totalConditionsCount
       };
@@ -531,17 +517,6 @@ const didWeatherEventChanceSucceed = (project: CalendarProject, event: WeatherEv
   }
   const roll = ((hash >>> 0) % 10000) / 100;
   return roll < chance;
-};
-
-const applyWeatherEffectsToOverrides = (project: CalendarProject, triggeredWeatherEvents: WeatherEvent[], triggerTime: InternalTime): WeatherOverride[] => {
-  let overrides = project.weatherOverrides ?? [];
-  const startAbsoluteMinutes = toAbsoluteMinutes(triggerTime);
-  for (const event of triggeredWeatherEvents) {
-    if ((event.kind ?? "informational") !== "weatherEffect") continue;
-    const durationHours = getWeatherEventDurationHours(event) ?? 1;
-    overrides = replaceWeatherEventOverrides(overrides, event, startAbsoluteMinutes, startAbsoluteMinutes + durationHours * 60);
-  }
-  return overrides;
 };
 
 export const duplicateWeatherEvent = (project: CalendarProject, eventId: string): CalendarProject => {

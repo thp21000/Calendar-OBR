@@ -474,7 +474,6 @@ export type WeatherEvent = {
   conditions: WeatherCondition[];
   requireAllConditions: boolean;
   enabled: boolean;
-  durationHours?: number;
   cooldownHours?: number;
 };
 

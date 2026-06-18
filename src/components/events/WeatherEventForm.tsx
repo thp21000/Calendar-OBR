@@ -161,11 +161,9 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
     parts.push(t(project.locale, "weatherEvents.conditionsCount").replace("{count}", String(conditions.length)));
     const chance = Math.max(0, Math.min(100, Math.round(draft.triggerChancePercent ?? 100)));
     if (chance < 100) parts.push(t(project.locale, "weatherEvents.triggerChanceBadge").replace("{count}", String(chance)));
-    if (typeof draft.durationHours === "number") parts.push(t(project.locale, "weatherEvents.durationBadge").replace("{count}", String(draft.durationHours)));
     if (typeof draft.cooldownHours === "number") parts.push(t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(draft.cooldownHours)));
     return parts.join(" · ");
   };
-  const showDefaultDurationHelp = draft.durationHours === undefined && ((draft.kind ?? "informational") === "weatherEffect" || Math.max(0, Math.min(100, Math.round(draft.triggerChancePercent ?? 100))) < 100);
   const hasConfiguredWeatherEffect = (Object.values(draft.effect ?? {}) as unknown[]).some((value) => value !== undefined && value !== null && value !== "");
 
   return <div>
@@ -189,8 +187,7 @@ export const WeatherEventForm = ({ project, event, mode, onSubmit, onCancel, inp
       <label style={checkLabel}><input type="checkbox" checked={draft.disableAfterTrigger === true} onChange={(e) => updateDraft({ disableAfterTrigger: e.target.checked })} />{t(project.locale, "weatherEvents.disableAfterTrigger")}</label>
     </WeatherEventFormSection>
 
-    <WeatherEventFormSection title={t(project.locale, "weatherEvents.sectionDuration")}>
-      <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.durationHours")} help={t(project.locale, "weatherEvents.durationHelp")} /><input type="number" min={0} step={1} value={draft.durationHours ?? ""} onChange={(e) => updateDraft({ durationHours: e.target.value.trim() === "" ? undefined : Math.max(0, Math.trunc(Number(e.target.value) || 0)) })} style={mergedInputStyle} />{showDefaultDurationHelp ? <div style={hint}>{t(project.locale, "weatherEvents.defaultDurationHelp")}</div> : null}</label>
+    <WeatherEventFormSection title={t(project.locale, "weatherEvents.sectionTiming")}>
       <label style={field}><FieldLabel label={t(project.locale, "weatherEvents.cooldownHours")} help={t(project.locale, "weatherEvents.cooldownHelp")} /><input type="number" min={0} step={1} value={draft.cooldownHours ?? ""} onChange={(e) => updateDraft({ cooldownHours: e.target.value.trim() === "" ? undefined : Math.max(0, Math.trunc(Number(e.target.value) || 0)) })} style={mergedInputStyle} /></label>
     </WeatherEventFormSection>
 

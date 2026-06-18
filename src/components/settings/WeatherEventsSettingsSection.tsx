@@ -164,7 +164,6 @@ export const WeatherEventsSettingsSection = ({ project, onProjectUpdate, inputSt
                 <Badge>{visibilityShortLabel(project, event.visibility)}</Badge>
                 {event.notifyOnTrigger !== false ? <Badge>{t(project.locale, "events.triggerNotifyShort")}</Badge> : null}
                 {Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100))) < 100 ? <Badge>{t(project.locale, "weatherEvents.triggerChanceBadge").replace("{count}", String(Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100)))))}</Badge> : null}
-                {typeof event.durationHours === "number" ? <Badge>{t(project.locale, "weatherEvents.durationBadge").replace("{count}", String(event.durationHours))}</Badge> : null}
                 {typeof event.cooldownHours === "number" ? <Badge>{t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(event.cooldownHours))}</Badge> : null}
                 <Badge>{diagnosticLabel}</Badge>
               </div>

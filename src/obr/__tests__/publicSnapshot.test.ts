@@ -117,7 +117,7 @@ it("does not leak weather overrides internals and keeps final weather", () => {
     const project = createDefaultCalendarProject();
     project.seasons = [{ id: "s1", name: "S", start: { monthId: "month-1", dayOfMonth: 1 }, end: { monthId: "month-2", dayOfMonth: 30 } }];
     project.weatherEvents = [
-      {
+      ({
         id: "wp2",
         name: "Players event",
         visibility: "players",
@@ -128,7 +128,7 @@ it("does not leak weather overrides internals and keeps final weather", () => {
         triggerHistory: [{ id: "h1", triggeredAtMinutes: 120 }],
         cooldownHours: 4,
         durationHours: 2
-      }
+      } as any)
     ];
 
     const snapshot = createPublicCalendarTodaySnapshot(project, 4);

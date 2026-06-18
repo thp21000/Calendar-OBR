@@ -3,7 +3,7 @@ import { getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weath
 import { getWeatherBiomeDefinition, getWeatherBiomeState } from "../../calendar/weather/biomes";
 import { formatRain, formatRainTotal, formatTemperature, formatWindSpeed } from "../../calendar/weatherUnits";
 import { conditionSummary } from "./WeatherEventForm";
-import { getWeatherEventDiagnostics, getWeatherEventDurationHours, getWeatherEventUpcomingTriggerWindows, type WeatherEventUpcomingTriggerWindow } from "../../calendar/weatherEventsLogic";
+import { getWeatherEventDiagnostics, getWeatherEventUpcomingTriggerWindows, type WeatherEventUpcomingTriggerWindow } from "../../calendar/weatherEventsLogic";
 import { getCurrentWeather } from "../../calendar/weatherLogic";
 import type { CalendarProject, WeatherEvent, WeatherEventEffect } from "../../domain/types";
 import { t } from "../../i18n/messages";
@@ -14,18 +14,6 @@ const formatVisibility = (project: CalendarProject, visibility: WeatherEvent["vi
   if (visibility === "players") return t(project.locale, "weatherEvents.visibilityPlayers");
   if (visibility === "revealOnTrigger") return t(project.locale, "weatherEvents.visibilityRevealOnTrigger");
   return t(project.locale, "weatherEvents.visibilityGm");
-};
-
-const formatDuration = (project: CalendarProject, event: WeatherEvent): string | undefined => {
-  const durationHours = getWeatherEventDurationHours(event);
-  if (typeof durationHours !== "number") return undefined;
-  return t(project.locale, "weatherEvents.durationBadge").replace("{count}", String(durationHours));
-};
-
-const getWeatherEventTimeLabel = (project: CalendarProject, event: WeatherEvent): string => {
-  const durationHours = getWeatherEventDurationHours(event);
-  if (typeof durationHours === "number") return t(project.locale, "weatherEvents.durationShort").replace("{count}", String(durationHours));
-  return t(project.locale, "weatherEvents.activeNow");
 };
 
 const getCurrentDateLabel = (project: CalendarProject): string => {
@@ -43,7 +31,7 @@ const sendWeatherEventToPlayers = (project: CalendarProject, event: WeatherEvent
     icon: event.icon,
     summary: event.summary,
     playerDescription: event.playerDescription,
-    timeLabel: getWeatherEventTimeLabel(project, event)
+    timeLabel: t(project.locale, "weatherEvents.activeWhileConditionsMet")
   });
 };
 
@@ -100,7 +88,6 @@ const textStyle = { whiteSpace: "pre-wrap" as const, color: "#d1d5db" };
 export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project: CalendarProject; event: WeatherEvent; onClose: () => void }) => {
   const kind = event.kind ?? "informational";
   const triggerChance = Math.max(0, Math.min(100, Math.round(event.triggerChancePercent ?? 100)));
-  const duration = formatDuration(project, event);
   const effectLines = getEffectLines(project, event.effect);
   const conditions = event.conditions ?? [];
   const history = (event.triggerHistory ?? []).slice(-5).reverse();
@@ -138,7 +125,6 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
           <Badge>{t(project.locale, "weatherEvents.visibility")}: {formatVisibility(project, event.visibility)}</Badge>
           <Badge>{event.enabled !== false ? t(project.locale, "weatherEvents.enabled") : t(project.locale, "weatherEvents.disabled")}</Badge>
           {triggerChance !== 100 ? <Badge>{t(project.locale, "weatherEvents.triggerChanceBadge").replace("{count}", String(triggerChance))}</Badge> : null}
-          {duration ? <Badge>{duration}</Badge> : null}
           {typeof event.cooldownHours === "number" ? <Badge>{t(project.locale, "weatherEvents.cooldownBadge").replace("{count}", String(event.cooldownHours))}</Badge> : null}
         </div>
 
@@ -169,7 +155,6 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
                 </div>
                 {currentWeatherSummary ? <div style={textStyle}>{currentWeatherSummary}</div> : null}
                 <div style={textStyle}>{t(project.locale, "weatherEvents.triggerChance")}: {diagnostics.triggerChancePercent} %</div>
-                <div style={textStyle}>{t(project.locale, "weatherEvents.effectiveDuration")}: {typeof diagnostics.durationHours === "number" ? t(project.locale, "weatherEvents.durationShort").replace("{count}", String(diagnostics.durationHours)) : t(project.locale, "weatherEvents.activeNow")}</div>
                 <div style={textStyle}>{t(project.locale, "weatherEvents.lastTriggeredAtMinutes")}: {typeof diagnostics.lastTriggeredAtMinutes === "number" ? formatWeatherHistoryDate(project, diagnostics.lastTriggeredAtMinutes) : t(project.locale, "weatherEvents.neverTriggered")}</div>
                 {typeof diagnostics.cooldownHours === "number" ? <div style={textStyle}>{t(project.locale, "weatherEvents.cooldownHours")}: {t(project.locale, "weatherEvents.durationShort").replace("{count}", String(diagnostics.cooldownHours))}</div> : null}
                 {diagnostics.blockedReasons.includes("biomeMismatch") ? <div style={{ ...textStyle, color: "#fca5a5" }}>{t(project.locale, "weatherEvents.biomeMismatch")}</div> : null}
@@ -191,7 +176,7 @@ export const WeatherEventDetailsPopup = ({ project, event, onClose }: { project:
             ) : (
               <div style={{ display: "grid", gap: 4 }}>
                 {upcomingWindows.map((window) => {
-                  const durationLabel = t(project.locale, "weatherEvents.windowDuration").replace("{count}", String(window.durationHours));
+                  const durationLabel = t(project.locale, "weatherEvents.windowDuration").replace("{count}", String(window.windowHours));
                   const conditionsLabel = t(project.locale, "weatherEvents.windowConditions")
                     .replace("{met}", String(window.matchedConditionsCount))
                     .replace("{total}", String(window.totalConditionsCount));

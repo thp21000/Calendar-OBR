@@ -18,7 +18,6 @@ import {
   isWeatherConditionMet,
   isWeatherEventTriggered,
   isWithinCooldownWindow,
-  isWithinDurationWindow,
   toAbsoluteMinutes,
   updateWeatherCondition,
   updateWeatherEvent
@@ -517,16 +516,14 @@ it("événement désactivé non déclenché", () => {
     expect(result.map((e) => e.id)).toEqual(["cool-ok"]);
   });
 
-  it("durée active empêche une nouvelle notification", () => {
-    const project = buildProject([{ ...createDefaultWeatherEvent("fr"), id: "dur", durationHours: 2, conditions: [{ metric: "temperature", operator: "lte", value: 999 }] }]);
+  it("un événement déjà actif ne génère pas une nouvelle notification tant que ses conditions restent vraies", () => {
+    const project = buildProject([{ ...createDefaultWeatherEvent("fr"), id: "active-now", status: "triggered", conditions: [{ metric: "temperature", operator: "lte", value: 999 }] }]);
     const toTime = { absoluteDay: 0, hour: 12, minute: 0 };
-    const result = getNewlyTriggeredWeatherEventsBetween(project, { absoluteDay: 0, hour: 11, minute: 0 }, toTime, { dur: toAbsoluteMinutes({ absoluteDay: 0, hour: 11, minute: 0 }) });
+    const result = getNewlyTriggeredWeatherEventsBetween(project, { absoluteDay: 0, hour: 11, minute: 0 }, toTime);
     expect(result).toEqual([]);
   });
 
-  it("helpers durée/cooldown fonctionnent", () => {
-    expect(isWithinDurationWindow(60, 119, 1)).toBe(true);
-    expect(isWithinDurationWindow(60, 120, 1)).toBe(false);
+  it("helper cooldown fonctionne", () => {
     expect(isWithinCooldownWindow(60, 119, 1)).toBe(true);
     expect(isWithinCooldownWindow(60, 120, 1)).toBe(false);
   });
@@ -549,7 +546,7 @@ it("événement désactivé non déclenché", () => {
 
   it("n'affiche pas un effet météo comme alerte actuelle si ses conditions ne matchent plus", () => {
     const project = buildProject([
-      { ...createDefaultWeatherEvent("fr"), id: "effect-old", kind: "weatherEffect", durationHours: 2, conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
+      { ...createDefaultWeatherEvent("fr"), id: "effect-old", kind: "weatherEffect", conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
     ]);
     const matching = getCurrentlyMatchingWeatherEvents(project, { ...weather, temperature: 5 }, project.currentTime);
     expect(matching).toEqual([]);
@@ -564,9 +561,9 @@ it("événement désactivé non déclenché", () => {
     expect(getCurrentlyMatchingWeatherEvents(project, weather, project.currentTime)).toEqual([]);
   });
 
-  it("ne garde plus un effet météo actif par durationHours si la météo ne matche plus", () => {
+  it("ne garde pas un effet météo actif si la météo ne matche plus", () => {
     const project = buildProject([
-      { ...createDefaultWeatherEvent("fr"), id: "dur-active", kind: "weatherEffect", durationHours: 2, conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
+      { ...createDefaultWeatherEvent("fr"), id: "dur-active", kind: "weatherEffect", conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
     ]);
     const active = getActiveWeatherEventsWithDuration(
       project,
@@ -579,7 +576,7 @@ it("événement désactivé non déclenché", () => {
 
   it("ne garde pas une alerte informative visible si les conditions actuelles ne matchent plus", () => {
     const project = buildProject([
-      { ...createDefaultWeatherEvent("fr"), id: "info-expired", kind: "informational", durationHours: 2, conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
+      { ...createDefaultWeatherEvent("fr"), id: "info-expired", kind: "informational", conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
     ]);
     const active = getActiveWeatherEventsWithDuration(
       project,
@@ -590,17 +587,17 @@ it("événement désactivé non déclenché", () => {
     expect(active).toEqual([]);
   });
 
-  it("n'est plus actif après expiration de durationHours", () => {
+  it("reste actif tant que les conditions actuelles matchent", () => {
     const project = buildProject([
-      { ...createDefaultWeatherEvent("fr"), id: "dur-expired", durationHours: 1, conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
+      { ...createDefaultWeatherEvent("fr"), id: "still-active", conditions: [{ metric: "temperature", operator: "gte", value: 35 }] }
     ]);
     const active = getActiveWeatherEventsWithDuration(
       project,
-      { ...weather, temperature: 5 },
+      weather,
       { absoluteDay: 0, hour: 12, minute: 0 },
-      { "dur-expired": toAbsoluteMinutes({ absoluteDay: 0, hour: 10, minute: 0 }) }
+      {}
     );
-    expect(active).toEqual([]);
+    expect(active.map((event) => event.id)).toEqual(["still-active"]);
   });
   it("createDefaultWeatherEvent initialise visibilité gm et notifyOnTrigger true", () => {
     const created = createDefaultWeatherEvent("fr");
@@ -639,13 +636,12 @@ it("événement désactivé non déclenché", () => {
     expect(getPlayerVisibleWeatherEvents(project, weather, project.currentTime)).toEqual([]);
   });
 
-  it("visibility players ne voit pas un effet météo dont les conditions actuelles sont fausses même si sa durée est active", () => {
+  it("visibility players ne voit pas un effet météo dont les conditions actuelles sont fausses", () => {
     const event = {
       ...createDefaultWeatherEvent("fr"),
       id: "player-old-effect",
       kind: "weatherEffect" as const,
       visibility: "players" as const,
-      durationHours: 2,
       conditions: [{ metric: "temperature" as const, operator: "gte" as const, value: 35 }]
     };
     const project = buildProject([event]);
@@ -665,7 +661,6 @@ it("événement désactivé non déclenché", () => {
       visibility: "players" as const,
       playerDescription: "public",
       gmDescription: "secret",
-      durationHours: 2,
       cooldownHours: 4,
       notifyOnTrigger: false,
       lastTriggeredAtMinutes: 120,
@@ -761,7 +756,7 @@ it("événement désactivé non déclenché", () => {
     expect(windows[0]).toMatchObject({
       startTime: { absoluteDay: 0, hour: 10, minute: 0 },
       endTime: { absoluteDay: 0, hour: 13, minute: 0 },
-      durationHours: 3,
+      windowHours: 3,
       matchedConditionsCount: 1,
       totalConditionsCount: 1
     });

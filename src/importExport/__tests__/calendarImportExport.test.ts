@@ -384,7 +384,7 @@ describe("calendarImportExport", () => {
     expect(imported.project.weatherEvents[0].conditions).toEqual(payload.weatherEvents[0].conditions);
   });
 
-  it("sanitizes invalid durationHours/cooldownHours values", () => {
+  it("removes legacy durationHours and sanitizes cooldownHours values", () => {
     const project = createDefaultCalendarProject();
     const payload = {
       ...project,
@@ -412,9 +412,9 @@ describe("calendarImportExport", () => {
     const imported = importCalendarProject(JSON.stringify(payload), project);
     expect(imported.ok).toBe(true);
     if (!imported.ok) return;
-    expect(imported.project.weatherEvents[0].durationHours).toBeUndefined();
+    expect((imported.project.weatherEvents[0] as any).durationHours).toBeUndefined();
     expect(imported.project.weatherEvents[0].cooldownHours).toBeUndefined();
-    expect(imported.project.weatherEvents[1].durationHours).toBe(2);
+    expect((imported.project.weatherEvents[1] as any).durationHours).toBeUndefined();
     expect(imported.project.weatherEvents[1].cooldownHours).toBe(1);
   });
 
@@ -709,7 +709,7 @@ describe("calendarImportExport phase17 integrity", () => {
     expect(sanitized.project.weatherOverrides?.[0].windSpeed).toBe(0);
     expect(sanitized.project.weatherOverrides?.[0].rain).toBe(0);
     expect(sanitized.project.weatherOverrides?.[0].dailyRainTotal).toBe(0);
-    expect(sanitized.project.weatherEvents[0].durationHours).toBeUndefined();
+    expect((sanitized.project.weatherEvents[0] as any).durationHours).toBeUndefined();
     expect(sanitized.project.weatherEvents[0].cooldownHours).toBeUndefined();
     const memory = new Map<string, string>();
     vi.stubGlobal("localStorage", {

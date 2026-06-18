@@ -496,11 +496,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
         } else {
           delete next.triggerHistory;
         }
-        if (typeof next.durationHours !== "number" || !Number.isFinite(next.durationHours) || next.durationHours < 0) {
-          delete next.durationHours;
-        } else {
-          next.durationHours = Math.trunc(next.durationHours);
-        }
+        delete next.durationHours;
         if (typeof next.cooldownHours !== "number" || !Number.isFinite(next.cooldownHours) || next.cooldownHours < 0) {
           delete next.cooldownHours;
         } else {
