@@ -1386,3 +1386,9 @@ La priorité n’est pas de tout faire immédiatement, mais de créer une base s
 Ensuite, la météo, les lunes et les événements conditionnels peuvent transformer l’addon en véritable calendrier vivant.
 
 La logique de packs Patreon doit être prévue dès le début, car elle influence fortement la structure d’import/export et la manière de séparer les données.
+
+## Simulation météo MJ
+
+La section Paramètres > Météo contient un outil de **Simulation météo** réservé au MJ/debug. Il simule une période heure par heure avec une copie temporaire du projet : seed, biome choisi, contextes d’aventure actifs, saisons, météo avancée, événements météo et événements lunaires. La simulation ignore les overrides de météo de scène et ne modifie pas `currentTime`, les statuts d’événements, l’historique de déclenchement, les notes ni le calendrier réel.
+
+Les exports JSON/CSV contiennent une ligne par heure simulée et un résumé statistique : heures de pluie/neige/brouillard/orage/vent/tempête, jours secs/pluvieux/neigeux, moyennes par saison, occurrences d’états météo, d’états dominants et d’événements.

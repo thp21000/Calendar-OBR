@@ -15,6 +15,7 @@ import { SceneWeatherProfilesSettingsSection } from "./settings/SceneWeatherProf
 import { WeatherBiomesSettingsSection } from "./settings/WeatherBiomesSettingsSection";
 import { WeatherAdvancedConfigSection } from "./settings/WeatherAdvancedConfigSection";
 import { WeatherSettingsSection } from "./settings/WeatherSettingsSection";
+import { WeatherSimulationSettingsSection } from "./settings/WeatherSimulationSettingsSection";
 
 export const SettingsView = ({
   project,
@@ -73,6 +74,10 @@ export const SettingsView = ({
         <CollapsibleSection title={t(project.locale, "settings.weatherLayer.events")} storageKey="calendar-obr.settings.weatherLayer.events">
           <HelpText text={t(project.locale, "settings.weatherLayer.eventsHelp")} />
           <button type="button" onClick={switchToEvents} style={buttonStyle}>{t(project.locale, "settings.weatherLayer.openEvents")}</button>
+        </CollapsibleSection>
+        <CollapsibleSection title={t(project.locale, "weatherSimulation.title")} storageKey="calendar-obr.settings.weatherSimulation">
+          <HelpText text={t(project.locale, "weatherSimulation.help")} />
+          <WeatherSimulationSettingsSection project={project} inputStyle={inputStyle} />
         </CollapsibleSection>
         <CollapsibleSection title={t(project.locale, "settings.weatherLayer.sceneForced")} storageKey="calendar-obr.settings.weatherLayer.sceneForced">
           <HelpText text={t(project.locale, "settings.weatherLayer.sceneForcedHelp")} />
