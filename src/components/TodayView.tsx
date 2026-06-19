@@ -164,7 +164,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       setLastTriggeredMoonEvents(triggeredMoon);
       const dismissed = readDismissed();
       const created = [
-        ...createNotificationsFromTriggers(triggered, triggeredWeather.filter((w) => w.notifyOnTrigger !== false), triggeredMoon.filter((m) => m.notifyOnTrigger), nextTime),
+        ...createNotificationsFromTriggers(triggered, [], [], nextTime),
         ...createReminderNotifications(reminderEvents, nextTime)
       ].filter((item) => !dismissed.has(item.id));
       for (const notification of created) {

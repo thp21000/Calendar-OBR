@@ -125,6 +125,8 @@ export const enMessages = {
   "notifications.eventTriggered": "Event triggered",
   "notifications.eventReminder": "Event reminder",
   "notifications.weatherTriggered": "Weather alert triggered",
+  "automaticNotifications.weatherGmTitle": "New weather event: {name}",
+  "automaticNotifications.moonGmTitle": "New lunar event: {name}",
   "notifications.moonTriggered": "Moon event triggered",
   "common.month": "Month",
   "common.year": "Year",

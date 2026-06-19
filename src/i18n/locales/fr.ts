@@ -125,6 +125,8 @@ export const frMessages = {
   "notifications.eventTriggered": "Événement déclenché",
   "notifications.eventReminder": "Rappel d’événement",
   "notifications.weatherTriggered": "Alerte météo déclenchée",
+  "automaticNotifications.weatherGmTitle": "Nouvel événement météo : {name}",
+  "automaticNotifications.moonGmTitle": "Nouvel événement lunaire : {name}",
   "notifications.moonTriggered": "Événement lunaire déclenché",
   "common.month": "Mois",
   "common.year": "Année",

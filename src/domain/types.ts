@@ -561,6 +561,18 @@ export type ManualPublications = {
   lunarEventIds: string[];
 };
 
+export type AutomaticNotificationState = {
+  weatherEventActivations: Record<string, string>;
+  lunarEventActivations: Record<string, string>;
+};
+
+export type NotificationSettings = {
+  notifyAutomaticWeatherEvents?: boolean;
+  notifyAutomaticLunarEvents?: boolean;
+  notifyAutomaticEventsToGm?: boolean;
+  notifyAutomaticEventsToPlayers?: boolean;
+};
+
 export type CalendarProject = {
   schemaVersion: number;
   appVersion: string;
@@ -586,6 +598,8 @@ export type CalendarProject = {
   eventDisplaySettings?: EventDisplaySettings;
   eventDisplayHistory?: EventDisplayHistory;
   manualPublications?: ManualPublications;
+  automaticNotificationState?: AutomaticNotificationState;
+  notificationSettings?: NotificationSettings;
   uiSettings: UiSettings;
 };
 

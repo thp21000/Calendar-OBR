@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { CalendarDate, CalendarProject } from "./domain/types";
 import type { CalendarNotification } from "./calendar/notifications";
+import { processAutomaticEventNotifications, type AutomaticEventNotificationEffect } from "./calendar/automaticEventNotifications";
+import { absoluteDayToCalendarDate } from "./calendar/dateEngine";
 import { t } from "./i18n/messages";
 import { EventsView } from "./components/EventsView";
 import { MonthView } from "./components/MonthView";
@@ -32,7 +34,7 @@ import { useObrPopoverHeight } from "./obr/useObrPopoverHeight";
 import { useObrTheme } from "./obr/useObrTheme";
 import { SceneWeatherModalView } from "./components/SceneWeatherManagementPopup";
 import { NotificationModalView } from "./components/notifications/NotificationModalView";
-import { setupPopupNotificationListener, type PopupNotificationPayload } from "./obr/popupNotifications";
+import { openLocalPopupNotification, sendPopupNotificationToPlayers, setupPopupNotificationListener, type PopupNotificationPayload } from "./obr/popupNotifications";
 
 export const App = () => {
   const [scope, setScope] = useState<StorageScope | null>(null);
@@ -64,6 +66,41 @@ export const App = () => {
 
   const isPublicIndexNewerThanSnapshot = (snapshot: PublicCalendarTodaySnapshot | null, index: { revision: number; updatedAt: number }): boolean =>
     !snapshot || index.revision > snapshot.revision || (index.revision === snapshot.revision && index.updatedAt > snapshot.updatedAt);
+
+  const getProjectDateLabel = (sourceProject: CalendarProject): string => {
+    const date = absoluteDayToCalendarDate(sourceProject.currentTime, sourceProject.calendarSystem);
+    return `${date.weekdayName ?? ""} ${date.dayOfMonth} ${date.monthName} ${date.year}`.trim();
+  };
+
+  const sendAutomaticEventNotification = (sourceProject: CalendarProject, effect: AutomaticEventNotificationEffect): void => {
+    const event = effect.event;
+    const isWeather = effect.type === "weather";
+    const date = getProjectDateLabel(sourceProject);
+    if (effect.channel === "gm") {
+      void openLocalPopupNotification({
+        type: effect.type,
+        audience: "gm",
+        title: t(sourceProject.locale, isWeather ? "automaticNotifications.weatherGmTitle" : "automaticNotifications.moonGmTitle").replace("{name}", event.name),
+        body: event.gmDescription?.trim() || event.summary || event.name,
+        date,
+        icon: event.icon,
+        summary: event.summary,
+        gmDescription: event.gmDescription
+      });
+      return;
+    }
+
+    void sendPopupNotificationToPlayers({
+      type: effect.type,
+      audience: "players",
+      title: event.name,
+      body: event.playerDescription?.trim() || event.summary || event.name,
+      date,
+      icon: event.icon,
+      summary: event.summary,
+      playerDescription: event.playerDescription
+    });
+  };
 
   useEffect(() => {
     let cleanupGmResponder: (() => void) | null = null;
@@ -150,15 +187,21 @@ export const App = () => {
   }
 
   const updateProject = (nextProject: CalendarProject) => {
-    const result = saveCalendarProject(nextProject, scope.storageKey);
+    const previousProject = projectRef.current ?? project;
+    const processed = viewerRole === "gm" ? processAutomaticEventNotifications(previousProject, nextProject) : { project: nextProject, effects: [] };
+    const projectToSave = processed.project;
+    const result = saveCalendarProject(projectToSave, scope.storageKey);
     if (result.ok) {
       const nextRev = revisionRef.current + 1;
       revisionRef.current = nextRev;
-      projectRef.current = nextProject;
+      projectRef.current = projectToSave;
       setRevision(nextRev);
-      setProject(nextProject);
+      setProject(projectToSave);
       setSaveError(null);
-      if (viewerRole === "gm") publishPublicState(nextProject, nextRev);
+      if (viewerRole === "gm") {
+        publishPublicState(projectToSave, nextRev);
+        processed.effects.forEach((effect) => sendAutomaticEventNotification(projectToSave, effect));
+      }
     } else setSaveError(result.error);
   };
 

@@ -17,6 +17,29 @@ import { cleanManualPublications, normalizeManualPublications } from "../calenda
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const sanitizeActivationRecord = (value: unknown): Record<string, string> => {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === "string" && entry[1].length > 0));
+};
+
+const sanitizeAutomaticNotificationState = (value: unknown) => {
+  const source = isRecord(value) ? value : {};
+  return {
+    weatherEventActivations: sanitizeActivationRecord(source.weatherEventActivations),
+    lunarEventActivations: sanitizeActivationRecord(source.lunarEventActivations)
+  };
+};
+
+const sanitizeNotificationSettings = (value: unknown) => {
+  const source = isRecord(value) ? value : {};
+  return {
+    notifyAutomaticWeatherEvents: typeof source.notifyAutomaticWeatherEvents === "boolean" ? source.notifyAutomaticWeatherEvents : true,
+    notifyAutomaticLunarEvents: typeof source.notifyAutomaticLunarEvents === "boolean" ? source.notifyAutomaticLunarEvents : true,
+    notifyAutomaticEventsToGm: typeof source.notifyAutomaticEventsToGm === "boolean" ? source.notifyAutomaticEventsToGm : true,
+    notifyAutomaticEventsToPlayers: typeof source.notifyAutomaticEventsToPlayers === "boolean" ? source.notifyAutomaticEventsToPlayers : true
+  };
+};
+
 const weatherBiomeIds = new Set(WEATHER_BIOME_DEFINITIONS.map((definition) => definition.id));
 const isWeatherBiomeId = (value: unknown): value is WeatherBiomeId =>
   typeof value === "string" && weatherBiomeIds.has(value as WeatherBiomeId);
@@ -213,7 +236,9 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
   maybeCompat.eventDisplaySettings = normalizeEventDisplaySettings((data as Record<string, unknown>).eventDisplaySettings);
   maybeCompat.eventDisplayHistory = normalizeEventDisplayHistory((data as Record<string, unknown>).eventDisplayHistory);
   maybeCompat.manualPublications = normalizeManualPublications((data as Record<string, unknown>).manualPublications);
-
+  maybeCompat.automaticNotificationState = sanitizeAutomaticNotificationState((data as Record<string, unknown>).automaticNotificationState);
+  maybeCompat.notificationSettings = sanitizeNotificationSettings((data as Record<string, unknown>).notificationSettings);
+  
   if (isRecord(maybeCompat.units)) {
     const units = maybeCompat.units as Record<string, unknown>;
     maybeCompat.units = {
