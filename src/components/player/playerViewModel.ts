@@ -403,7 +403,7 @@ export const buildPlayerViewModelFromSnapshot = (
     locale: snapshot.locale,
     calendarName: snapshot.calendarName,
     formattedDate: snapshot.formattedDate,
-    dateParts: snapshot.dateParts ?? buildDateParts(project, snapshot.currentTime),
+    dateParts: snapshot.dateParts,
     season: settings.today.showSeason ? snapshot.season : undefined,
     biome: settings.today.showBiome ? snapshot.weatherBiome : undefined,
     weather: settings.today.showWeather ? buildWeatherViewModelFromSnapshot(project, snapshot, settings.today.weatherDetailLevel) : undefined,

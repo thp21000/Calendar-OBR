@@ -24,11 +24,14 @@ export type PopupNotificationPayload = {
 export const POPUP_NOTIFICATION_CHANNEL = "com.gmtools.calendar-obr/popupNotification";
 export const POPUP_NOTIFICATION_STORAGE_PREFIX = "calendar-obr.popupNotification.";
 export const POPUP_NOTIFICATION_MODAL_ID_PREFIX = "calendar-obr-notification-modal";
+export const POPUP_NOTIFICATION_DEBUG_STORAGE_KEY = "calendar-obr.popupNotification.debug";
 const NOTIFICATION_MODAL_WIDTH = 460;
 const MIN_NOTIFICATION_MODAL_HEIGHT = 260;
 const SHORT_NOTIFICATION_MODAL_HEIGHT = 320;
 const MEDIUM_NOTIFICATION_MODAL_HEIGHT = 400;
 const MAX_NOTIFICATION_MODAL_HEIGHT = 520;
+const REMOTE_NOTIFICATION_DEDUP_MS = 5_000;
+const recentRemoteNotificationKeys = new Map<string, number>();
 
 const getStorage = (): Storage | undefined => {
   try {
@@ -36,6 +39,22 @@ const getStorage = (): Storage | undefined => {
   } catch {
     return undefined;
   }
+};
+
+const isPopupNotificationDebugEnabled = (): boolean => {
+  try {
+    const storageEnabled = getStorage()?.getItem(POPUP_NOTIFICATION_DEBUG_STORAGE_KEY) === "1";
+    const queryEnabled = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("debugPopupNotifications") === "1";
+    return storageEnabled || queryEnabled;
+  } catch {
+    return false;
+  }
+};
+
+const debugPopupNotification = (message: string, details?: unknown): void => {
+  if (!isPopupNotificationDebugEnabled()) return;
+  if (details === undefined) console.debug(`[Calendar OBR popup] ${message}`);
+  else console.debug(`[Calendar OBR popup] ${message}`, details);
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -115,6 +134,7 @@ export const openLocalPopupNotification = async (payload: PopupNotificationPaylo
   });
 };
 
+
 export const sendPopupNotification = openLocalPopupNotification;
 
 type PopupNotificationMessage = {
@@ -126,6 +146,21 @@ const isPopupNotificationMessage = (value: unknown): value is PopupNotificationM
   isRecord(value)
   && value.type === "popup-notification"
   && isPopupNotificationPayload(value.payload);
+
+const getRemoteNotificationKey = (payload: PopupNotificationPayload): string =>
+  [payload.type, payload.audience, payload.title, payload.date, payload.timeLabel ?? "", payload.body, payload.playerDescription ?? ""].join("|");
+
+const isDuplicateRemoteNotification = (payload: PopupNotificationPayload, now = Date.now()): boolean => {
+  for (const [key, timestamp] of recentRemoteNotificationKeys.entries()) {
+    if (now - timestamp > REMOTE_NOTIFICATION_DEDUP_MS) recentRemoteNotificationKeys.delete(key);
+  }
+
+  const key = getRemoteNotificationKey(payload);
+  const previous = recentRemoteNotificationKeys.get(key);
+  if (previous !== undefined && now - previous <= REMOTE_NOTIFICATION_DEDUP_MS) return true;
+  recentRemoteNotificationKeys.set(key, now);
+  return false;
+};
 
 export const sendPopupNotificationToPlayers = async (payload: PopupNotificationPayload): Promise<void> => {
   if (payload.audience !== "players") {
@@ -142,13 +177,38 @@ export const sendPopupNotificationToPlayers = async (payload: PopupNotificationP
 };
 
 export const setupPopupNotificationListener = (viewerRole: ViewerRole): (() => void) => {
-  if (viewerRole !== "player" || !OBR.isAvailable) return () => undefined;
+  debugPopupNotification("setupPopupNotificationListener", { viewerRole, obrAvailable: OBR.isAvailable });
+
+  if (viewerRole === "gm") {
+    debugPopupNotification("remote player notifications ignored on GM client");
+    return () => undefined;
+  }
+
+  // Owlbear broadcasts are received only by clients that have loaded this addon code.
+  // Cast/player clients count as non-GM listeners, but a Cast Receiver that never loads
+  // the addon cannot open this modal from localStorage or a broadcast message.
+  if (!OBR.isAvailable) {
+    debugPopupNotification("remote player notification listener disabled outside OBR");
+    return () => undefined;
+  }
 
   let unsubscribe: () => void = () => undefined;
   OBR.onReady(() => {
+    debugPopupNotification("subscribing to remote player popup notification channel", POPUP_NOTIFICATION_CHANNEL);
     unsubscribe = OBR.broadcast.onMessage(POPUP_NOTIFICATION_CHANNEL, (event) => {
-      if (!isPopupNotificationMessage(event.data)) return;
-      if (event.data.payload.audience !== "players") return;
+      debugPopupNotification("remote popup notification message received", event.data);
+      if (!isPopupNotificationMessage(event.data)) {
+        debugPopupNotification("remote popup notification rejected: invalid message shape", event.data);
+        return;
+      }
+      if (event.data.payload.audience !== "players") {
+        debugPopupNotification("remote popup notification rejected: non-player audience", event.data.payload.audience);
+        return;
+      }
+      if (isDuplicateRemoteNotification(event.data.payload)) {
+        debugPopupNotification("remote popup notification rejected: duplicate", event.data.payload.title);
+        return;
+      }
       void openLocalPopupNotification(event.data.payload);
     });
   });

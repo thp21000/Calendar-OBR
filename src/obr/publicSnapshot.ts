@@ -188,7 +188,7 @@ export type PublicCalendarTodaySnapshot = {
   locale: LocaleCode;
   currentTime: CalendarCurrentTime;
   formattedDate: string;
-  dateParts?: string[];
+  dateParts: string[];
   season?: PublicCalendarSeasonSnapshot;
   weather?: PublicCalendarWeatherSnapshot;
   weatherBiome: PublicCalendarBiomeSnapshot;
@@ -574,6 +574,25 @@ export const estimateJsonSize = (value: unknown): number => JSON.stringify(value
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+const isValidCurrentTime = (value: unknown): value is CalendarCurrentTime =>
+  isRecord(value)
+  && isFiniteNumber(value.absoluteDay)
+  && Number.isInteger(value.absoluteDay)
+  && isFiniteNumber(value.hour)
+  && Number.isInteger(value.hour)
+  && value.hour >= 0
+  && value.hour <= 23
+  && isFiniteNumber(value.minute)
+  && Number.isInteger(value.minute)
+  && value.minute >= 0
+  && value.minute <= 59;
+
+const isNonEmptyStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.length > 0 && value.every((item) => typeof item === "string" && item.trim().length > 0);
+
 export const isPublicCalendarIndex = (value: unknown): value is PublicCalendarIndex => {
   if (!isRecord(value)) return false;
   if (value.schemaVersion !== 1) return false;
@@ -581,12 +600,7 @@ export const isPublicCalendarIndex = (value: unknown): value is PublicCalendarIn
   if (typeof value.updatedAt !== "number") return false;
   if (typeof value.calendarName !== "string") return false;
   if (value.locale !== "fr" && value.locale !== "en") return false;
-  if (!isRecord(value.currentTime)) return false;
-  return (
-    typeof value.currentTime.absoluteDay === "number" &&
-    typeof value.currentTime.hour === "number" &&
-    typeof value.currentTime.minute === "number"
-  );
+  return isValidCurrentTime(value.currentTime);
 };
 
 export const isPublicCalendarTodaySnapshot = (value: unknown): value is PublicCalendarTodaySnapshot => {
@@ -596,7 +610,9 @@ export const isPublicCalendarTodaySnapshot = (value: unknown): value is PublicCa
   if (typeof value.updatedAt !== "number") return false;
   if (typeof value.calendarName !== "string") return false;
   if (value.locale !== "fr" && value.locale !== "en") return false;
-  if (typeof value.formattedDate !== "string") return false;
+  if (!isValidCurrentTime(value.currentTime)) return false;
+  if (typeof value.formattedDate !== "string" || value.formattedDate.trim().length === 0) return false;
+  if (!isNonEmptyStringArray(value.dateParts)) return false;
   if (!Array.isArray(value.moons)) return false;
   if (!Array.isArray(value.eventsToday)) return false;
   if (!Array.isArray(value.weatherEventsToday)) return false;

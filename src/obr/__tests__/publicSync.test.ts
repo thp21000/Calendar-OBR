@@ -16,10 +16,22 @@ obrMock.obr.onReady = obrMock.onReady;
 vi.mock("@owlbear-rodeo/sdk", () => ({ default: obrMock.obr }));
 
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
-import { publishPublicSnapshot, SNAPSHOT_RESPONSE_CHANNEL } from "../publicSync";
+import { readCachedPublicSnapshot, readScopedCachedPublicSnapshot, publishPublicSnapshot, SNAPSHOT_RESPONSE_CHANNEL } from "../publicSync";
+
+const createLocalStorageMock = () => {
+  const store = new Map<string, string>();
+  return {
+    getItem: vi.fn((key: string) => store.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => { store.set(key, value); }),
+    removeItem: vi.fn((key: string) => { store.delete(key); }),
+    clear: vi.fn(() => { store.clear(); })
+  };
+};
 
 describe("publicSync", () => {
   beforeEach(() => {
+    vi.stubGlobal("localStorage", createLocalStorageMock());
+    localStorage.clear();
     obrMock.sendMessage.mockClear();
     obrMock.onReady.mockClear();
     obrMock.obr.isAvailable = true;
@@ -38,5 +50,15 @@ describe("publicSync", () => {
       }),
       { destination: "REMOTE" }
     );
+  });
+
+  it("drops invalid cached public snapshots", () => {
+    localStorage.setItem("calendar-obr.publicSnapshot.cache", JSON.stringify({ schemaVersion: 1, revision: 1 }));
+    localStorage.setItem("calendar-obr.publicSnapshot.cache.room-1", "not json");
+
+    expect(readCachedPublicSnapshot()).toBeNull();
+    expect(readScopedCachedPublicSnapshot("room-1")).toBeNull();
+    expect(localStorage.removeItem).toHaveBeenCalledWith("calendar-obr.publicSnapshot.cache");
+    expect(localStorage.removeItem).toHaveBeenCalledWith("calendar-obr.publicSnapshot.cache.room-1");
   });
 });

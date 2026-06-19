@@ -88,6 +88,7 @@ describe("playerViewModel", () => {
       locale: "en",
       currentTime: project.currentTime,
       formattedDate: "Monday 1 January 1000, 08:00",
+      dateParts: ["Snapshot weekday", "Snapshot day", "Snapshot month", "Snapshot year", "08:00"],
       weatherBiome: { name: "Forest", icon: "🌲", description: "Woods" },
       moons: [],
       eventsToday: [],
@@ -115,6 +116,39 @@ describe("playerViewModel", () => {
   });
 });
 
+it("utilise uniquement les morceaux de date publiés dans le snapshot", () => {
+    const project: CalendarProject = {
+      ...baseProject(),
+      calendarSystem: {
+        ...baseProject().calendarSystem,
+        startYear: 1000,
+        months: [{ id: "m2", name: "Mois local incorrect", order: 1, days: 30 }]
+      }
+    };
+    const snapshot: PublicCalendarTodaySnapshot = {
+      schemaVersion: 1,
+      revision: 1,
+      updatedAt: 1,
+      calendarName: "Snapshot Calendar",
+      locale: "fr",
+      currentTime: { absoluteDay: 0, hour: 8, minute: 0 },
+      formattedDate: "Date MJ correcte",
+      dateParts: ["Jour MJ", "12", "Mois MJ", "4710", "08:00"],
+      weatherBiome: { name: "Forêt", icon: "🌲", description: "Bois" },
+      moons: [],
+      eventsToday: [],
+      weatherEventsToday: [],
+      moonEventsToday: [],
+      dayNotesToday: [],
+      playerView: DEFAULT_PLAYER_VIEW_SETTINGS
+    };
+
+    const model = buildPlayerViewModelFromSnapshot(project, snapshot);
+
+    expect(model.formattedDate).toBe("Date MJ correcte");
+    expect(model.dateParts).toEqual(["Jour MJ", "12", "Mois MJ", "4710", "08:00"]);
+  });
+
 it("applique les réglages Aujourd’hui aux données du snapshot", () => {
   const project = baseProject();
   const snapshot: PublicCalendarTodaySnapshot = {
@@ -125,6 +159,7 @@ it("applique les réglages Aujourd’hui aux données du snapshot", () => {
     locale: "fr",
     currentTime: project.currentTime,
     formattedDate: "Lundi 1 janvier 1000, 08:00",
+    dateParts: ["Jour snapshot", "1", "Mois snapshot", "2000", "08:00"],
     weatherBiome: { name: "Forêt", icon: "🌲", description: "Bois" },
     moons: [{ name: "Lune", icon: "🌙", phaseId: "full", phaseIcon: "🌕", illumination: 1 }],
     eventsToday: [{ id: "event", name: "Public", timeLabel: "08:00", summary: "visible" }],
@@ -163,6 +198,7 @@ it("masque les chiffres météo en niveau large", () => {
     locale: "fr",
     currentTime: project.currentTime,
     formattedDate: "Lundi 1 janvier 1000, 08:00",
+    dateParts: ["Jour snapshot", "1", "Mois snapshot", "2000", "08:00"],
     weatherBiome: { name: "Forêt", icon: "🌲", description: "Bois" },
     moons: [],
     eventsToday: [],
@@ -205,6 +241,7 @@ it("produit une météo narrative différente du mode large", () => {
     locale: "fr",
     currentTime: project.currentTime,
     formattedDate: "Lundi 1 janvier 1000, 08:00",
+    dateParts: ["Jour snapshot", "1", "Mois snapshot", "2000", "08:00"],
     weatherBiome: { name: "Forêt", icon: "🌲", description: "Bois" },
     moons: [],
     eventsToday: [],
@@ -242,6 +279,7 @@ it("conserve la prévision snapshot déjà convertie", () => {
     locale: "en",
     currentTime: project.currentTime,
     formattedDate: "Monday 1 January 1000, 08:00",
+    dateParts: ["Snapshot weekday", "Snapshot day", "Snapshot month", "Snapshot year", "08:00"],
     weatherBiome: { name: "Forest", icon: "🌲", description: "Woods" },
     moons: [],
     eventsToday: [],

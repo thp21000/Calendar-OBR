@@ -93,13 +93,25 @@ describe("popupNotifications", () => {
     const onMessageCalls = obrMock.onMessage.mock.calls as unknown as Array<[string, (event: { data: unknown }) => void]>;
     const handler = onMessageCalls[0]?.[1];
     handler?.({ data: { type: "popup-notification", payload } });
+    handler?.({ data: { type: "popup-notification", payload } });
 
     expect(obrMock.onMessage).toHaveBeenCalledWith(POPUP_NOTIFICATION_CHANNEL, expect.any(Function));
-    expect(obrMock.modalOpen).toHaveBeenCalled();
+    expect(obrMock.modalOpen).toHaveBeenCalledTimes(1);
 
     obrMock.modalOpen.mockClear();
     setupPopupNotificationListener("gm");
     expect(obrMock.onMessage).toHaveBeenCalledTimes(1);
+    expect(obrMock.modalOpen).not.toHaveBeenCalled();
+  });
+
+  it("ignores malformed remote popup notification messages", () => {
+    obrMock.obr.isAvailable = true;
+
+    setupPopupNotificationListener("player");
+    const onMessageCalls = obrMock.onMessage.mock.calls as unknown as Array<[string, (event: { data: unknown }) => void]>;
+    const handler = onMessageCalls[0]?.[1];
+    handler?.({ data: { type: "popup-notification", payload: { audience: "players", title: "Missing fields" } } });
+
     expect(obrMock.modalOpen).not.toHaveBeenCalled();
   });
 });

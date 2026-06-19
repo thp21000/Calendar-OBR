@@ -56,6 +56,12 @@ export const App = () => {
     void publishPublicSnapshot(nextProject, nextRevision);
   };
 
+  const isPublicSnapshotNewer = (current: PublicCalendarTodaySnapshot | null, incoming: PublicCalendarTodaySnapshot): boolean =>
+    !current || incoming.revision > current.revision || (incoming.revision === current.revision && incoming.updatedAt > current.updatedAt);
+
+  const isPublicIndexNewerThanSnapshot = (snapshot: PublicCalendarTodaySnapshot | null, index: { revision: number; updatedAt: number }): boolean =>
+    !snapshot || index.revision > snapshot.revision || (index.revision === snapshot.revision && index.updatedAt > snapshot.updatedAt);
+
   useEffect(() => {
     let cleanupGmResponder: (() => void) | null = null;
     let cleanupPlayerListener: (() => void) | null = null;
@@ -82,15 +88,20 @@ export const App = () => {
         const cacheScopeId = resolved.id;
         const cached = readScopedCachedPublicSnapshot(cacheScopeId);
         if (cached) setPublicSnapshot(cached);
-        cleanupPlayerListener = setupPlayerSnapshotListener((snapshot: PublicCalendarTodaySnapshot) => {
-          setPublicSnapshot(snapshot);
-          writeScopedCachedPublicSnapshot(snapshot, cacheScopeId);
-        });
+        const acceptPublicSnapshot = (snapshot: PublicCalendarTodaySnapshot): void => {
+          setPublicSnapshot((current) => {
+            if (!isPublicSnapshotNewer(current, snapshot)) return current;
+            writeScopedCachedPublicSnapshot(snapshot, cacheScopeId);
+            return snapshot;
+          });
+        };
+        cleanupPlayerListener = setupPlayerSnapshotListener(acceptPublicSnapshot);
         const idx = await readPublicIndex();
-        if (!cached || (idx && cached.revision < idx.revision)) await requestPublicSnapshot();
+        if (idx && isPublicIndexNewerThanSnapshot(cached, idx)) await requestPublicSnapshot();
+        else if (!cached) await requestPublicSnapshot();
         cleanupPublicIndexSubscription = subscribePublicIndex(async (index) => {
           const latestCached = readScopedCachedPublicSnapshot(cacheScopeId);
-          if (!latestCached || latestCached.revision < index.revision) {
+          if (isPublicIndexNewerThanSnapshot(latestCached, index)) {
             await requestPublicSnapshot();
           }
         });

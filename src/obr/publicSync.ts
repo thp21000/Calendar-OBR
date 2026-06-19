@@ -62,8 +62,11 @@ export const readCachedPublicSnapshot = (): PublicCalendarTodaySnapshot | null =
     const raw = localStorage.getItem(SNAPSHOT_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as unknown;
-    return isPublicCalendarTodaySnapshot(parsed) ? parsed : null;
+    if (isPublicCalendarTodaySnapshot(parsed)) return parsed;
+    localStorage.removeItem(SNAPSHOT_CACHE_KEY);
+    return null;
   } catch {
+    localStorage.removeItem(SNAPSHOT_CACHE_KEY);
     return null;
   }
 };
@@ -82,12 +85,16 @@ const getSnapshotCacheKey = (scopeId?: string): string =>
 
 export const readScopedCachedPublicSnapshot = (scopeId?: string): PublicCalendarTodaySnapshot | null => {
   if (typeof localStorage === "undefined") return null;
+  const cacheKey = getSnapshotCacheKey(scopeId);
   try {
-    const raw = localStorage.getItem(getSnapshotCacheKey(scopeId));
+    const raw = localStorage.getItem(cacheKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as unknown;
-    return isPublicCalendarTodaySnapshot(parsed) ? parsed : null;
+    if (isPublicCalendarTodaySnapshot(parsed)) return parsed;
+    localStorage.removeItem(cacheKey);
+    return null;
   } catch {
+    localStorage.removeItem(cacheKey);
     return null;
   }
 };
