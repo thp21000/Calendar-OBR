@@ -1,13 +1,15 @@
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "./eventDisplayLogic";
 import { filterPlayerPublishableLunarEvents, filterPlayerPublishableWeatherEvents } from "./eventPublicationLogic";
+import { getPlayerVisibleEventsForCurrentDay } from "./eventsLogic";
 import { getTriggeredMoonEventsAtTime } from "./moonEventsLogic";
 import { getCurrentWeather } from "./weatherLogic";
 import { getCurrentlyMatchingWeatherEvents, toAbsoluteMinutes } from "./weatherEventsLogic";
-import type { AutomaticNotificationState, CalendarProject, InternalTime, MoonEvent, WeatherEvent } from "../domain/types";
+import type { AutomaticNotificationState, CalendarEvent, CalendarProject, DatedEventNotificationState, InternalTime, MoonEvent, WeatherEvent } from "../domain/types";
 
 export type AutomaticEventNotificationEffect =
   | { channel: "gm" | "players"; type: "weather"; event: WeatherEvent }
-  | { channel: "gm" | "players"; type: "moon"; event: MoonEvent };
+  | { channel: "gm" | "players"; type: "moon"; event: MoonEvent }
+  | { channel: "players"; type: "event"; event: CalendarEvent };
 
 export type AutomaticEventNotificationResult = {
   project: CalendarProject;
@@ -19,6 +21,7 @@ export type AutomaticEventNotificationSettings = {
   notifyAutomaticLunarEvents: boolean;
   notifyAutomaticEventsToGm: boolean;
   notifyAutomaticEventsToPlayers: boolean;
+  notifyDatedEventsToPlayers: boolean;
 };
 
 const normalizeAutomaticNotificationState = (input: unknown): AutomaticNotificationState => {
@@ -29,13 +32,24 @@ const normalizeAutomaticNotificationState = (input: unknown): AutomaticNotificat
   };
 };
 
+const sanitizeDatedEventRecord = (value: unknown): Record<string, true> => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).filter((entry): entry is [string, true] => entry[1] === true));
+};
+
+const normalizeDatedEventNotificationState = (input: unknown): DatedEventNotificationState => {
+  const source = typeof input === "object" && input !== null && !Array.isArray(input) ? input as Partial<DatedEventNotificationState> : {};
+  return { notifiedEventDateKeys: sanitizeDatedEventRecord(source.notifiedEventDateKeys) };
+};
+
 export const normalizeAutomaticEventNotificationSettings = (project: CalendarProject): AutomaticEventNotificationSettings => {
   const source = project.notificationSettings;
   return {
     notifyAutomaticWeatherEvents: source?.notifyAutomaticWeatherEvents ?? true,
     notifyAutomaticLunarEvents: source?.notifyAutomaticLunarEvents ?? true,
     notifyAutomaticEventsToGm: source?.notifyAutomaticEventsToGm ?? true,
-    notifyAutomaticEventsToPlayers: source?.notifyAutomaticEventsToPlayers ?? true
+    notifyAutomaticEventsToPlayers: source?.notifyAutomaticEventsToPlayers ?? true,
+    notifyDatedEventsToPlayers: source?.notifyDatedEventsToPlayers ?? true
   };
 };
 
@@ -94,6 +108,18 @@ const cleanStateForExistingEvents = (state: AutomaticNotificationState, project:
   };
 };
 
+const cleanDatedStateForExistingEvents = (state: DatedEventNotificationState, project: CalendarProject): DatedEventNotificationState => {
+  const eventIds = new Set(project.events.map((event) => event.id));
+  return {
+    notifiedEventDateKeys: Object.fromEntries(Object.entries(state.notifiedEventDateKeys).filter(([key]) => eventIds.has(key.split(":")[0])))
+  };
+};
+
+const getPlayerVisibleDatedEventsForToday = (project: CalendarProject): CalendarEvent[] => {
+  if (project.uiSettings.playerView?.today.showEvents === false) return [];
+  return getPlayerVisibleEventsForCurrentDay(project);
+};
+
 export const processAutomaticEventNotifications = (
   previousProject: CalendarProject,
   nextProject: CalendarProject
@@ -109,9 +135,13 @@ export const processAutomaticEventNotifications = (
   const playerWeatherIds = getPlayerVisibleWeatherEventIds(nextProject, activeWeatherEvents, absoluteMinutes);
   const playerLunarIds = getPlayerVisibleLunarEventIds(nextProject, activeLunarEvents, absoluteMinutes);
   const state = cleanStateForExistingEvents(normalizeAutomaticNotificationState(nextProject.automaticNotificationState), nextProject);
+  const datedState = cleanDatedStateForExistingEvents(normalizeDatedEventNotificationState(nextProject.datedEventNotificationState), nextProject);
   const nextState: AutomaticNotificationState = {
     weatherEventActivations: { ...state.weatherEventActivations },
     lunarEventActivations: { ...state.lunarEventActivations }
+  };
+  const nextDatedState: DatedEventNotificationState = {
+    notifiedEventDateKeys: { ...datedState.notifiedEventDateKeys }
   };
   const effects: AutomaticEventNotificationEffect[] = [];
 
@@ -137,8 +167,17 @@ export const processAutomaticEventNotifications = (
     }
   }
 
+  if (settings.notifyDatedEventsToPlayers && previousTime.absoluteDay !== nextTime.absoluteDay) {
+    for (const event of getPlayerVisibleDatedEventsForToday(nextProject)) {
+      const key = `${event.id}:${nextTime.absoluteDay}`;
+      if (nextDatedState.notifiedEventDateKeys[key]) continue;
+      nextDatedState.notifiedEventDateKeys[key] = true;
+      effects.push({ channel: "players", type: "event", event });
+    }
+  }
+
   return {
-    project: { ...nextProject, automaticNotificationState: nextState },
+    project: { ...nextProject, automaticNotificationState: nextState, datedEventNotificationState: nextDatedState },
     effects
   };
 };

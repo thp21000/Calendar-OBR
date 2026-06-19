@@ -566,11 +566,16 @@ export type AutomaticNotificationState = {
   lunarEventActivations: Record<string, string>;
 };
 
+export type DatedEventNotificationState = {
+  notifiedEventDateKeys: Record<string, true>;
+};
+
 export type NotificationSettings = {
   notifyAutomaticWeatherEvents?: boolean;
   notifyAutomaticLunarEvents?: boolean;
   notifyAutomaticEventsToGm?: boolean;
   notifyAutomaticEventsToPlayers?: boolean;
+  notifyDatedEventsToPlayers?: boolean;
 };
 
 export type CalendarProject = {
@@ -599,6 +604,7 @@ export type CalendarProject = {
   eventDisplayHistory?: EventDisplayHistory;
   manualPublications?: ManualPublications;
   automaticNotificationState?: AutomaticNotificationState;
+  datedEventNotificationState?: DatedEventNotificationState;
   notificationSettings?: NotificationSettings;
   uiSettings: UiSettings;
 };

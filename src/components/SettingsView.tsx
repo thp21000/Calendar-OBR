@@ -9,6 +9,7 @@ import { DisplaySettingsSection } from "./settings/DisplaySettingsSection";
 import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
 import { EventDisplaySettingsSection } from "./settings/EventDisplaySettingsSection";
 import { MoonsSettingsSection } from "./settings/MoonsSettingsSection";
+import { NotificationSettingsSection } from "./settings/NotificationSettingsSection";
 import { PacksSettingsSection } from "./settings/PacksSettingsSection";
 import { PlayerViewSettingsSection } from "./settings/PlayerViewSettingsSection";
 import { SeasonsSettingsSection } from "./settings/SeasonsSettingsSection";
@@ -91,6 +92,9 @@ export const SettingsView = ({
 
       <SettingsGroup title={t(project.locale, "settings.group.playerView")} help={t(project.locale, "settings.group.playerViewHelp")} storageKey="calendar-obr.settings.group.playerView">
         <PlayerViewSettingsSection project={project} onProjectUpdate={onProjectUpdate} inputStyle={inputStyle} />
+        <CollapsibleSection title={t(project.locale, "notifications.title")} storageKey="calendar-obr.settings.section.notifications">
+          <NotificationSettingsSection project={project} onProjectUpdate={onProjectUpdate} />
+        </CollapsibleSection>
       </SettingsGroup>
 
       <SettingsGroup title={t(project.locale, "settings.group.data")} help={t(project.locale, "settings.group.dataHelp")} storageKey="calendar-obr.settings.group.data">

@@ -114,11 +114,13 @@ const defaultProject: CalendarProject = {
   eventDisplayHistory: structuredClone(DEFAULT_EVENT_DISPLAY_HISTORY),
   manualPublications: structuredClone(DEFAULT_MANUAL_PUBLICATIONS),
   automaticNotificationState: { weatherEventActivations: {}, lunarEventActivations: {} },
+  datedEventNotificationState: { notifiedEventDateKeys: {} },
   notificationSettings: {
     notifyAutomaticWeatherEvents: true,
     notifyAutomaticLunarEvents: true,
     notifyAutomaticEventsToGm: true,
-    notifyAutomaticEventsToPlayers: true
+    notifyAutomaticEventsToPlayers: true,
+    notifyDatedEventsToPlayers: true
   },
   uiSettings: { activeTab: "today", compactMode: true, defaultMoonSystemInitialized: true, playerView: structuredClone(DEFAULT_PLAYER_VIEW_SETTINGS) }
 };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
-import type { CalendarProject, WeatherEvent } from "../../domain/types";
+import type { CalendarEvent, CalendarProject, WeatherEvent } from "../../domain/types";
+import { absoluteDayToCalendarDate } from "../dateEngine";
 import { processAutomaticEventNotifications } from "../automaticEventNotifications";
 
 const weatherEvent = (patch: Partial<WeatherEvent> = {}): WeatherEvent => ({
@@ -29,6 +30,22 @@ const projectWithEvent = (event: WeatherEvent): CalendarProject => ({
       today: { ...createDefaultCalendarProject().uiSettings.playerView!.today, showWeatherEvents: true }
     }
   }
+});
+
+const datedEvent = (project: CalendarProject, absoluteDay: number, patch: Partial<CalendarEvent> = {}): CalendarEvent => ({
+  id: "festival",
+  name: "Festival",
+  date: absoluteDayToCalendarDate({ absoluteDay, hour: 0, minute: 0 }, project.calendarSystem),
+  recurrence: { type: "none" },
+  summary: "Festival summary",
+  playerDescription: "Festival for players",
+  visibility: "players",
+  notifyOnTrigger: true,
+  deleteAfterTrigger: false,
+  archiveAfterTrigger: false,
+  status: "active",
+  allDay: true,
+  ...patch
 });
 
 describe("processAutomaticEventNotifications", () => {
@@ -72,5 +89,55 @@ describe("processAutomaticEventNotifications", () => {
 
     expect(result.effects.filter((effect) => effect.channel === "gm").map((effect) => effect.event.id).sort()).toEqual(["hidden", "visible"]);
     expect(result.effects.filter((effect) => effect.channel === "players").map((effect) => effect.event.id)).toEqual(["visible"]);
+  });
+
+it("notifies players once when a public dated event becomes visible for the new day", () => {
+    const base = createDefaultCalendarProject();
+    const event = datedEvent(base, 1);
+    const previous = { ...base, currentTime: { absoluteDay: 0, hour: 23, minute: 55 }, events: [event], weatherEvents: [] };
+    const next = { ...previous, currentTime: { absoluteDay: 1, hour: 0, minute: 0 } };
+
+    const first = processAutomaticEventNotifications(previous, next);
+    const second = processAutomaticEventNotifications(next, first.project);
+    const sameDay = processAutomaticEventNotifications(first.project, { ...first.project, currentTime: { absoluteDay: 1, hour: 12, minute: 0 } });
+
+    expect(first.effects.map((effect) => `${effect.channel}:${effect.type}:${effect.event.id}`)).toContain("players:event:festival");
+    expect(first.project.datedEventNotificationState?.notifiedEventDateKeys["festival:1"]).toBe(true);
+    expect(second.effects.filter((effect) => effect.type === "event")).toEqual([]);
+    expect(sameDay.effects.filter((effect) => effect.type === "event")).toEqual([]);
+  });
+
+  it("does not notify players for private dated events", () => {
+    const base = createDefaultCalendarProject();
+    const event = datedEvent(base, 1, { id: "secret", visibility: "gm" });
+    const previous = { ...base, currentTime: { absoluteDay: 0, hour: 23, minute: 55 }, events: [event], weatherEvents: [] };
+    const next = { ...previous, currentTime: { absoluteDay: 1, hour: 0, minute: 0 } };
+
+    const result = processAutomaticEventNotifications(previous, next);
+
+    expect(result.effects.filter((effect) => effect.type === "event")).toEqual([]);
+  });
+
+  it("does not notify dated events when player day events are hidden", () => {
+    const base = createDefaultCalendarProject();
+    const event = datedEvent(base, 1);
+    const previous = {
+      ...base,
+      currentTime: { absoluteDay: 0, hour: 23, minute: 55 },
+      events: [event],
+      weatherEvents: [],
+      uiSettings: {
+        ...base.uiSettings,
+        playerView: {
+          ...base.uiSettings.playerView!,
+          today: { ...base.uiSettings.playerView!.today, showEvents: false }
+        }
+      }
+    };
+    const next = { ...previous, currentTime: { absoluteDay: 1, hour: 0, minute: 0 } };
+
+    const result = processAutomaticEventNotifications(previous, next);
+
+    expect(result.effects.filter((effect) => effect.type === "event")).toEqual([]);
   });
 });

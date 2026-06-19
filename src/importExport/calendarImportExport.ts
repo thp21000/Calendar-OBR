@@ -30,13 +30,24 @@ const sanitizeAutomaticNotificationState = (value: unknown) => {
   };
 };
 
+const sanitizeDatedEventRecord = (value: unknown): Record<string, true> => {
+  if (!isRecord(value)) return {};
+  return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, true] => entry[1] === true));
+};
+
+const sanitizeDatedEventNotificationState = (value: unknown) => {
+  const source = isRecord(value) ? value : {};
+  return { notifiedEventDateKeys: sanitizeDatedEventRecord(source.notifiedEventDateKeys) };
+};
+
 const sanitizeNotificationSettings = (value: unknown) => {
   const source = isRecord(value) ? value : {};
   return {
     notifyAutomaticWeatherEvents: typeof source.notifyAutomaticWeatherEvents === "boolean" ? source.notifyAutomaticWeatherEvents : true,
     notifyAutomaticLunarEvents: typeof source.notifyAutomaticLunarEvents === "boolean" ? source.notifyAutomaticLunarEvents : true,
     notifyAutomaticEventsToGm: typeof source.notifyAutomaticEventsToGm === "boolean" ? source.notifyAutomaticEventsToGm : true,
-    notifyAutomaticEventsToPlayers: typeof source.notifyAutomaticEventsToPlayers === "boolean" ? source.notifyAutomaticEventsToPlayers : true
+    notifyAutomaticEventsToPlayers: typeof source.notifyAutomaticEventsToPlayers === "boolean" ? source.notifyAutomaticEventsToPlayers : true,
+    notifyDatedEventsToPlayers: typeof source.notifyDatedEventsToPlayers === "boolean" ? source.notifyDatedEventsToPlayers : true
   };
 };
 
@@ -237,6 +248,7 @@ export const sanitizeCalendarProject = (data: unknown): { ok: true; project: Cal
   maybeCompat.eventDisplayHistory = normalizeEventDisplayHistory((data as Record<string, unknown>).eventDisplayHistory);
   maybeCompat.manualPublications = normalizeManualPublications((data as Record<string, unknown>).manualPublications);
   maybeCompat.automaticNotificationState = sanitizeAutomaticNotificationState((data as Record<string, unknown>).automaticNotificationState);
+  maybeCompat.datedEventNotificationState = sanitizeDatedEventNotificationState((data as Record<string, unknown>).datedEventNotificationState);
   maybeCompat.notificationSettings = sanitizeNotificationSettings((data as Record<string, unknown>).notificationSettings);
   
   if (isRecord(maybeCompat.units)) {
