@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import { t } from "../../i18n/messages";
 import { getConfiguredWeatherStateIcon, getConfiguredWeatherTrendIcon, getWeatherStateLabel, getWeatherTrendLabel } from "../../calendar/weatherAdvancedSettings";
 import { absoluteDayToCalendarDate, calendarDateToAbsoluteDay } from "../../calendar/dateEngine";
@@ -14,9 +13,8 @@ import { formatRainTotal, formatTemperature, formatWindSpeed } from "../../calen
 import type { PublicMonthDaySnapshot } from "../../obr/publicSnapshot";
 import type { PublicEventDetails } from "../player/PublicEventDetailsPopup";
 import type { MonthLayoutVisibility } from "./MonthLayout";
+import { DayNotesEditor } from "./DayNotesEditor";
 import { notifyMoonEventToPlayers, setMoonEventPublicationFromUi } from "../events/manualEventPublication";
-
-const DayNotesEditor = lazy(() => import("./DayNotesEditor").then((module) => ({ default: module.DayNotesEditor })));
 
 export const DayDetailsPanel = ({ project, locale, dayDetails, notes, onClose, onCreateEventForDate, onProjectUpdate, onOpenEvent, onOpenMoonEvent, mode = "gm", publicDay, visibility, onOpenPublicEvent }: { project?: CalendarProject; locale?: LocaleCode; dayDetails?: DayDetails; notes: DayNote[]; onClose: () => void; onCreateEventForDate?: (date: CalendarDate) => void; onProjectUpdate?: (project: CalendarProject) => void; onOpenEvent?: (eventId: string) => void; onOpenMoonEvent?: (eventId: string) => void; mode?: "gm" | "player"; readonly?: boolean; publicDay?: PublicMonthDaySnapshot; visibility?: Partial<MonthLayoutVisibility>; onOpenPublicEvent?: (event: PublicEventDetails) => void }) => {
   const displayLocale = project?.locale ?? locale ?? "en";
@@ -98,7 +96,7 @@ export const DayDetailsPanel = ({ project, locale, dayDetails, notes, onClose, o
         {showCreateButton && dayDetails ? <PrimaryButton type="button" onClick={() => onCreateEventForDate(dayDetails.date)} style={{ marginTop: 8, width: "100%" }}>{t(displayLocale, "month.createEventForDay")}</PrimaryButton> : null}
       </SectionCard>
       {publicNotes.length > 0 ? <SectionCard style={{ marginTop: 8 }}><SectionHeader title={t(displayLocale, "player.publicMonthNotes")} /><div style={{ display: "grid", gap: 6 }}>{publicNotes.map((note) => <div key={note.id} style={{ border: "1px solid #374151", borderRadius: 8, padding: 8, background: "#111827", fontSize: 12, whiteSpace: "pre-wrap" }}>{note.playerNote}</div>)}</div></SectionCard> : null}
-      {showGmNotes && project && dayDetails ? <SectionCard style={{ marginTop: 8 }}><SectionHeader title={t(displayLocale, "dayNotes.title")} /><Suspense fallback={null}><DayNotesEditor project={project} date={dayDetails.date} notes={notes} onProjectUpdate={onProjectUpdate} /></Suspense></SectionCard> : null}
+      {showGmNotes && project && dayDetails ? <SectionCard style={{ marginTop: 8 }}><SectionHeader title={t(displayLocale, "dayNotes.title")} /><DayNotesEditor project={project} date={dayDetails.date} notes={notes} onProjectUpdate={onProjectUpdate} /></SectionCard> : null}
     </div>
   );
 };
