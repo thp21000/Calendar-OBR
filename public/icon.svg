@@ -1,8 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="16" fill="#1f2937"/>
-  <rect x="20" y="28" width="88" height="80" rx="8" fill="#f3f4f6"/>
-  <rect x="20" y="28" width="88" height="20" rx="8" fill="#ef4444"/>
-  <circle cx="44" cy="72" r="8" fill="#2563eb"/>
-  <circle cx="64" cy="72" r="8" fill="#2563eb"/>
-  <circle cx="84" cy="72" r="8" fill="#2563eb"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Calendar">
+  <!-- OBR monochrome icon: white = visible shape, transparent = empty space -->
+  <path fill="#ffffff" fill-rule="evenodd" d="
+    M28 22
+    h4
+    v-5
+    a4 4 0 0 1 8 0
+    v5
+    h48
+    v-5
+    a4 4 0 0 1 8 0
+    v5
+    h4
+    a16 16 0 0 1 16 16
+    v62
+    a16 16 0 0 1-16 16
+    H28
+    a16 16 0 0 1-16-16
+    V38
+    a16 16 0 0 1 16-16
+    Z
+
+    M20 54
+    h88
+    v-16
+    a8 8 0 0 0-8-8
+    h-4
+    v8
+    a4 4 0 0 1-8 0
+    v-8
+    H40
+    v8
+    a4 4 0 0 1-8 0
+    v-8
+    h-4
+    a8 8 0 0 0-8 8
+    v16
+    Z
+
+    M42 76
+    a8 8 0 1 0 0.01 0
+    Z
+    M64 76
+    a8 8 0 1 0 0.01 0
+    Z
+    M86 76
+    a8 8 0 1 0 0.01 0
+    Z
+  "/>
 </svg>
