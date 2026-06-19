@@ -25,6 +25,8 @@ export const POPUP_NOTIFICATION_CHANNEL = "com.gmtools.calendar-obr/popupNotific
 export const POPUP_NOTIFICATION_STORAGE_PREFIX = "calendar-obr.popupNotification.";
 export const POPUP_NOTIFICATION_MODAL_ID_PREFIX = "calendar-obr-notification-modal";
 export const POPUP_NOTIFICATION_DEBUG_STORAGE_KEY = "calendar-obr.popupNotification.debug";
+export const PUBLIC_PLAYER_NOTIFICATION_KEY = "com.gmtools.calendar-obr/publicPlayerNotificationLatest";
+const SEEN_REMOTE_NOTIFICATION_STORAGE_PREFIX = "calendar-obr.popupNotification.remoteSeen.";
 const NOTIFICATION_MODAL_WIDTH = 460;
 const MIN_NOTIFICATION_MODAL_HEIGHT = 260;
 const SHORT_NOTIFICATION_MODAL_HEIGHT = 320;
@@ -137,29 +139,70 @@ export const openLocalPopupNotification = async (payload: PopupNotificationPaylo
 
 export const sendPopupNotification = openLocalPopupNotification;
 
-type PopupNotificationMessage = {
+export type PopupNotificationMessage = {
   type: "popup-notification";
+  id: string;
+  createdAt: number;
   payload: PopupNotificationPayload;
 };
 
 const isPopupNotificationMessage = (value: unknown): value is PopupNotificationMessage =>
   isRecord(value)
   && value.type === "popup-notification"
+  && typeof value.id === "string"
+  && value.id.trim().length > 0
+  && typeof value.createdAt === "number"
+  && Number.isFinite(value.createdAt)
   && isPopupNotificationPayload(value.payload);
 
-const getRemoteNotificationKey = (payload: PopupNotificationPayload): string =>
-  [payload.type, payload.audience, payload.title, payload.date, payload.timeLabel ?? "", payload.body, payload.playerDescription ?? ""].join("|");
+const createPopupNotificationMessage = (payload: PopupNotificationPayload): PopupNotificationMessage => ({
+  type: "popup-notification",
+  id: `popup-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+  createdAt: Date.now(),
+  payload
+});
 
-const isDuplicateRemoteNotification = (payload: PopupNotificationPayload, now = Date.now()): boolean => {
+const hasSeenRemoteNotification = (id: string): boolean =>
+  getStorage()?.getItem(`${SEEN_REMOTE_NOTIFICATION_STORAGE_PREFIX}${id}`) === "1";
+
+const markRemoteNotificationSeen = (id: string): void => {
+  getStorage()?.setItem(`${SEEN_REMOTE_NOTIFICATION_STORAGE_PREFIX}${id}`, "1");
+};
+
+const getRemoteNotificationKey = (message: PopupNotificationMessage): string =>
+  message.id || [message.payload.type, message.payload.audience, message.payload.title, message.payload.date, message.payload.timeLabel ?? "", message.payload.body, message.payload.playerDescription ?? ""].join("|");
+
+const isDuplicateRemoteNotification = (message: PopupNotificationMessage, now = Date.now()): boolean => {
   for (const [key, timestamp] of recentRemoteNotificationKeys.entries()) {
     if (now - timestamp > REMOTE_NOTIFICATION_DEDUP_MS) recentRemoteNotificationKeys.delete(key);
   }
 
-  const key = getRemoteNotificationKey(payload);
+  const key = getRemoteNotificationKey(message);
   const previous = recentRemoteNotificationKeys.get(key);
   if (previous !== undefined && now - previous <= REMOTE_NOTIFICATION_DEDUP_MS) return true;
   recentRemoteNotificationKeys.set(key, now);
   return false;
+};
+
+const handleRemotePlayerNotification = async (message: PopupNotificationMessage, onNotification?: (payload: PopupNotificationPayload) => void): Promise<void> => {
+  if (message.payload.audience !== "players") {
+    debugPopupNotification("remote popup notification rejected: non-player audience", message.payload.audience);
+    return;
+  }
+  if (hasSeenRemoteNotification(message.id) || isDuplicateRemoteNotification(message)) {
+    debugPopupNotification("remote popup notification rejected: duplicate", message.payload.title);
+    return;
+  }
+
+  markRemoteNotificationSeen(message.id);
+  debugPopupNotification("remote popup notification accepted", { id: message.id, title: message.payload.title });
+  onNotification?.(message.payload);
+  try {
+    debugPopupNotification("opening remote popup notification modal", message.id);
+    await openLocalPopupNotification(message.payload);
+  } catch (error) {
+    debugPopupNotification("remote popup notification modal failed; integrated alert remains available", error);
+  }
 };
 
 export const sendPopupNotificationToPlayers = async (payload: PopupNotificationPayload): Promise<void> => {
@@ -167,16 +210,35 @@ export const sendPopupNotificationToPlayers = async (payload: PopupNotificationP
     throw new Error("sendPopupNotificationToPlayers requires a players audience payload.");
   }
 
+  const message = createPopupNotificationMessage(payload);
+
   if (!OBR.isAvailable) {
     console.info("[PopupNotification:players]", payload);
     return;
   }
 
-  const message: PopupNotificationMessage = { type: "popup-notification", payload };
+  await OBR.room.setMetadata({ [PUBLIC_PLAYER_NOTIFICATION_KEY]: message });
   await OBR.broadcast.sendMessage(POPUP_NOTIFICATION_CHANNEL, message, { destination: "REMOTE" });
 };
 
-export const setupPopupNotificationListener = (viewerRole: ViewerRole): (() => void) => {
+export const readLatestPlayerPopupNotification = async (): Promise<PopupNotificationMessage | null> => {
+  if (!OBR.isAvailable) return null;
+
+  return new Promise((resolve) => {
+    OBR.onReady(async () => {
+      try {
+        const metadata = await OBR.room.getMetadata();
+        const value = metadata[PUBLIC_PLAYER_NOTIFICATION_KEY];
+        resolve(isPopupNotificationMessage(value) ? value : null);
+      } catch (error) {
+        debugPopupNotification("failed to read latest player popup notification", error);
+        resolve(null);
+      }
+    });
+  });
+};
+
+export const setupPopupNotificationListener = (viewerRole: ViewerRole, onNotification?: (payload: PopupNotificationPayload) => void): (() => void) => {
   debugPopupNotification("setupPopupNotificationListener", { viewerRole, obrAvailable: OBR.isAvailable });
 
   if (viewerRole === "gm") {
@@ -195,22 +257,30 @@ export const setupPopupNotificationListener = (viewerRole: ViewerRole): (() => v
   let unsubscribe: () => void = () => undefined;
   OBR.onReady(() => {
     debugPopupNotification("subscribing to remote player popup notification channel", POPUP_NOTIFICATION_CHANNEL);
-    unsubscribe = OBR.broadcast.onMessage(POPUP_NOTIFICATION_CHANNEL, (event) => {
+    const unsubscribeBroadcast = OBR.broadcast.onMessage(POPUP_NOTIFICATION_CHANNEL, (event) => {
       debugPopupNotification("remote popup notification message received", event.data);
       if (!isPopupNotificationMessage(event.data)) {
         debugPopupNotification("remote popup notification rejected: invalid message shape", event.data);
         return;
       }
-      if (event.data.payload.audience !== "players") {
-        debugPopupNotification("remote popup notification rejected: non-player audience", event.data.payload.audience);
-        return;
-      }
-      if (isDuplicateRemoteNotification(event.data.payload)) {
-        debugPopupNotification("remote popup notification rejected: duplicate", event.data.payload.title);
-        return;
-      }
-      void openLocalPopupNotification(event.data.payload);
+      void handleRemotePlayerNotification(event.data, onNotification);
     });
+    const unsubscribeMetadata = OBR.room.onMetadataChange((metadata) => {
+      const message = metadata[PUBLIC_PLAYER_NOTIFICATION_KEY];
+      debugPopupNotification("remote popup notification metadata received", message);
+      if (!isPopupNotificationMessage(message)) {
+        debugPopupNotification("remote popup notification metadata rejected: invalid message shape", message);
+        return;
+      }
+      void handleRemotePlayerNotification(message, onNotification);
+    });
+    void readLatestPlayerPopupNotification().then((message) => {
+      if (message) void handleRemotePlayerNotification(message, onNotification);
+    });
+    unsubscribe = () => {
+      unsubscribeBroadcast();
+      unsubscribeMetadata();
+    };
   });
 
   return () => unsubscribe();

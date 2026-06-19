@@ -17,11 +17,13 @@ import {
   buildPublicCalendarIndex,
   publishPublicIndex,
   publishPublicSnapshot,
+  readLatestPublicSnapshot,
   readScopedCachedPublicSnapshot,
   readPublicIndex,
   requestPublicSnapshot,
   setupGmSnapshotResponder,
   setupPlayerSnapshotListener,
+  subscribeLatestPublicSnapshot,
   subscribePublicIndex,
   writeScopedCachedPublicSnapshot,
   type PublicCalendarTodaySnapshot
@@ -30,7 +32,7 @@ import { useObrPopoverHeight } from "./obr/useObrPopoverHeight";
 import { useObrTheme } from "./obr/useObrTheme";
 import { SceneWeatherModalView } from "./components/SceneWeatherManagementPopup";
 import { NotificationModalView } from "./components/notifications/NotificationModalView";
-import { setupPopupNotificationListener } from "./obr/popupNotifications";
+import { setupPopupNotificationListener, type PopupNotificationPayload } from "./obr/popupNotifications";
 
 export const App = () => {
   const [scope, setScope] = useState<StorageScope | null>(null);
@@ -39,6 +41,7 @@ export const App = () => {
   const [viewerRole, setViewerRole] = useState<ViewerRole | null>(null);
   const [revision, setRevision] = useState(0);
   const [publicSnapshot, setPublicSnapshot] = useState<PublicCalendarTodaySnapshot | null>(null);
+  const [playerPopupNotification, setPlayerPopupNotification] = useState<PopupNotificationPayload | null>(null);
   const [pendingCreateEventDate, setPendingCreateEventDate] = useState<CalendarDate | null>(null);
   const [pendingMonthSelectedDate, setPendingMonthSelectedDate] = useState<CalendarDate | null>(null);
   const [pendingEditEventId, setPendingEditEventId] = useState<string | null>(null);
@@ -66,6 +69,7 @@ export const App = () => {
     let cleanupGmResponder: (() => void) | null = null;
     let cleanupPlayerListener: (() => void) | null = null;
     let cleanupPublicIndexSubscription: (() => void) | null = null;
+    let cleanupLatestSnapshotSubscription: (() => void) | null = null;
     let cleanupPopupNotificationListener: (() => void) | null = null;
 
     getStorageScope().then(async (resolved) => {
@@ -75,7 +79,7 @@ export const App = () => {
       setProject(loaded);
       const role = await getViewerRole();
       setViewerRole(role);
-      cleanupPopupNotificationListener = setupPopupNotificationListener(role);
+      cleanupPopupNotificationListener = setupPopupNotificationListener(role, setPlayerPopupNotification);
 
       if (role === "gm") {
         await publishPublicIndex(buildPublicCalendarIndex(loaded, revisionRef.current));
@@ -96,12 +100,21 @@ export const App = () => {
           });
         };
         cleanupPlayerListener = setupPlayerSnapshotListener(acceptPublicSnapshot);
+        cleanupLatestSnapshotSubscription = subscribeLatestPublicSnapshot(acceptPublicSnapshot);
+
+        const roomSnapshot = await readLatestPublicSnapshot();
+        if (roomSnapshot && isPublicSnapshotNewer(cached, roomSnapshot)) acceptPublicSnapshot(roomSnapshot);
+        const bestSnapshot = roomSnapshot && isPublicSnapshotNewer(cached, roomSnapshot) ? roomSnapshot : cached;
+
         const idx = await readPublicIndex();
-        if (idx && isPublicIndexNewerThanSnapshot(cached, idx)) await requestPublicSnapshot();
-        else if (!cached) await requestPublicSnapshot();
+        if (idx && isPublicIndexNewerThanSnapshot(bestSnapshot, idx)) await requestPublicSnapshot();
+        else if (!bestSnapshot) await requestPublicSnapshot();
         cleanupPublicIndexSubscription = subscribePublicIndex(async (index) => {
           const latestCached = readScopedCachedPublicSnapshot(cacheScopeId);
-          if (isPublicIndexNewerThanSnapshot(latestCached, index)) {
+          const latestRoomSnapshot = await readLatestPublicSnapshot();
+          const latestSnapshot = latestRoomSnapshot && isPublicSnapshotNewer(latestCached, latestRoomSnapshot) ? latestRoomSnapshot : latestCached;
+          if (latestRoomSnapshot && isPublicSnapshotNewer(latestCached, latestRoomSnapshot)) acceptPublicSnapshot(latestRoomSnapshot);
+          if (isPublicIndexNewerThanSnapshot(latestSnapshot, index)) {
             await requestPublicSnapshot();
           }
         });
@@ -112,6 +125,7 @@ export const App = () => {
       cleanupGmResponder?.();
       cleanupPlayerListener?.();
       cleanupPublicIndexSubscription?.();
+      cleanupLatestSnapshotSubscription?.();
       cleanupPopupNotificationListener?.();
     };
   }, []);
@@ -194,7 +208,7 @@ export const App = () => {
         <button type="button" onClick={() => setActiveTab("player")} style={tabButtonStyle(project.uiSettings.activeTab === "player")}>{t(project.locale, "nav.player")}</button>
       </div>
       {project.uiSettings.activeTab === "month" ? <MonthView project={project} onProjectUpdate={updateProject} initialSelectedDate={pendingMonthSelectedDate} /> : project.uiSettings.activeTab === "events" ? <EventsView project={project} onProjectUpdate={updateProject} initialCreateDate={pendingCreateEventDate} initialEditEventId={pendingEditEventId} onInitialCreateDateConsumed={() => setPendingCreateEventDate(null)} onInitialEditEventIdConsumed={() => setPendingEditEventId(null)} /> : project.uiSettings.activeTab === "settings" ? <SettingsView project={project} onProjectUpdate={updateProject} saveError={saveError} scope={scope} onReset={handleReset} /> : project.uiSettings.activeTab === "player" ? <PlayerView project={project} /> : <TodayView project={project} onProjectUpdate={updateProject} onReset={handleReset} onOpenNotification={handleOpenNotification} />}
-    </> : publicSnapshot ? <PlayerView project={project} snapshot={publicSnapshot} /> : <SectionCard><EmptyState text={t(project.locale, "player.waitingForGmData")} /></SectionCard>}
+    </> : publicSnapshot ? <PlayerView project={project} snapshot={publicSnapshot} popupNotification={playerPopupNotification} onDismissPopupNotification={() => setPlayerPopupNotification(null)} /> : <SectionCard><EmptyState text={t(project.locale, "player.waitingForGmData")} /></SectionCard>}
     </div>
   </main>;
 };

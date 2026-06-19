@@ -14,6 +14,7 @@ export { buildPublicCalendarIndex } from "./publicSnapshot";
 export type { PublicCalendarIndex, PublicCalendarTodaySnapshot } from "./publicSnapshot";
 
 const PUBLIC_INDEX_KEY = "com.gmtools.calendar-obr/publicIndex";
+export const PUBLIC_SNAPSHOT_KEY = "com.gmtools.calendar-obr/publicSnapshotLatest";
 const SNAPSHOT_CACHE_KEY = "calendar-obr.publicSnapshot.cache";
 const SNAPSHOT_REQUEST_CHANNEL = "com.gmtools.calendar-obr/requestPublicSnapshot";
 export const SNAPSHOT_RESPONSE_CHANNEL = "com.gmtools.calendar-obr/publicSnapshot";
@@ -132,8 +133,31 @@ export const publishPublicSnapshot = async (project: CalendarProject, revision: 
     }
 
     const response: SnapshotResponseMessage = { type: "today-snapshot", snapshot };
+    await OBR.room.setMetadata({ [PUBLIC_SNAPSHOT_KEY]: snapshot });
     await OBR.broadcast.sendMessage(SNAPSHOT_RESPONSE_CHANNEL, response, { destination: "REMOTE" });
   }, undefined);
+};
+
+export const readLatestPublicSnapshot = async (): Promise<PublicCalendarTodaySnapshot | null> =>
+  onObrReady(async () => {
+    const metadata = await OBR.room.getMetadata();
+    const value = metadata[PUBLIC_SNAPSHOT_KEY];
+    return isPublicCalendarTodaySnapshot(value) ? value : null;
+  }, null);
+
+export const subscribeLatestPublicSnapshot = (callback: (snapshot: PublicCalendarTodaySnapshot) => void): (() => void) => {
+  if (!OBR.isAvailable) return () => undefined;
+
+  let unsubscribe: () => void = () => undefined;
+  OBR.onReady(() => {
+    unsubscribe = OBR.room.onMetadataChange((metadata) => {
+      const value = metadata[PUBLIC_SNAPSHOT_KEY];
+      if (!isPublicCalendarTodaySnapshot(value)) return;
+      callback(value);
+    });
+  });
+
+  return () => unsubscribe();
 };
 
 export const requestPublicSnapshot = async (): Promise<void> => {

@@ -3,6 +3,7 @@ import { normalizePlayerViewSettings } from "../calendar/playerViewSettings";
 import type { CalendarProject, PlayerViewTab } from "../domain/types";
 import { t } from "../i18n/messages";
 import type { PublicCalendarTodaySnapshot } from "../obr/publicSnapshot";
+import type { PopupNotificationPayload } from "../obr/popupNotifications";
 import type { PublicEventDetails } from "./player/PublicEventDetailsPopup";
 import { PublicEventDetailsPopup } from "./player/PublicEventDetailsPopup";
 import { PlayerMonthView } from "./player/PlayerMonthView";
@@ -10,9 +11,9 @@ import { buildPlayerViewModelFromProject, buildPlayerViewModelFromSnapshot } fro
 import { TodayEventsCard } from "./today/TodayEventsCard";
 import { TodayLayout } from "./today/TodayLayout";
 import { TodayStatusSummary, WeatherForecastCard } from "./today/WeatherAndSeasonCard";
-import { EmptyState, SectionCard } from "./ui";
+import { EmptyState, SecondaryButton, SectionCard } from "./ui";
 
-export const PlayerView = ({ project, snapshot }: { project: CalendarProject; snapshot?: PublicCalendarTodaySnapshot | null }) => {
+export const PlayerView = ({ project, snapshot, popupNotification, onDismissPopupNotification }: { project: CalendarProject; snapshot?: PublicCalendarTodaySnapshot | null; popupNotification?: PopupNotificationPayload | null; onDismissPopupNotification?: () => void }) => {
   const [selectedPublicEvent, setSelectedPublicEvent] = useState<PublicEventDetails | null>(null);
   const settings = useMemo(() => normalizePlayerViewSettings(snapshot?.playerView ?? project.uiSettings.playerView), [project.uiSettings.playerView, snapshot?.playerView]);
   const [selectedTab, setSelectedTab] = useState<PlayerViewTab>(settings.defaultTab);
@@ -26,6 +27,16 @@ export const PlayerView = ({ project, snapshot }: { project: CalendarProject; sn
 
   return (
     <>
+      {popupNotification ? <SectionCard style={{ borderColor: "#60a5fa", background: "#0f172a" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{popupNotification.icon ? `${popupNotification.icon} ` : ""}{popupNotification.title}</div>
+            <div style={{ fontSize: 12, color: "#d1d5db", whiteSpace: "pre-wrap" }}>{popupNotification.playerDescription || popupNotification.body}</div>
+          </div>
+          {onDismissPopupNotification ? <SecondaryButton type="button" onClick={onDismissPopupNotification}>{t(model.locale, "notifications.dismiss")}</SecondaryButton> : null}
+        </div>
+      </SectionCard> : null}
+      
       {showTabSelector ? <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
         <TabButton active={activeTab === "today"} label={t(model.locale, "player.tab.today")} onClick={() => setSelectedTab("today")} />
         <TabButton active={activeTab === "month"} label={t(model.locale, "player.tab.month")} onClick={() => setSelectedTab("month")} />

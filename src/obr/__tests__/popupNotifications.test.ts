@@ -5,21 +5,28 @@ const obrMock = vi.hoisted(() => ({
   sendMessage: vi.fn(async () => undefined),
   onMessage: vi.fn(() => vi.fn()),
   onReady: vi.fn((callback: () => void) => callback()),
+  setMetadata: vi.fn(async () => undefined),
+  getMetadata: vi.fn(async () => ({})),
+  onMetadataChange: vi.fn(() => vi.fn()),
   obr: {
     isAvailable: false,
     modal: { open: vi.fn(async () => undefined), close: vi.fn(async () => undefined) },
     broadcast: { sendMessage: vi.fn(async () => undefined), onMessage: vi.fn(() => vi.fn()) },
+    room: { setMetadata: vi.fn(async () => undefined), getMetadata: vi.fn(async () => ({})), onMetadataChange: vi.fn(() => vi.fn()) },
     onReady: vi.fn((callback: () => void) => callback())
   }
 }));
 obrMock.obr.modal.open = obrMock.modalOpen;
 obrMock.obr.broadcast.sendMessage = obrMock.sendMessage;
 obrMock.obr.broadcast.onMessage = obrMock.onMessage;
+obrMock.obr.room.setMetadata = obrMock.setMetadata;
+obrMock.obr.room.getMetadata = obrMock.getMetadata;
+obrMock.obr.room.onMetadataChange = obrMock.onMetadataChange;
 obrMock.obr.onReady = obrMock.onReady;
 
 vi.mock("@owlbear-rodeo/sdk", () => ({ default: obrMock.obr }));
 
-import { clearPopupNotificationPayload, estimateNotificationModalHeight, POPUP_NOTIFICATION_CHANNEL, readPopupNotificationPayload, savePopupNotificationPayload, sendPopupNotification, sendPopupNotificationToPlayers, setupPopupNotificationListener } from "../popupNotifications";
+import { clearPopupNotificationPayload, estimateNotificationModalHeight, POPUP_NOTIFICATION_CHANNEL, PUBLIC_PLAYER_NOTIFICATION_KEY, readPopupNotificationPayload, savePopupNotificationPayload, sendPopupNotification, sendPopupNotificationToPlayers, setupPopupNotificationListener } from "../popupNotifications";
 
 const createLocalStorageMock = () => {
   const store = new Map<string, string>();
@@ -38,6 +45,9 @@ describe("popupNotifications", () => {
     obrMock.modalOpen.mockClear();
     obrMock.sendMessage.mockClear();
     obrMock.onMessage.mockClear();
+    obrMock.setMetadata.mockClear();
+    obrMock.getMetadata.mockClear();
+    obrMock.onMetadataChange.mockClear();
     obrMock.onReady.mockClear();
     obrMock.obr.isAvailable = false;
     vi.stubGlobal("location", new URL("https://example.test/index.html"));
@@ -81,7 +91,14 @@ describe("popupNotifications", () => {
 
     await sendPopupNotificationToPlayers(payload);
 
-    expect(obrMock.sendMessage).toHaveBeenCalledWith(POPUP_NOTIFICATION_CHANNEL, { type: "popup-notification", payload }, { destination: "REMOTE" });
+    expect(obrMock.setMetadata).toHaveBeenCalledWith({
+      [PUBLIC_PLAYER_NOTIFICATION_KEY]: expect.objectContaining({ type: "popup-notification", payload, id: expect.any(String), createdAt: expect.any(Number) })
+    });
+    expect(obrMock.sendMessage).toHaveBeenCalledWith(
+      POPUP_NOTIFICATION_CHANNEL,
+      expect.objectContaining({ type: "popup-notification", payload, id: expect.any(String), createdAt: expect.any(Number) }),
+      { destination: "REMOTE" }
+    );
     expect(obrMock.modalOpen).not.toHaveBeenCalled();
   });
 
@@ -92,8 +109,9 @@ describe("popupNotifications", () => {
     setupPopupNotificationListener("player");
     const onMessageCalls = obrMock.onMessage.mock.calls as unknown as Array<[string, (event: { data: unknown }) => void]>;
     const handler = onMessageCalls[0]?.[1];
-    handler?.({ data: { type: "popup-notification", payload } });
-    handler?.({ data: { type: "popup-notification", payload } });
+    const message = { type: "popup-notification" as const, id: "remote-1", createdAt: 123, payload };
+    handler?.({ data: message });
+    handler?.({ data: message });
 
     expect(obrMock.onMessage).toHaveBeenCalledWith(POPUP_NOTIFICATION_CHANNEL, expect.any(Function));
     expect(obrMock.modalOpen).toHaveBeenCalledTimes(1);
@@ -101,6 +119,7 @@ describe("popupNotifications", () => {
     obrMock.modalOpen.mockClear();
     setupPopupNotificationListener("gm");
     expect(obrMock.onMessage).toHaveBeenCalledTimes(1);
+    expect(obrMock.onMetadataChange).toHaveBeenCalledTimes(1);
     expect(obrMock.modalOpen).not.toHaveBeenCalled();
   });
 
@@ -113,5 +132,19 @@ describe("popupNotifications", () => {
     handler?.({ data: { type: "popup-notification", payload: { audience: "players", title: "Missing fields" } } });
 
     expect(obrMock.modalOpen).not.toHaveBeenCalled();
+  });
+
+  it("opens latest persisted player notifications from room metadata", async () => {
+    obrMock.obr.isAvailable = true;
+    const payload = { type: "weather" as const, audience: "players" as const, title: "Rain", body: "Narrative rain", date: "Today" };
+    obrMock.getMetadata.mockResolvedValueOnce({ [PUBLIC_PLAYER_NOTIFICATION_KEY]: { type: "popup-notification", id: "persisted-1", createdAt: 456, payload } });
+
+    setupPopupNotificationListener("player");
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(obrMock.modalOpen).toHaveBeenCalled();
   });
 });
