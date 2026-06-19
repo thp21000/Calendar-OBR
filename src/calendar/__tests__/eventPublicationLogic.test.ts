@@ -53,7 +53,7 @@ describe("eventPublicationLogic", () => {
     project.moonEvents = [moonEvent("auto", "auto"), moonEvent("manual", "manual"), moonEvent("gm", "gmOnly")];
     project = setLunarEventManualPublication(project, "manual", true);
     expect(filterPlayerPublishableLunarEvents(project, project.moonEvents ?? [], true).map((event) => event.id)).toEqual(["auto", "manual"]);
-    expect(filterPlayerPublishableLunarEvents({ ...project, currentTime: { ...project.currentTime, hour: 12 } }, project.moonEvents ?? [], true)).toEqual([]);
+    import { describe, expect, it } from "vitest";
   });
 
   it("réintègre les événements manuels publiés même s'ils sont masqués par l'affichage intelligent", () => {

@@ -55,6 +55,25 @@ describe("publicSnapshot moon events", () => {
     expect(createPublicCalendarTodaySnapshot(project, 2).moonEventsToday.map((event) => event.id)).toEqual(["night-only"]);
   });
 
+  it("keeps public month lunar events visible during daytime and only marks the first lunar entry", () => {
+    const project = createDefaultCalendarProject();
+    project.currentTime = { ...project.currentTime, absoluteDay: 0, hour: 12, minute: 0 };
+    const moon = project.moons[0];
+    project.moonEvents = [
+      { id: "month-moon-1", name: "Month Moon 1", summary: "S", moonId: moon.id, phaseId: "new", visibilityMode: "auto", visibility: "players", enabled: true, notifyOnTrigger: true, status: "active" },
+      { id: "month-moon-2", name: "Month Moon 2", summary: "S", moonId: moon.id, phaseId: "new", visibilityMode: "auto", visibility: "players", enabled: true, notifyOnTrigger: true, status: "active" }
+    ];
+
+    const todaySnapshot = createPublicCalendarTodaySnapshot(project, 1);
+    const month = buildPublicMonthSnapshot(project, DEFAULT_PLAYER_VIEW_SETTINGS);
+    const today = month.days.find((day) => day.absoluteDay === 0);
+    const moonMarkers = today?.markers.filter((marker) => marker.type === "moon") ?? [];
+
+    expect(todaySnapshot.moonEventsToday).toEqual([]);
+    expect(today?.moonEvents.map((event) => event.id)).toEqual(["month-moon-1", "month-moon-2"]);
+    expect(moonMarkers.map((marker) => marker.id)).toEqual(["moon:month-moon-1"]);
+  });
+
   it("never exposes gmDescription", () => {
     const project = createDefaultCalendarProject();
     const moon = project.moons[0];

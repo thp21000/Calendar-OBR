@@ -113,10 +113,11 @@ export const getPlayerWeatherEventDisplayCandidates = (
 export const filterPlayerPublishableLunarEvents = (
   project: CalendarProject,
   events: MoonEvent[],
-  globalDisplayAllowed: boolean
+  globalDisplayAllowed: boolean,
+  options: { enforceDisplayTime?: boolean } = {}
 ): MoonEvent[] => {
   if (!globalDisplayAllowed) return [];
-  if (!isPlayerLunarEventDisplayTime(project.currentTime.hour)) return [];
+  if (options.enforceDisplayTime !== false && !isPlayerLunarEventDisplayTime(project.currentTime.hour)) return [];
   const publications = normalizeManualPublications(project.manualPublications);
   return events.filter((event) => {
     if (event.visibilityMode === undefined) {

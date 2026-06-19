@@ -3,7 +3,7 @@ import { getPlayerVisibleEventsForCurrentDay, getPlayerVisibleEventsForDay } fro
 import { getPlayerVisibleDayNotesForDay } from "../calendar/dayNotesLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../calendar/formatEvent";
-import { getTriggeredMoonEventsAtTime } from "../calendar/moonEventsLogic";
+import { getMoonEventsStartingOnDay, getTriggeredMoonEventsAtTime } from "../calendar/moonEventsLogic";
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../calendar/eventDisplayLogic";
 import { filterPlayerPublishableLunarEvents, filterPlayerPublishableWeatherEvents, getPlayerLunarEventDisplayCandidates, getPlayerWeatherEventDisplayCandidates } from "../calendar/eventPublicationLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
@@ -343,10 +343,10 @@ export const buildPublicMonthSnapshot = (
     const weatherEvents = publishedWeatherEvents.map((event) => ({
       id: event.id, name: event.name, icon: event.icon, summary: event.summary || undefined, playerDescription: event.playerDescription || undefined, link: event.link || undefined
     }));
-    const rawMoonEvents = settings.month.showMoonEvents ? getTriggeredMoonEventsAtTime(project, { absoluteDay: day.absoluteDay, hour: 12, minute: 0 }) : [];
+    const rawMoonEvents = settings.month.showMoonEvents ? getMoonEventsStartingOnDay(project, day.absoluteDay) : [];
     const selectedMoonEvents = selectVisibleLunarEvents({ activeEvents: rawMoonEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes: dayMinutes, seed: project.weatherSettings.seed ?? project.id });
     const moonCandidates = getPlayerLunarEventDisplayCandidates(project, selectedMoonEvents.visibleEvents, selectedMoonEvents.hiddenEvents);
-    const publishedMoonEvents = filterPlayerPublishableLunarEvents(project, moonCandidates, settings.month.showMoonEvents);
+    const publishedMoonEvents = filterPlayerPublishableLunarEvents(project, moonCandidates, settings.month.showMoonEvents, { enforceDisplayTime: false });
     const moonEvents = publishedMoonEvents.map((event) => ({
       id: event.id, name: event.name, icon: event.icon, summary: event.summary || undefined, playerDescription: event.playerDescription || undefined, moonName: project.moons.find((moon) => moon.id === event.moonId)?.name ?? "?", phaseId: event.phaseId
     }));
@@ -391,7 +391,7 @@ export const buildPublicMonthSnapshot = (
     const markers: PublicMonthMarkerSnapshot[] = [
       ...events.map((event) => ({ id: `event:${event.id}`, icon: event.icon ?? "📌", label: event.name, type: "event" as const })),
       ...weatherEvents.map((event) => ({ id: `weather:${event.id}`, icon: event.icon ?? "⛈️", label: event.name, type: "weather" as const })),
-      ...moonEvents.map((event) => ({ id: `moon:${event.id}`, icon: event.icon ?? "🌕", label: event.name, type: "moon" as const })),
+      ...moonEvents.slice(0, 1).map((event) => ({ id: `moon:${event.id}`, icon: event.icon ?? "🌕", label: event.name, type: "moon" as const })),
       ...dayNotes.map((note) => ({ id: `note:${note.id}`, icon: "📝", label: t(project.locale, "player.publicMonthNotes"), type: "note" as const }))
     ];
     return {
