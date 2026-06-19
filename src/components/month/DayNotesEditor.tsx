@@ -98,9 +98,9 @@ export const DayNotesEditor = ({ project, date, notes, onProjectUpdate }: { proj
                   <SecondaryButton type="button" onClick={() => beginEdit(note)}>{t(project.locale, "dayNotes.edit")}</SecondaryButton>
                   {(note.gmNote?.trim() || note.playerNote?.trim()) ? (
                     <SecondaryButton type="button" onClick={() => {
-                      void import("../../obr/popupNotifications").then(({ sendPopupNotification }) => {
-                        if (note.gmNote?.trim()) sendPopupNotification({ type: "dayNote", audience: "gm", title: t(project.locale, "dayNotes.gmNote"), body: note.gmNote, date: dateLabel });
-                        if (note.playerNote?.trim()) sendPopupNotification({ type: "dayNote", audience: "players", title: t(project.locale, "dayNotes.playerNote"), body: note.playerNote, date: dateLabel });
+                      void import("../../obr/popupNotifications").then(({ openLocalPopupNotification, sendPopupNotificationToPlayers }) => {
+                        if (note.gmNote?.trim()) openLocalPopupNotification({ type: "dayNote", audience: "gm", title: t(project.locale, "dayNotes.gmNote"), body: note.gmNote, date: dateLabel });
+                        if (note.playerNote?.trim()) sendPopupNotificationToPlayers({ type: "dayNote", audience: "players", title: t(project.locale, "dayNotes.playerNote"), body: note.playerNote, playerDescription: note.playerNote, date: dateLabel });
                       });
                     }}>
                        {t(project.locale, "common.send")}

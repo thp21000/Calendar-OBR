@@ -16,7 +16,7 @@ export type { PublicCalendarIndex, PublicCalendarTodaySnapshot } from "./publicS
 const PUBLIC_INDEX_KEY = "com.gmtools.calendar-obr/publicIndex";
 const SNAPSHOT_CACHE_KEY = "calendar-obr.publicSnapshot.cache";
 const SNAPSHOT_REQUEST_CHANNEL = "com.gmtools.calendar-obr/requestPublicSnapshot";
-const SNAPSHOT_RESPONSE_CHANNEL = "com.gmtools.calendar-obr/publicSnapshot";
+export const SNAPSHOT_RESPONSE_CHANNEL = "com.gmtools.calendar-obr/publicSnapshot";
 const SNAPSHOT_WARN_SIZE = 12_000;
 
 type SnapshotRequestMessage = {
@@ -116,6 +116,19 @@ export const setupPlayerSnapshotListener = (callback: (snapshot: PublicCalendarT
   return () => unsubscribe();
 };
 
+export const publishPublicSnapshot = async (project: CalendarProject, revision: number): Promise<void> => {
+  await onObrReady(async () => {
+    const snapshot = createPublicCalendarTodaySnapshot(project, revision);
+    const size = estimateJsonSize(snapshot);
+    if (size > SNAPSHOT_WARN_SIZE) {
+      console.warn(`Calendar OBR public snapshot is large (${size} bytes).`);
+    }
+
+    const response: SnapshotResponseMessage = { type: "today-snapshot", snapshot };
+    await OBR.broadcast.sendMessage(SNAPSHOT_RESPONSE_CHANNEL, response, { destination: "REMOTE" });
+  }, undefined);
+};
+
 export const requestPublicSnapshot = async (): Promise<void> => {
   await onObrReady(async () => {
     const message: SnapshotRequestMessage = { type: "request-today-snapshot" };
@@ -149,14 +162,7 @@ export const setupGmSnapshotResponder = (
     unsubscribe = OBR.broadcast.onMessage(SNAPSHOT_REQUEST_CHANNEL, async (event) => {
       if (!isSnapshotRequestMessage(event.data)) return;
 
-      const snapshot = createPublicCalendarTodaySnapshot(getProject(), getRevision());
-      const size = estimateJsonSize(snapshot);
-      if (size > SNAPSHOT_WARN_SIZE) {
-        console.warn(`Calendar OBR public snapshot is large (${size} bytes).`);
-      }
-
-      const response: SnapshotResponseMessage = { type: "today-snapshot", snapshot };
-      await OBR.broadcast.sendMessage(SNAPSHOT_RESPONSE_CHANNEL, response, { destination: "REMOTE" });
+      await publishPublicSnapshot(getProject(), getRevision());
     });
   });
 

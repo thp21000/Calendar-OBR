@@ -51,6 +51,12 @@ export type PublicCalendarBiomeSnapshot = {
 };
 
 export type PublicCalendarWeatherSnapshot = WeatherSnapshot & {
+  stateLabel?: string;
+  stateIcon?: string;
+  dominantStateLabel?: string;
+  dominantStateIcon?: string;
+  trendLabel?: string;
+  trendIcon?: string;
   units: {
     temperature: string;
     windSpeed: string;
@@ -182,6 +188,7 @@ export type PublicCalendarTodaySnapshot = {
   locale: LocaleCode;
   currentTime: CalendarCurrentTime;
   formattedDate: string;
+  dateParts?: string[];
   season?: PublicCalendarSeasonSnapshot;
   weather?: PublicCalendarWeatherSnapshot;
   weatherBiome: PublicCalendarBiomeSnapshot;
@@ -468,8 +475,16 @@ export const createPublicCalendarTodaySnapshot = (
   const rainDecimals = project.units.rain === "inch" ? 2 : 1;
   const publicWeather = currentWeather ? (() => {
     const { heatPressure: _heatPressure, ...publicWeatherData } = currentWeather;
+    const weatherState = currentWeather.state ?? "clear";
+    const dominantState = currentWeather.dominantState ?? weatherState;
     return {
       ...publicWeatherData,
+      stateLabel: getWeatherStateLabel(project, weatherState, project.locale),
+      stateIcon: getConfiguredWeatherStateIcon(project, weatherState),
+      dominantStateLabel: getWeatherStateLabel(project, dominantState, project.locale),
+      dominantStateIcon: getConfiguredWeatherStateIcon(project, dominantState),
+      trendLabel: currentWeather.trendKind ? getWeatherTrendLabel(project, currentWeather.trendKind, project.locale) : undefined,
+      trendIcon: currentWeather.trendKind ? getConfiguredWeatherTrendIcon(project, currentWeather.trendKind) : undefined,
       temperature: roundPublicWeatherValue(toDisplayTemperature(currentWeather.temperature, project.units.temperature), 0),
       dailyMinTemperature: currentWeather.dailyMinTemperature === undefined ? undefined : roundPublicWeatherValue(toDisplayTemperature(currentWeather.dailyMinTemperature, project.units.temperature), 0),
       dailyMaxTemperature: currentWeather.dailyMaxTemperature === undefined ? undefined : roundPublicWeatherValue(toDisplayTemperature(currentWeather.dailyMaxTemperature, project.units.temperature), 0),
@@ -500,6 +515,13 @@ export const createPublicCalendarTodaySnapshot = (
     locale: project.locale,
     currentTime: project.currentTime,
     formattedDate: formatDisplayDate(displayDate, project.locale, project.uiSettings.dateFormat, project.uiSettings.timeFormat),
+    dateParts: [
+      displayDate.weekdayName,
+      String(displayDate.dayOfMonth),
+      displayDate.monthName,
+      String(displayDate.year),
+      `${String(project.currentTime.hour).padStart(2, "0")}:${String(project.currentTime.minute).padStart(2, "0")}`
+    ].filter((part): part is string => Boolean(part)),
     season: currentSeason ? { name: currentSeason.name, icon: currentSeason.icon } : undefined,
     weather: publicWeather,
     weatherBiome: {

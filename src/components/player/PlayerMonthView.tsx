@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CalendarProject, InternalTime, LocaleCode, PlayerViewSettings } from "../../domain/types";
 import { t } from "../../i18n/messages";
 import { buildPublicMonthSnapshot, type PublicMonthSnapshot } from "../../obr/publicSnapshot";
@@ -35,6 +35,17 @@ export const PlayerMonthView = ({
   );
   const [selectedAbsoluteDay, setSelectedAbsoluteDay] = useState<number | null>(null);
   const selectedDay = useMemo(() => selectedAbsoluteDay === null ? undefined : month?.days.find((day) => day.absoluteDay === selectedAbsoluteDay), [month, selectedAbsoluteDay]);
+  
+  useEffect(() => {
+    if (isSnapshotMode) setViewedTime(snapshotMonth?.viewedTime);
+  }, [isSnapshotMode, snapshotMonth?.viewedTime?.absoluteDay, snapshotMonth?.viewedTime?.hour, snapshotMonth?.viewedTime?.minute]);
+
+  useEffect(() => {
+    if (selectedAbsoluteDay !== null && month && !month.days.some((day) => day.absoluteDay === selectedAbsoluteDay)) {
+      setSelectedAbsoluteDay(null);
+    }
+  }, [month, selectedAbsoluteDay]);
+
   const monthHasAnyBlock = settings.month.showMonthGrid || settings.month.showPublicEvents || settings.month.showWeatherEvents || settings.month.showMoonEvents || settings.month.showDayNotes || settings.month.showWeatherSummary || settings.month.showFiveDayForecast;
 
   if (!monthHasAnyBlock) return <SectionCard><EmptyState text={t(locale, "player.noVisibleContent")} /></SectionCard>;

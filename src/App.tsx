@@ -16,6 +16,7 @@ import { subscribeCalendarProjectUpdates } from "./storage/projectSync";
 import {
   buildPublicCalendarIndex,
   publishPublicIndex,
+  publishPublicSnapshot,
   readScopedCachedPublicSnapshot,
   readPublicIndex,
   requestPublicSnapshot,
@@ -29,6 +30,7 @@ import { useObrPopoverHeight } from "./obr/useObrPopoverHeight";
 import { useObrTheme } from "./obr/useObrTheme";
 import { SceneWeatherModalView } from "./components/SceneWeatherManagementPopup";
 import { NotificationModalView } from "./components/notifications/NotificationModalView";
+import { setupPopupNotificationListener } from "./obr/popupNotifications";
 
 export const App = () => {
   const [scope, setScope] = useState<StorageScope | null>(null);
@@ -49,10 +51,16 @@ export const App = () => {
   useObrPopoverHeight({ containerRef: contentRef, minHeight: 220, maxHeight: 700, padding: 20, disabled: isModalView });
   useObrTheme();
   
+  const publishPublicState = (nextProject: CalendarProject, nextRevision: number): void => {
+    void publishPublicIndex(buildPublicCalendarIndex(nextProject, nextRevision));
+    void publishPublicSnapshot(nextProject, nextRevision);
+  };
+
   useEffect(() => {
     let cleanupGmResponder: (() => void) | null = null;
     let cleanupPlayerListener: (() => void) | null = null;
     let cleanupPublicIndexSubscription: (() => void) | null = null;
+    let cleanupPopupNotificationListener: (() => void) | null = null;
 
     getStorageScope().then(async (resolved) => {
       setScope(resolved);
@@ -61,9 +69,11 @@ export const App = () => {
       setProject(loaded);
       const role = await getViewerRole();
       setViewerRole(role);
+      cleanupPopupNotificationListener = setupPopupNotificationListener(role);
 
       if (role === "gm") {
         await publishPublicIndex(buildPublicCalendarIndex(loaded, revisionRef.current));
+        await publishPublicSnapshot(loaded, revisionRef.current);
         cleanupGmResponder = setupGmSnapshotResponder(
           () => projectRef.current ?? loaded,
           () => revisionRef.current
@@ -91,6 +101,7 @@ export const App = () => {
       cleanupGmResponder?.();
       cleanupPlayerListener?.();
       cleanupPublicIndexSubscription?.();
+      cleanupPopupNotificationListener?.();
     };
   }, []);
 
@@ -105,7 +116,7 @@ export const App = () => {
       setRevision(nextRev);
       setProject(loaded);
       setSaveError(null);
-      if (viewerRole === "gm") void publishPublicIndex(buildPublicCalendarIndex(loaded, nextRev));
+      if (viewerRole === "gm") publishPublicState(loaded, nextRev);
     });
   }, [scope, viewerRole]);
 
@@ -122,7 +133,7 @@ export const App = () => {
       setRevision(nextRev);
       setProject(nextProject);
       setSaveError(null);
-      if (viewerRole === "gm") publishPublicIndex(buildPublicCalendarIndex(nextProject, nextRev));
+      if (viewerRole === "gm") publishPublicState(nextProject, nextRev);
     } else setSaveError(result.error);
   };
 
@@ -158,7 +169,7 @@ export const App = () => {
     projectRef.current = reset;
     setRevision(nextRev);
     setProject(reset);
-    if (viewerRole === "gm") publishPublicIndex(buildPublicCalendarIndex(reset, nextRev));
+    if (viewerRole === "gm") publishPublicState(reset, nextRev);
   };
 
   return <main>

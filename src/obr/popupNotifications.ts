@@ -2,6 +2,7 @@ import OBR from "@owlbear-rodeo/sdk";
 import { absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import type { CalendarNotification } from "../calendar/notifications";
 import type { CalendarProject, InternalTime } from "../domain/types";
+import type { ViewerRole } from "./playerRole";
 import { t } from "../i18n/messages";
 
 export type PopupNotificationType = "event" | "eventReminder" | "dayNote" | "weather" | "moon";
@@ -20,6 +21,7 @@ export type PopupNotificationPayload = {
   link?: string;
 };
 
+export const POPUP_NOTIFICATION_CHANNEL = "com.gmtools.calendar-obr/popupNotification";
 export const POPUP_NOTIFICATION_STORAGE_PREFIX = "calendar-obr.popupNotification.";
 export const POPUP_NOTIFICATION_MODAL_ID_PREFIX = "calendar-obr-notification-modal";
 const NOTIFICATION_MODAL_WIDTH = 460;
@@ -42,7 +44,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isPopupNotificationType = (value: unknown): value is PopupNotificationType =>
   value === "event" || value === "eventReminder" || value === "dayNote" || value === "weather" || value === "moon";
 
-const isPopupNotificationPayload = (value: unknown): value is PopupNotificationPayload =>
+export const isPopupNotificationPayload = (value: unknown): value is PopupNotificationPayload =>
   isRecord(value)
   && isPopupNotificationType(value.type)
   && (value.audience === "gm" || value.audience === "players")
@@ -96,7 +98,7 @@ export const estimateNotificationModalHeight = (payload: PopupNotificationPayloa
   return MAX_NOTIFICATION_MODAL_HEIGHT;
 };
 
-export const sendPopupNotification = async (payload: PopupNotificationPayload): Promise<void> => {
+export const openLocalPopupNotification = async (payload: PopupNotificationPayload): Promise<void> => {
   const notificationId = savePopupNotificationPayload(payload);
   const modalId = `${POPUP_NOTIFICATION_MODAL_ID_PREFIX}-${notificationId}`;
 
@@ -111,6 +113,47 @@ export const sendPopupNotification = async (payload: PopupNotificationPayload): 
     width: NOTIFICATION_MODAL_WIDTH,
     height: estimateNotificationModalHeight(payload)
   });
+};
+
+export const sendPopupNotification = openLocalPopupNotification;
+
+type PopupNotificationMessage = {
+  type: "popup-notification";
+  payload: PopupNotificationPayload;
+};
+
+const isPopupNotificationMessage = (value: unknown): value is PopupNotificationMessage =>
+  isRecord(value)
+  && value.type === "popup-notification"
+  && isPopupNotificationPayload(value.payload);
+
+export const sendPopupNotificationToPlayers = async (payload: PopupNotificationPayload): Promise<void> => {
+  if (payload.audience !== "players") {
+    throw new Error("sendPopupNotificationToPlayers requires a players audience payload.");
+  }
+
+  if (!OBR.isAvailable) {
+    console.info("[PopupNotification:players]", payload);
+    return;
+  }
+
+  const message: PopupNotificationMessage = { type: "popup-notification", payload };
+  await OBR.broadcast.sendMessage(POPUP_NOTIFICATION_CHANNEL, message, { destination: "REMOTE" });
+};
+
+export const setupPopupNotificationListener = (viewerRole: ViewerRole): (() => void) => {
+  if (viewerRole !== "player" || !OBR.isAvailable) return () => undefined;
+
+  let unsubscribe: () => void = () => undefined;
+  OBR.onReady(() => {
+    unsubscribe = OBR.broadcast.onMessage(POPUP_NOTIFICATION_CHANNEL, (event) => {
+      if (!isPopupNotificationMessage(event.data)) return;
+      if (event.data.payload.audience !== "players") return;
+      void openLocalPopupNotification(event.data.payload);
+    });
+  });
+
+  return () => unsubscribe();
 };
 
 const getCurrentDateLabel = (project: CalendarProject, time: InternalTime): string => {

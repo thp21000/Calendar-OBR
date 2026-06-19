@@ -8,8 +8,18 @@ export const getCurrentDateLabel = (project: CalendarProject): string => {
   return `${date.weekdayName ?? ""} ${date.dayOfMonth} ${date.monthName} ${date.year}`.trim();
 };
 
+const confirmSentToGm = (project: CalendarProject, eventName: string): void => {
+  void import("../../obr/popupNotifications").then(({ openLocalPopupNotification }) => openLocalPopupNotification({
+    type: "event",
+    audience: "gm",
+    title: t(project.locale, "eventPublication.sentToPlayersTitle").replace("{name}", eventName),
+    body: t(project.locale, "eventPublication.sentToPlayersBody"),
+    date: getCurrentDateLabel(project)
+  }));
+};
+
 export const notifyWeatherEventToPlayers = (project: CalendarProject, event: WeatherEvent): void => {
-  void import("../../obr/popupNotifications").then(({ sendPopupNotification }) => sendPopupNotification({
+  void import("../../obr/popupNotifications").then(({ sendPopupNotificationToPlayers }) => sendPopupNotificationToPlayers({
     type: "weather",
     audience: "players",
     title: event.name,
@@ -23,7 +33,7 @@ export const notifyWeatherEventToPlayers = (project: CalendarProject, event: Wea
 };
 
 export const notifyMoonEventToPlayers = (project: CalendarProject, event: MoonEvent, contextDateLabel?: string): void => {
-  void import("../../obr/popupNotifications").then(({ sendPopupNotification }) => sendPopupNotification({
+  void import("../../obr/popupNotifications").then(({ sendPopupNotificationToPlayers }) => sendPopupNotificationToPlayers({
     type: "moon",
     audience: "players",
     title: event.name,
@@ -37,10 +47,16 @@ export const notifyMoonEventToPlayers = (project: CalendarProject, event: MoonEv
 
 export const setWeatherEventPublicationFromUi = (project: CalendarProject, event: WeatherEvent, published: boolean, onProjectUpdate: (project: CalendarProject) => void): void => {
   onProjectUpdate(setWeatherEventManualPublication(project, event.id, published));
-  if (published) notifyWeatherEventToPlayers(project, event);
+  if (published) {
+    notifyWeatherEventToPlayers(project, event);
+    confirmSentToGm(project, event.name);
+  }
 };
 
 export const setMoonEventPublicationFromUi = (project: CalendarProject, event: MoonEvent, published: boolean, onProjectUpdate: (project: CalendarProject) => void, contextDateLabel?: string): void => {
   onProjectUpdate(setLunarEventManualPublication(project, event.id, published));
-  if (published) notifyMoonEventToPlayers(project, event, contextDateLabel);
+  if (published) {
+    notifyMoonEventToPlayers(project, event, contextDateLabel);
+    confirmSentToGm(project, event.name);
+  }
 };

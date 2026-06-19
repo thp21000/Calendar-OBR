@@ -239,6 +239,12 @@ const buildWeatherViewModelFromSnapshot = (
 ): PlayerWeatherViewModel | undefined => {
   if (!snapshot.weather) return undefined;
   const state = snapshot.weather.state ?? "clear";
+  const snapshotStateLabel = snapshot.weather.stateLabel ?? getWeatherStateLabel(project, state, snapshot.locale);
+  const snapshotStateIcon = snapshot.weather.stateIcon ?? getConfiguredWeatherStateIcon(project, state);
+  const snapshotDominantStateLabel = snapshot.weather.dominantStateLabel ?? (snapshot.weather.dominantState ? getWeatherStateLabel(project, snapshot.weather.dominantState, snapshot.locale) : undefined);
+  const snapshotDominantStateIcon = snapshot.weather.dominantStateIcon ?? (snapshot.weather.dominantState ? getConfiguredWeatherStateIcon(project, snapshot.weather.dominantState) : snapshotStateIcon);
+  const snapshotTrendLabel = snapshot.weather.trendLabel ?? (snapshot.weather.trendKind ? getWeatherTrendLabel(project, snapshot.weather.trendKind, snapshot.locale) : undefined);
+  const snapshotTrendIcon = snapshot.weather.trendIcon ?? (snapshot.weather.trendKind ? getConfiguredWeatherTrendIcon(project, snapshot.weather.trendKind) : undefined);
   const broad = buildBroadLabels(snapshot.locale, {
     temperature: displayTemperatureToCelsius(snapshot.weather.temperature, snapshot.weather.units.temperature),
     windSpeed: displayWindToKmh(snapshot.weather.windSpeed, snapshot.weather.units.windSpeed),
@@ -249,16 +255,16 @@ const buildWeatherViewModelFromSnapshot = (
     dominantState: snapshot.weather.dominantState,
     state
   }, {
-    stateLabel: getWeatherStateLabel(project, state, snapshot.locale),
-    dominantStateLabel: snapshot.weather.dominantState ? getWeatherStateLabel(project, snapshot.weather.dominantState, snapshot.locale) : undefined,
-    dominantStateIcon: snapshot.weather.dominantState ? getConfiguredWeatherStateIcon(project, snapshot.weather.dominantState) : getConfiguredWeatherStateIcon(project, state),
-    trendLabel: snapshot.weather.trendKind ? getWeatherTrendLabel(project, snapshot.weather.trendKind, snapshot.locale) : undefined,
-    trendIcon: snapshot.weather.trendKind ? getConfiguredWeatherTrendIcon(project, snapshot.weather.trendKind) : undefined
+    stateLabel: snapshotStateLabel,
+    dominantStateLabel: snapshotDominantStateLabel,
+    dominantStateIcon: snapshotDominantStateIcon,
+    trendLabel: snapshotTrendLabel,
+    trendIcon: snapshotTrendIcon
   });
   const effectiveDetailLevel = detailLevel;
   return {
-    stateIcon: getConfiguredWeatherStateIcon(project, state),
-    stateLabel: getWeatherStateLabel(project, state, snapshot.locale),
+    stateIcon: snapshotStateIcon,
+    stateLabel: snapshotStateLabel,
     state,
     detailLevel: effectiveDetailLevel,
     ...(effectiveDetailLevel === "precise" ? {
@@ -274,13 +280,13 @@ const buildWeatherViewModelFromSnapshot = (
         ? `${snapshot.weather.dailyMinTemperature} / ${snapshot.weather.dailyMaxTemperature} ${snapshot.weather.units.temperature}`
         : undefined,
       dailyRainTotal: snapshot.weather.dailyRainTotal !== undefined ? `${snapshot.weather.dailyRainTotal} ${snapshot.weather.units.rainTotal}` : undefined,
-      trend: snapshot.weather.trendKind ? getWeatherTrendLabel(project, snapshot.weather.trendKind, snapshot.locale) : undefined,
+      trend: snapshotTrendLabel,
       trendKind: snapshot.weather.trendKind,
       dominantState: snapshot.weather.dominantState
-        ? `${getConfiguredWeatherStateIcon(project, snapshot.weather.dominantState)} ${getWeatherStateLabel(project, snapshot.weather.dominantState, snapshot.locale)}`
+        ? `${snapshotDominantStateIcon} ${snapshotDominantStateLabel ?? ""}`
         : undefined,
       dominantStateKind: snapshot.weather.dominantState,
-      dominantStateLabel: snapshot.weather.dominantState ? getWeatherStateLabel(project, snapshot.weather.dominantState, snapshot.locale) : undefined
+      dominantStateLabel: snapshot.weather.dominantState ? snapshotDominantStateLabel : undefined
     } : {
       ...broad
     })
@@ -397,7 +403,7 @@ export const buildPlayerViewModelFromSnapshot = (
     locale: snapshot.locale,
     calendarName: snapshot.calendarName,
     formattedDate: snapshot.formattedDate,
-    dateParts: buildDateParts(project, snapshot.currentTime),
+    dateParts: snapshot.dateParts ?? buildDateParts(project, snapshot.currentTime),
     season: settings.today.showSeason ? snapshot.season : undefined,
     biome: settings.today.showBiome ? snapshot.weatherBiome : undefined,
     weather: settings.today.showWeather ? buildWeatherViewModelFromSnapshot(project, snapshot, settings.today.weatherDetailLevel) : undefined,

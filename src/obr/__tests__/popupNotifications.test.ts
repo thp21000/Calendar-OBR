@@ -2,13 +2,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const obrMock = vi.hoisted(() => ({
   modalOpen: vi.fn(async () => undefined),
-  obr: { isAvailable: false, modal: { open: vi.fn(async () => undefined), close: vi.fn(async () => undefined) } }
+  sendMessage: vi.fn(async () => undefined),
+  onMessage: vi.fn(() => vi.fn()),
+  onReady: vi.fn((callback: () => void) => callback()),
+  obr: {
+    isAvailable: false,
+    modal: { open: vi.fn(async () => undefined), close: vi.fn(async () => undefined) },
+    broadcast: { sendMessage: vi.fn(async () => undefined), onMessage: vi.fn(() => vi.fn()) },
+    onReady: vi.fn((callback: () => void) => callback())
+  }
 }));
 obrMock.obr.modal.open = obrMock.modalOpen;
+obrMock.obr.broadcast.sendMessage = obrMock.sendMessage;
+obrMock.obr.broadcast.onMessage = obrMock.onMessage;
+obrMock.obr.onReady = obrMock.onReady;
 
 vi.mock("@owlbear-rodeo/sdk", () => ({ default: obrMock.obr }));
 
-import { clearPopupNotificationPayload, estimateNotificationModalHeight, readPopupNotificationPayload, savePopupNotificationPayload, sendPopupNotification } from "../popupNotifications";
+import { clearPopupNotificationPayload, estimateNotificationModalHeight, POPUP_NOTIFICATION_CHANNEL, readPopupNotificationPayload, savePopupNotificationPayload, sendPopupNotification, sendPopupNotificationToPlayers, setupPopupNotificationListener } from "../popupNotifications";
 
 const createLocalStorageMock = () => {
   const store = new Map<string, string>();
@@ -25,6 +36,9 @@ describe("popupNotifications", () => {
     vi.stubGlobal("localStorage", createLocalStorageMock());
     localStorage.clear();
     obrMock.modalOpen.mockClear();
+    obrMock.sendMessage.mockClear();
+    obrMock.onMessage.mockClear();
+    obrMock.onReady.mockClear();
     obrMock.obr.isAvailable = false;
     vi.stubGlobal("location", new URL("https://example.test/index.html"));
   });
@@ -59,5 +73,33 @@ describe("popupNotifications", () => {
       width: 460,
       height: 260
     }));
+  });
+
+  it("broadcasts player notifications without opening a local GM modal", async () => {
+    obrMock.obr.isAvailable = true;
+    const payload = { type: "weather" as const, audience: "players" as const, title: "Storm", body: "Heavy rain", date: "Today" };
+
+    await sendPopupNotificationToPlayers(payload);
+
+    expect(obrMock.sendMessage).toHaveBeenCalledWith(POPUP_NOTIFICATION_CHANNEL, { type: "popup-notification", payload }, { destination: "REMOTE" });
+    expect(obrMock.modalOpen).not.toHaveBeenCalled();
+  });
+
+  it("opens remote player notifications only on player clients", () => {
+    obrMock.obr.isAvailable = true;
+    const payload = { type: "moon" as const, audience: "players" as const, title: "Moon", body: "Narrative", date: "Tonight" };
+
+    setupPopupNotificationListener("player");
+    const onMessageCalls = obrMock.onMessage.mock.calls as unknown as Array<[string, (event: { data: unknown }) => void]>;
+    const handler = onMessageCalls[0]?.[1];
+    handler?.({ data: { type: "popup-notification", payload } });
+
+    expect(obrMock.onMessage).toHaveBeenCalledWith(POPUP_NOTIFICATION_CHANNEL, expect.any(Function));
+    expect(obrMock.modalOpen).toHaveBeenCalled();
+
+    obrMock.modalOpen.mockClear();
+    setupPopupNotificationListener("gm");
+    expect(obrMock.onMessage).toHaveBeenCalledTimes(1);
+    expect(obrMock.modalOpen).not.toHaveBeenCalled();
   });
 });

@@ -1271,6 +1271,8 @@ export const enMessages = {
   "eventPublication.removeFromPlayers": "Remove from players",
   "eventPublication.published": "Published to players",
   "eventPublication.notPublished": "Not published to players",
+  "eventPublication.sentToPlayersTitle": "Sent to players: {name}",
+  "eventPublication.sentToPlayersBody": "The publication was sent to players.",
   "eventDisplay.smartDisplay": "Smart display",
   "eventDisplay.smartDisplayHelp": "Controls which weather and lunar events are highlighted without changing the events that are actually active.",
   "eventDisplay.rules": "Smart display",

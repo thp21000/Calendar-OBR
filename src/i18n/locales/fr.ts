@@ -1271,6 +1271,8 @@ export const frMessages = {
   "eventPublication.removeFromPlayers": "Retirer des joueurs",
   "eventPublication.published": "Publié aux joueurs",
   "eventPublication.notPublished": "Non publié aux joueurs",
+  "eventPublication.sentToPlayersTitle": "Envoyé aux joueurs : {name}",
+  "eventPublication.sentToPlayersBody": "La publication a été envoyée aux joueurs.",
   "eventDisplay.smartDisplay": "Affichage intelligent",
   "eventDisplay.smartDisplayHelp": "Contrôle quels événements météo et lunaires sont mis en avant sans modifier les événements réellement actifs.",
   "eventDisplay.rules": "Affichage intelligent",
