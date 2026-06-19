@@ -71,6 +71,11 @@ export const setLunarEventManualPublication = (project: CalendarProject, eventId
   return { ...project, manualPublications: { ...current, lunarEventIds: Array.from(ids) } };
 };
 
+export const isPlayerLunarEventDisplayTime = (hour: number): boolean => {
+  const safeHour = Math.max(0, Math.min(23, Math.trunc(hour)));
+  return safeHour >= 19 || safeHour <= 6;
+};
+
 export const filterPlayerPublishableWeatherEvents = (
   project: CalendarProject,
   events: WeatherEvent[],
@@ -111,6 +116,7 @@ export const filterPlayerPublishableLunarEvents = (
   globalDisplayAllowed: boolean
 ): MoonEvent[] => {
   if (!globalDisplayAllowed) return [];
+  if (!isPlayerLunarEventDisplayTime(project.currentTime.hour)) return [];
   const publications = normalizeManualPublications(project.manualPublications);
   return events.filter((event) => {
     if (event.visibilityMode === undefined) {

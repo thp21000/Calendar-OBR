@@ -49,9 +49,11 @@ describe("eventPublicationLogic", () => {
 
   it("applique les mêmes règles aux événements lunaires", () => {
     let project = createDefaultCalendarProject();
+    project.currentTime = { ...project.currentTime, hour: 20, minute: 0 };
     project.moonEvents = [moonEvent("auto", "auto"), moonEvent("manual", "manual"), moonEvent("gm", "gmOnly")];
     project = setLunarEventManualPublication(project, "manual", true);
     expect(filterPlayerPublishableLunarEvents(project, project.moonEvents ?? [], true).map((event) => event.id)).toEqual(["auto", "manual"]);
+    expect(filterPlayerPublishableLunarEvents({ ...project, currentTime: { ...project.currentTime, hour: 12 } }, project.moonEvents ?? [], true)).toEqual([]);
   });
 
   it("réintègre les événements manuels publiés même s'ils sont masqués par l'affichage intelligent", () => {

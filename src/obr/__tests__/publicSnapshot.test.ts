@@ -7,6 +7,7 @@ import { buildPublicMonthSnapshot, createPublicCalendarTodaySnapshot } from "../
 describe("publicSnapshot moon events", () => {
   it("includes players moon event", () => {
     const project = createDefaultCalendarProject();
+    project.currentTime = { ...project.currentTime, hour: 20, minute: 0 };
     const moon = project.moons[0];
     project.moonEvents = [{ id: "m1", name: "Public", summary: "S", playerDescription: "moon player text", moonId: moon.id, phaseId: "new", visibility: "players", enabled: true, notifyOnTrigger: true, status: "active" }];
     const snapshot = createPublicCalendarTodaySnapshot(project, 1);
@@ -24,6 +25,7 @@ describe("publicSnapshot moon events", () => {
 
   it("revealOnTrigger excluded before triggered and included after", () => {
     const project = createDefaultCalendarProject();
+    project.currentTime = { ...project.currentTime, hour: 20, minute: 0 };
     const moon = project.moons[0];
     project.moonEvents = [{ id: "m1", name: "R", summary: "S", moonId: moon.id, phaseId: "new", visibility: "revealOnTrigger", enabled: true, notifyOnTrigger: true, status: "active" }];
     expect(createPublicCalendarTodaySnapshot(project, 1).moonEventsToday).toEqual([]);
