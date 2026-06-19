@@ -4,7 +4,7 @@ import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCur
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { createNotificationsFromTriggers, createReminderNotifications, type CalendarNotification } from "../calendar/notifications";
 import * as moonLogic from "../calendar/moonLogic";
-import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
+import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getTriggeredMoonEventsAtTime } from "../calendar/moonEventsLogic";
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../calendar/eventDisplayLogic";
 import { cleanManualPublicationsForActiveEvents, normalizeManualPublications } from "../calendar/eventPublicationLogic";
 import { getCurrentSeason } from "../calendar/seasonsLogic";
@@ -82,7 +82,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
     ? getCurrentlyMatchingWeatherEvents(project, conditionWeather, project.currentTime)
     : [];
   const currentMoonPhases = moonLogic.getCurrentMoonPhases(project);
-  const triggeredMoonEvents = getTriggeredMoonEvents(project, project.currentTime.absoluteDay);
+  const triggeredMoonEvents = getTriggeredMoonEventsAtTime(project, project.currentTime);
   const absoluteMinutes = project.currentTime.absoluteDay * 1440 + project.currentTime.hour * 60 + project.currentTime.minute;
   const displaySettings = normalizeEventDisplaySettings(project.eventDisplaySettings);
   const displayHistory = normalizeEventDisplayHistory(project.eventDisplayHistory);
@@ -181,7 +181,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
       const withMoonEventStatus = applyMoonEventTriggerActions(withEventsCompletion, triggeredMoon, nextTime.absoluteDay);
       const nextConditionWeather = generateWeatherForEventConditions(withMoonEventStatus, nextTime);
       const nextActiveWeatherIds = nextConditionWeather ? getCurrentlyMatchingWeatherEvents(withMoonEventStatus, nextConditionWeather, nextTime).map((event) => event.id) : [];
-      const nextActiveMoonIds = getTriggeredMoonEvents(withMoonEventStatus, nextTime.absoluteDay).map((event) => event.id);
+      const nextActiveMoonIds = getTriggeredMoonEventsAtTime(withMoonEventStatus, nextTime).map((event) => event.id);
       onProjectUpdate(cleanManualPublicationsForActiveEvents(withMoonEventStatus, nextActiveWeatherIds, nextActiveMoonIds));
       return;
     } else {
@@ -193,7 +193,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
     const nextProject = { ...project, currentTime: nextTime };
     const nextConditionWeather = generateWeatherForEventConditions(nextProject, nextTime);
     const nextActiveWeatherIds = nextConditionWeather ? getCurrentlyMatchingWeatherEvents(nextProject, nextConditionWeather, nextTime).map((event) => event.id) : [];
-    const nextActiveMoonIds = getTriggeredMoonEvents(nextProject, nextTime.absoluteDay).map((event) => event.id);
+    const nextActiveMoonIds = getTriggeredMoonEventsAtTime(nextProject, nextTime).map((event) => event.id);
     onProjectUpdate(cleanManualPublicationsForActiveEvents(nextProject, nextActiveWeatherIds, nextActiveMoonIds));
   };
 

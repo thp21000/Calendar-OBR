@@ -31,6 +31,28 @@ describe("publicSnapshot moon events", () => {
     expect(createPublicCalendarTodaySnapshot(project, 1).moonEventsToday.map((e) => e.id)).toEqual(["m1"]);
   });
 
+  it("excludes nocturnal moon events from player today snapshots during daytime", () => {
+    const project = createDefaultCalendarProject();
+    const moon = project.moons[0];
+    project.currentTime = { ...project.currentTime, absoluteDay: 0, hour: 12, minute: 0 };
+    project.moonEvents = [{
+      id: "night-only",
+      name: "Night only",
+      summary: "S",
+      moonId: moon.id,
+      phaseId: "new",
+      visibilityMode: "auto",
+      visibility: "players",
+      enabled: true,
+      notifyOnTrigger: true,
+      status: "active",
+      conditions: { eventConditions: [{ type: "timeOfDay", startHour: 20, endHour: 5 }] }
+    }];
+    expect(createPublicCalendarTodaySnapshot(project, 1).moonEventsToday).toEqual([]);
+    project.currentTime = { ...project.currentTime, hour: 22 };
+    expect(createPublicCalendarTodaySnapshot(project, 2).moonEventsToday.map((event) => event.id)).toEqual(["night-only"]);
+  });
+
   it("never exposes gmDescription", () => {
     const project = createDefaultCalendarProject();
     const moon = project.moons[0];

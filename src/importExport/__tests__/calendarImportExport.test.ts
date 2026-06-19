@@ -31,7 +31,7 @@ describe("calendarImportExport", () => {
     expect(imported.project.units).toEqual(project.units);
   });
 
-  it("preserves moon event biome and adventure context conditions", () => {
+  it("preserves moon event biome, adventure context and time conditions", () => {
     const project = createDefaultCalendarProject();
     const moon = project.moons[0];
     project.moonEvents = [{
@@ -49,14 +49,19 @@ describe("calendarImportExport", () => {
         monthIds: [],
         eventConditions: [
           { type: "biome", biomeIds: ["coast", "sea"] },
-          { type: "adventureContext", mode: "any", contextIds: ["on-water", "navigation"] }
+          { type: "adventureContext", mode: "any", contextIds: ["on-water", "navigation"] },
+          { type: "timeOfDay", startHour: 25, endHour: -2 }
         ]
       }
     }];
     const imported = importCalendarProject(exportCalendarProject(project), createDefaultCalendarProject());
     expect(imported.ok).toBe(true);
     if (!imported.ok) return;
-    expect(imported.project.moonEvents?.[0]?.conditions?.eventConditions).toEqual(project.moonEvents[0].conditions?.eventConditions);
+    expect(imported.project.moonEvents?.[0]?.conditions?.eventConditions).toEqual([
+      { type: "biome", biomeIds: ["coast", "sea"] },
+      { type: "adventureContext", mode: "any", contextIds: ["on-water", "navigation"] },
+      { type: "timeOfDay", startHour: 23, endHour: 0 }
+    ]);
   });
 
   it("sanitizes invalid unit settings to metric defaults", () => {

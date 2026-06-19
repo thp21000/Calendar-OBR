@@ -42,9 +42,9 @@ export const TodayEventsCard = ({ project, eventsToday, moonEventsToday = [], hi
       ...(hiddenMoonEvents.length > 0 ? [<details key="hidden-moon" style={{ fontSize: 12, color: "#9ca3af" }}><summary>{t(project.locale, "eventDisplay.hiddenEvents")}</summary><div style={{ display: "grid", gap: 4, marginTop: 6 }}>{hiddenMoonEvents.map((event) => <div key={event.id} role={onSelectMoonEvent ? "button" : undefined} tabIndex={onSelectMoonEvent ? 0 : undefined} onClick={onSelectMoonEvent ? () => onSelectMoonEvent(event.id) : undefined} onKeyDown={(keyEvent) => { if (!onSelectMoonEvent || (keyEvent.key !== "Enter" && keyEvent.key !== " ")) return; keyEvent.preventDefault(); onSelectMoonEvent(event.id); }} style={{ border: "1px dashed #374151", borderRadius: 6, padding: 6, background: "#0f172a", width: "100%", textAlign: "left", color: "#e5e7eb", cursor: onSelectMoonEvent ? "pointer" : "default" }}>{event.icon ?? "🌕"} {event.name} <span style={{ color: "#9ca3af" }}>— {t(project.locale, `eventDisplay.hiddenReason.${hiddenMoonEventReasons[event.id] ?? "priority"}`)}</span><ManualMoonPublicationControls project={project} event={event} isPublished={publishedMoonEventIds.includes(event.id)} onToggle={onToggleMoonPublication} /></div>)}</div></details>] : [])
     ];
   return <SectionCard>
-    <button type="button" onClick={() => setOpen((value) => !value)} style={collapsibleHeaderButtonStyle}>
+    <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} style={collapsibleHeaderButtonStyle}>
       <span>{t(project.locale, "events.eventsToday")}</span>
-      <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+      <span aria-hidden="true" style={collapsibleHeaderIconStyle}>{open ? "▾" : "▸"}</span>
     </button>
     {open ? rows.length === 0 ? <EmptyState text={t(project.locale, "events.noEventsToday")} /> : <div style={{ display: "grid", gap: 6 }}>{rows}</div> : null}
   </SectionCard>
@@ -63,6 +63,16 @@ const collapsibleHeaderButtonStyle: CSSProperties = {
   cursor: "pointer",
   fontSize: 14,
   fontWeight: 700
+};
+
+const collapsibleHeaderIconStyle: CSSProperties = {
+  flex: "0 0 auto",
+  minWidth: 18,
+  marginLeft: ui.spacing.sm,
+  textAlign: "right",
+  color: ui.colors.textPrimary,
+  fontSize: 16,
+  lineHeight: 1
 };
 
 const ManualMoonPublicationControls = ({ project, event, isPublished, onToggle }: { project: CalendarProject; event: NonNullable<CalendarProject["moonEvents"]>[number]; isPublished: boolean; onToggle?: (eventId: string, published: boolean) => void }) => event.visibilityMode === "manual" ? <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 4 }} onClick={(clickEvent) => clickEvent.stopPropagation()}><span style={{ fontSize: 12, color: isPublished ? "#86efac" : "#fbbf24" }}>{t(project.locale, isPublished ? "eventPublication.published" : "eventPublication.notPublished")}</span>{onToggle ? <button type="button" onClick={() => onToggle(event.id, !isPublished)} style={{ border: "1px solid #374151", borderRadius: 6, background: "#111827", color: "#e5e7eb", padding: "2px 8px", cursor: "pointer", fontSize: 11 }}>{t(project.locale, isPublished ? "eventPublication.removeFromPlayers" : "eventPublication.sendToPlayers")}</button> : null}</div> : null;

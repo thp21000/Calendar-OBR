@@ -3,7 +3,7 @@ import { getPlayerVisibleEventsForCurrentDay, getPlayerVisibleEventsForDay } fro
 import { getPlayerVisibleDayNotesForDay } from "../calendar/dayNotesLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../calendar/formatEvent";
-import { getTriggeredMoonEvents } from "../calendar/moonEventsLogic";
+import { getTriggeredMoonEventsAtTime } from "../calendar/moonEventsLogic";
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../calendar/eventDisplayLogic";
 import { filterPlayerPublishableLunarEvents, filterPlayerPublishableWeatherEvents, getPlayerLunarEventDisplayCandidates, getPlayerWeatherEventDisplayCandidates } from "../calendar/eventPublicationLogic";
 import { getCurrentMoonPhases } from "../calendar/moonLogic";
@@ -343,7 +343,7 @@ export const buildPublicMonthSnapshot = (
     const weatherEvents = publishedWeatherEvents.map((event) => ({
       id: event.id, name: event.name, icon: event.icon, summary: event.summary || undefined, playerDescription: event.playerDescription || undefined, link: event.link || undefined
     }));
-    const rawMoonEvents = settings.month.showMoonEvents ? getTriggeredMoonEvents(project, day.absoluteDay) : [];
+    const rawMoonEvents = settings.month.showMoonEvents ? getTriggeredMoonEventsAtTime(project, { absoluteDay: day.absoluteDay, hour: 12, minute: 0 }) : [];
     const selectedMoonEvents = selectVisibleLunarEvents({ activeEvents: rawMoonEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes: dayMinutes, seed: project.weatherSettings.seed ?? project.id });
     const moonCandidates = getPlayerLunarEventDisplayCandidates(project, selectedMoonEvents.visibleEvents, selectedMoonEvents.hiddenEvents);
     const publishedMoonEvents = filterPlayerPublishableLunarEvents(project, moonCandidates, settings.month.showMoonEvents);
@@ -466,16 +466,19 @@ export const createPublicCalendarTodaySnapshot = (
   const playerView = normalizePlayerViewSettings(project.uiSettings.playerView);
   const weatherUnits = getWeatherUnitLabels(project.units);
   const rainDecimals = project.units.rain === "inch" ? 2 : 1;
-  const publicWeather = currentWeather ? {
-    ...currentWeather,
-    temperature: roundPublicWeatherValue(toDisplayTemperature(currentWeather.temperature, project.units.temperature), 0),
-    dailyMinTemperature: currentWeather.dailyMinTemperature === undefined ? undefined : roundPublicWeatherValue(toDisplayTemperature(currentWeather.dailyMinTemperature, project.units.temperature), 0),
-    dailyMaxTemperature: currentWeather.dailyMaxTemperature === undefined ? undefined : roundPublicWeatherValue(toDisplayTemperature(currentWeather.dailyMaxTemperature, project.units.temperature), 0),
-    windSpeed: roundPublicWeatherValue(toDisplayWindSpeed(currentWeather.windSpeed, project.units.windSpeed), 0),
-    rain: roundPublicWeatherValue(toDisplayRain(currentWeather.rain, project.units.rain), rainDecimals),
-    dailyRainTotal: currentWeather.dailyRainTotal === undefined ? undefined : roundPublicWeatherValue(toDisplayRain(currentWeather.dailyRainTotal, project.units.rain), rainDecimals),
-    units: weatherUnits
-  } : undefined;
+  const publicWeather = currentWeather ? (() => {
+    const { heatPressure: _heatPressure, ...publicWeatherData } = currentWeather;
+    return {
+      ...publicWeatherData,
+      temperature: roundPublicWeatherValue(toDisplayTemperature(currentWeather.temperature, project.units.temperature), 0),
+      dailyMinTemperature: currentWeather.dailyMinTemperature === undefined ? undefined : roundPublicWeatherValue(toDisplayTemperature(currentWeather.dailyMinTemperature, project.units.temperature), 0),
+      dailyMaxTemperature: currentWeather.dailyMaxTemperature === undefined ? undefined : roundPublicWeatherValue(toDisplayTemperature(currentWeather.dailyMaxTemperature, project.units.temperature), 0),
+      windSpeed: roundPublicWeatherValue(toDisplayWindSpeed(currentWeather.windSpeed, project.units.windSpeed), 0),
+      rain: roundPublicWeatherValue(toDisplayRain(currentWeather.rain, project.units.rain), rainDecimals),
+      dailyRainTotal: currentWeather.dailyRainTotal === undefined ? undefined : roundPublicWeatherValue(toDisplayRain(currentWeather.dailyRainTotal, project.units.rain), rainDecimals),
+      units: weatherUnits
+    };
+  })() : undefined;
   const activeWeatherEvents = currentWeather
     ? getCurrentlyMatchingWeatherEvents(project, currentWeather, project.currentTime)
     : [];
@@ -485,7 +488,7 @@ export const createPublicCalendarTodaySnapshot = (
   const arbitratedWeatherEvents = selectVisibleWeatherEvents({ activeEvents: activeWeatherEvents, settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id });
   const weatherCandidates = getPlayerWeatherEventDisplayCandidates(project, arbitratedWeatherEvents.visibleEvents, arbitratedWeatherEvents.hiddenEvents);
   const publishedWeatherEvents = filterPlayerPublishableWeatherEvents(project, weatherCandidates, playerView.today.showWeatherEvents);
-  const arbitratedMoonEvents = selectVisibleLunarEvents({ activeEvents: getTriggeredMoonEvents(project, project.currentTime.absoluteDay), settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id });
+  const arbitratedMoonEvents = selectVisibleLunarEvents({ activeEvents: getTriggeredMoonEventsAtTime(project, project.currentTime), settings: eventDisplaySettings, history: eventDisplayHistory, absoluteMinutes, seed: project.weatherSettings.seed ?? project.id });
   const moonCandidates = getPlayerLunarEventDisplayCandidates(project, arbitratedMoonEvents.visibleEvents, arbitratedMoonEvents.hiddenEvents);
   const publishedMoonEvents = filterPlayerPublishableLunarEvents(project, moonCandidates, playerView.today.showMoonEvents);
 

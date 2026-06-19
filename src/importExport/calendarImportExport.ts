@@ -21,6 +21,9 @@ const weatherBiomeIds = new Set(WEATHER_BIOME_DEFINITIONS.map((definition) => de
 const isWeatherBiomeId = (value: unknown): value is WeatherBiomeId =>
   typeof value === "string" && weatherBiomeIds.has(value as WeatherBiomeId);
 
+const sanitizeHour = (value: unknown, fallback: number): number =>
+  Math.max(0, Math.min(23, Math.trunc(typeof value === "number" && Number.isFinite(value) ? value : fallback)));
+
 const sanitizeAdventureContextCondition = (condition: Record<string, unknown>): AdventureContextCondition => {
   const primaryContextIds = Array.isArray(condition.primaryContextIds)
     ? Array.from(new Set(condition.primaryContextIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)))
@@ -47,6 +50,9 @@ const sanitizeMoonEventExtraConditions = (conditions: unknown) => {
         if (condition.type === "biome") {
           const biomeIds = Array.isArray(condition.biomeIds) ? Array.from(new Set(condition.biomeIds.filter(isWeatherBiomeId))) : [];
           return biomeIds.length > 0 ? [{ type: "biome" as const, biomeIds }] : [];
+        }
+        if (condition.type === "timeOfDay") {
+          return [{ type: "timeOfDay" as const, startHour: sanitizeHour(condition.startHour, 20), endHour: sanitizeHour(condition.endHour, 5) }];
         }
         if (condition.type === "adventureContext" && (Array.isArray(condition.contextIds) || Array.isArray(condition.primaryContextIds))) return [sanitizeAdventureContextCondition(condition)];
         return [];

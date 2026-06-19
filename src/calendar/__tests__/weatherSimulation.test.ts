@@ -41,4 +41,14 @@ describe("weatherSimulation", () => {
     expect(result.summary.weatherEventDays["Vent constant"]).toBe(1);
     expect(result.summary.visibleWeatherEventDays["Vent constant"]).toBe(1);
   });
+  
+  it("exposes heat pressure in simulation rows and summary", () => {
+    const project = createDefaultCalendarProject();
+    project.weatherSettings.seed = "heat-pressure";
+    const result = runWeatherSimulation(project, { startAbsoluteDay: project.currentTime.absoluteDay, durationDays: 3, biomeId: "desert", seed: "heat-pressure" });
+    expect(result.rows.some((row) => typeof row.heatPressure === "number")).toBe(true);
+    expect(typeof result.summary.averageHeatPressure).toBe("number");
+    expect(typeof result.summary.maxHeatPressure).toBe("number");
+    expect(weatherSimulationToCsv(result)).toContain("heatPressure");
+  });
 });

@@ -44,15 +44,26 @@ export const duplicateMoonEvent = (project: CalendarProject, eventId: string): C
   };
 };
 
-export const isMoonEventTriggered = (project: CalendarProject, moonEvent: MoonEvent, absoluteDay: number): boolean => {
+const isHourInRange = (hour: number, startHour: number, endHour: number): boolean => {
+  const safeHour = Math.max(0, Math.min(23, Math.trunc(hour)));
+  const start = Math.max(0, Math.min(23, Math.trunc(startHour)));
+  const end = Math.max(0, Math.min(23, Math.trunc(endHour)));
+  if (start <= end) return safeHour >= start && safeHour <= end;
+  return safeHour >= start || safeHour <= end;
+};
+
+export const isMoonEventTriggeredAtTime = (project: CalendarProject, moonEvent: MoonEvent, time: InternalTime): boolean => {
   if (!moonEvent.enabled || moonEvent.status === "disabled" || moonEvent.status === "archived") return false;
   const moon = project.moons.find((m) => m.id === moonEvent.moonId);
   if (!moon) return false;
-  if (getMoonPhaseForDate(moon, absoluteDay).id !== moonEvent.phaseId) return false;
-  if (!matchesMoonEventExtraConditions(project, moonEvent, absoluteDay)) return false;
-  if (!matchesMoonEventRepeatMode(project, moonEvent, absoluteDay)) return false;
+  if (getMoonPhaseForDate(moon, time.absoluteDay).id !== moonEvent.phaseId) return false;
+  if (!matchesMoonEventExtraConditions(project, moonEvent, time)) return false;
+  if (!matchesMoonEventRepeatMode(project, moonEvent, time.absoluteDay)) return false;
   return true;
 };
+
+export const isMoonEventTriggered = (project: CalendarProject, moonEvent: MoonEvent, absoluteDay: number): boolean =>
+  isMoonEventTriggeredAtTime(project, moonEvent, { absoluteDay, hour: 0, minute: 0 });
 
 export const applyMoonEventTriggerActions = (project: CalendarProject, triggeredMoonEvents: MoonEvent[], triggeredAbsoluteDay?: number): CalendarProject => {
   const ids = new Set(triggeredMoonEvents.map((e) => e.id));
@@ -81,6 +92,9 @@ export const getPlayerVisibleMoonEvents = (project: CalendarProject, absoluteDay
 
 export const getTriggeredMoonEvents = (project: CalendarProject, absoluteDay: number): MoonEvent[] =>
   (project.moonEvents ?? []).filter((event) => isMoonEventTriggered(project, event, absoluteDay));
+
+export const getTriggeredMoonEventsAtTime = (project: CalendarProject, time: InternalTime): MoonEvent[] =>
+  (project.moonEvents ?? []).filter((event) => isMoonEventTriggeredAtTime(project, event, time));
 
 export const getNewlyTriggeredMoonEventsBetween = (project: CalendarProject, fromTime: InternalTime, toTime: InternalTime): MoonEvent[] => {
   if (toTime.absoluteDay <= fromTime.absoluteDay) return [];
@@ -199,31 +213,32 @@ const moonEventMatchesActivationRules = (project: CalendarProject, moonEvent: Mo
   const moon = project.moons.find((item) => item.id === moonEvent.moonId);
   if (!moon) return false;
   if (getMoonPhaseForDate(moon, absoluteDay).id !== moonEvent.phaseId) return false;
-  if (!matchesMoonEventExtraConditions(project, moonEvent, absoluteDay)) return false;
+  if (!matchesMoonEventExtraConditions(project, moonEvent, { absoluteDay, hour: 0, minute: 0 })) return false;
   if (!matchesMoonEventRepeatMode(project, moonEvent, absoluteDay)) return false;
   return true;
 };
 
-const matchesMoonEventExtraConditions = (project: CalendarProject, moonEvent: MoonEvent, absoluteDay: number): boolean => {
+const matchesMoonEventExtraConditions = (project: CalendarProject, moonEvent: MoonEvent, time: InternalTime): boolean => {
   const conditions = moonEvent.conditions ?? { seasonIds: [], monthIds: [], eventConditions: [] };
   const monthIds = conditions.monthIds ?? [];
   const seasonIds = conditions.seasonIds ?? [];
   const eventConditions = conditions.eventConditions ?? [];
-  const date = absoluteDayToCalendarDate({ absoluteDay, hour: 0, minute: 0 }, project.calendarSystem);
+  const date = absoluteDayToCalendarDate(time, project.calendarSystem);
   if (monthIds.length > 0 && !monthIds.includes(date.monthId)) return false;
   if (seasonIds.length > 0) {
     const season = getSeasonForDate(project, date);
     if (!season || !seasonIds.includes(season.id)) return false;
   }
-  return eventConditions.every((condition) => matchesMoonEventCondition(project, condition));
+  return eventConditions.every((condition) => matchesMoonEventCondition(project, condition, time));
 };
 
-const matchesMoonEventCondition = (project: CalendarProject, condition: MoonEventCondition): boolean => {
+const matchesMoonEventCondition = (project: CalendarProject, condition: MoonEventCondition, time: InternalTime): boolean => {
   if (condition.type === "biome") {
     const biomeIds = condition.biomeIds ?? [];
     if (biomeIds.length === 0) return true;
     return biomeIds.includes(getWeatherBiomeState(project).currentBiomeId);
   }
+  if (condition.type === "timeOfDay") return isHourInRange(time.hour, condition.startHour, condition.endHour);
   if (condition.type === "adventureContext") return isAdventureContextConditionMet(project, condition);
   return true;
 };

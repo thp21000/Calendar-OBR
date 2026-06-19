@@ -4,7 +4,7 @@ import { getMoonPhaseForDate } from "./moonLogic";
 import { getSeasonForDate } from "./seasonsLogic";
 import { getCurrentlyMatchingWeatherEvents } from "./weatherEventsLogic";
 import { generateWeatherForTime } from "./weatherLogic";
-import { getTriggeredMoonEvents } from "./moonEventsLogic";
+import { getTriggeredMoonEventsAtTime } from "./moonEventsLogic";
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "./eventDisplayLogic";
 import type { CalendarProject, WeatherState, WeatherTrendKind } from "../domain/types";
 import type { WeatherBiomeId } from "./weather/biomes";
@@ -39,6 +39,7 @@ export type WeatherSimulationRow = {
   dailyMaxTemperature?: number;
   rain?: number;
   dailyRainTotal?: number;
+  heatPressure?: number;
   windSpeed?: number;
   windDirection?: string;
   state?: WeatherState;
@@ -70,6 +71,8 @@ export type WeatherSimulationSummary = {
   averageWindBySeason: Record<string, number>;
   stateOccurrences: Record<string, number>;
   dominantStateOccurrences: Record<string, number>;
+  averageHeatPressure: number;
+  maxHeatPressure: number;
   weatherEventOccurrences: Record<string, number>;
   moonEventOccurrences: Record<string, number>;
   visibleWeatherEventOccurrences: Record<string, number>;
@@ -152,6 +155,8 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
     averageWindBySeason: {},
     stateOccurrences: {},
     dominantStateOccurrences: {},
+    averageHeatPressure: 0,
+    maxHeatPressure: 0,
     weatherEventOccurrences: {},
     moonEventOccurrences: {},
     visibleWeatherEventOccurrences: {},
@@ -172,6 +177,8 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
   const displaySettings = normalizeEventDisplaySettings(simProjectBase.eventDisplaySettings);
   const displayHistory = normalizeEventDisplayHistory(simProjectBase.eventDisplayHistory);
   const seasonStats: Record<string, SimulationSeasonStats> = {};
+  let heatPressureTotal = 0;
+  let heatPressureSamples = 0;
 
   for (let dayOffset = 0; dayOffset < durationDays; dayOffset += 1) {
     const absoluteDay = startAbsoluteDay + dayOffset;
@@ -190,7 +197,7 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
       const season = getSeasonForDate(simProject, date);
       const weather = generateWeatherForTime(simProject, absoluteDay, hour, 0);
       const activeWeatherEvents = weather ? getCurrentlyMatchingWeatherEvents(simProject, weather, time) : [];
-      const activeMoonEvents = getTriggeredMoonEvents(simProject, absoluteDay);
+      const activeMoonEvents = getTriggeredMoonEventsAtTime(simProject, time);
       const absoluteMinutes = absoluteDay * 1440 + hour * 60;
       const visibleWeatherSelection = selectVisibleWeatherEvents({ activeEvents: activeWeatherEvents, settings: displaySettings, history: displayHistory, absoluteMinutes, seed: simProject.weatherSettings.seed ?? simProject.id });
       const visibleMoonSelection = selectVisibleLunarEvents({ activeEvents: activeMoonEvents, settings: displaySettings, history: displayHistory, absoluteMinutes, seed: simProject.weatherSettings.seed ?? simProject.id });
@@ -203,6 +210,11 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
         if (weather.state === "storm") summary.stormHours += 1;
         if (weather.state === "strongWind") summary.strongWindHours += 1;
         if (weather.state === "tempest") summary.tempestHours += 1;
+        if (typeof weather.heatPressure === "number") {
+          heatPressureTotal += weather.heatPressure;
+          heatPressureSamples += 1;
+          summary.maxHeatPressure = Math.max(summary.maxHeatPressure, weather.heatPressure);
+        }
         increment(summary.stateOccurrences, weather.state);
         increment(summary.dominantStateOccurrences, weather.dominantState);
         const stats = seasonStats[seasonName] ?? { temperatureTotal: 0, rainTotal: 0, windTotal: 0, hours: 0 };
@@ -261,6 +273,7 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
         dailyMaxTemperature: weather?.dailyMaxTemperature,
         rain: weather?.rain,
         dailyRainTotal: weather?.dailyRainTotal,
+        heatPressure: weather?.heatPressure,
         windSpeed: weather?.windSpeed,
         windDirection: weather?.windDirection,
         state: weather?.state,
@@ -292,6 +305,7 @@ export const runWeatherSimulation = (project: CalendarProject, options: WeatherS
     summary.averageRainBySeason[seasonName] = round2(stats.rainTotal / stats.hours);
     summary.averageWindBySeason[seasonName] = round2(stats.windTotal / stats.hours);
   }
+  summary.averageHeatPressure = heatPressureSamples > 0 ? round2(heatPressureTotal / heatPressureSamples) : 0;
 
   return {
     options: {
@@ -312,6 +326,6 @@ const csvEscape = (value: unknown): string => {
 };
 
 export const weatherSimulationToCsv = (result: WeatherSimulationResult): string => {
-  const columns: Array<keyof WeatherSimulationRow> = ["absoluteDay", "year", "monthName", "dayOfMonth", "hour", "season", "biome", "activeContexts", "temperature", "dailyMinTemperature", "dailyMaxTemperature", "rain", "dailyRainTotal", "windSpeed", "windDirection", "state", "dominantState", "trendKind", "moonPhases", "activeWeatherEvents", "activeMoonEvents"];
+  const columns: Array<keyof WeatherSimulationRow> = ["absoluteDay", "year", "monthName", "dayOfMonth", "hour", "season", "biome", "activeContexts", "temperature", "dailyMinTemperature", "dailyMaxTemperature", "rain", "dailyRainTotal", "heatPressure", "windSpeed", "windDirection", "state", "dominantState", "trendKind", "moonPhases", "activeWeatherEvents", "activeMoonEvents"];
   return [columns.join(","), ...result.rows.map((row) => columns.map((column) => csvEscape(row[column])).join(",")), "", "summary", csvEscape(JSON.stringify(result.summary))].join("\n");
 };

@@ -4,7 +4,7 @@ import { getPlayerVisibleEventsForCurrentDay } from "../../calendar/eventsLogic"
 import { formatDisplayDate } from "../../calendar/formatDisplayDate";
 import { formatEventTimeShort } from "../../calendar/formatEvent";
 import { getCurrentMoonPhases } from "../../calendar/moonLogic";
-import { getTriggeredMoonEvents } from "../../calendar/moonEventsLogic";
+import { getTriggeredMoonEventsAtTime } from "../../calendar/moonEventsLogic";
 import { normalizeEventDisplayHistory, normalizeEventDisplaySettings, selectVisibleLunarEvents, selectVisibleWeatherEvents } from "../../calendar/eventDisplayLogic";
 import { filterPlayerPublishableLunarEvents, filterPlayerPublishableWeatherEvents, getPlayerLunarEventDisplayCandidates, getPlayerWeatherEventDisplayCandidates } from "../../calendar/eventPublicationLogic";
 import { normalizePlayerViewSettings } from "../../calendar/playerViewSettings";
@@ -434,7 +434,7 @@ export const buildPlayerViewModelFromProject = (project: CalendarProject, rawSet
   const currentBiome = getCurrentWeatherBiomeDefinition(project);
   const currentMoonPhases = getCurrentMoonPhases(project);
   const activeWeatherEvents = currentWeather ? getCurrentlyMatchingWeatherEvents(project, currentWeather, project.currentTime) : [];
-  const activeMoonEvents = getTriggeredMoonEvents(project, project.currentTime.absoluteDay);
+  const activeMoonEvents = getTriggeredMoonEventsAtTime(project, project.currentTime);
   const absoluteMinutes = project.currentTime.absoluteDay * 1440 + project.currentTime.hour * 60 + project.currentTime.minute;
   const eventDisplaySettings = normalizeEventDisplaySettings(project.eventDisplaySettings);
   const eventDisplayHistory = normalizeEventDisplayHistory(project.eventDisplayHistory);

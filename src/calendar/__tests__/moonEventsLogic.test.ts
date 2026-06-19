@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDefaultCalendarProject } from "../../storage/calendarStorage";
-import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getPlayerVisibleMoonEvents, getTriggeredMoonEvents, isMoonEventTriggered } from "../moonEventsLogic";
+import { applyMoonEventTriggerActions, getNewlyTriggeredMoonEventsBetween, getPlayerVisibleMoonEvents, getTriggeredMoonEvents, getTriggeredMoonEventsAtTime, isMoonEventTriggered } from "../moonEventsLogic";
 import { setActiveAdventureContexts } from "../adventureContext";
 import type { MoonEvent } from "../../domain/types";
 
@@ -57,6 +57,26 @@ describe("moonEventsLogic", () => {
     const event: MoonEvent = { id: "forest-light", name: "Forest light", summary: "", moonId: moon.id, phaseId: "new", visibility: "gm", enabled: true, notifyOnTrigger: true, status: "active", conditions: { seasonIds: [], monthIds: [], eventConditions: [{ type: "adventureContext", mode: "all", contextIds: ["woods", "hunting"] }] } };
     expect(isMoonEventTriggered(project, event, 0)).toBe(true);
     expect(isMoonEventTriggered(setActiveAdventureContexts(project, ["woods"]), event, 0)).toBe(false);
+  });
+
+  it("filters moon events by time of day including ranges crossing midnight", () => {
+    const project = createDefaultCalendarProject();
+    const moon = project.moons[0];
+    project.moonEvents = [{
+      id: "night-moon",
+      name: "Night moon",
+      summary: "",
+      moonId: moon.id,
+      phaseId: "new",
+      visibility: "players",
+      enabled: true,
+      notifyOnTrigger: true,
+      status: "active",
+      conditions: { eventConditions: [{ type: "timeOfDay", startHour: 20, endHour: 5 }] }
+    }];
+    expect(getTriggeredMoonEventsAtTime(project, { absoluteDay: 0, hour: 22, minute: 0 }).map((event) => event.id)).toEqual(["night-moon"]);
+    expect(getTriggeredMoonEventsAtTime(project, { absoluteDay: 0, hour: 4, minute: 0 }).map((event) => event.id)).toEqual(["night-moon"]);
+    expect(getTriggeredMoonEventsAtTime(project, { absoluteDay: 0, hour: 12, minute: 0 })).toEqual([]);
   });
 
   it("newly triggered between days", () => {

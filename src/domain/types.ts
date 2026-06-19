@@ -252,6 +252,7 @@ export type WeatherSnapshot = {
   windSpeed: number;
   windDirection: WindDirection;
   rain: number;
+  heatPressure?: number;
   state?: WeatherState;
   dailyMinTemperature?: number;
   dailyMaxTemperature?: number;
@@ -537,6 +538,7 @@ export type MoonEventRepeatMode = "once" | "everyOccurrence" | "everyOtherOccurr
 
 export type MoonEventCondition =
   | { type: "biome"; biomeIds: WeatherBiomeId[] }
+  | { type: "timeOfDay"; startHour: number; endHour: number }
   | AdventureContextCondition;
 
 export type MoonEventExtraConditions = {
