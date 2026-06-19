@@ -66,4 +66,20 @@ describe("PlayerMonthView", () => {
     expect(html).toContain("Mois 2 999");
     expect(html).toContain("Mois 2 1000");
   });
+
+  it("renders month cell markers from the public snapshot", () => {
+    const month = snapshotMonth();
+    month.days[0].markers = [
+      { id: "event:snapshot-event", icon: "⭐", label: "Snapshot Event", type: "event" },
+      { id: "weather:rain", icon: "🌧️", label: "Rain", type: "weather" },
+      { id: "moon:full", icon: "🌕", label: "Moon", type: "moon" },
+      { id: "note:public", icon: "📝", label: "Note", type: "note" }
+    ];
+
+    const html = renderMonth({ isSnapshotMode: true, snapshotMonth: month, project: createDefaultCalendarProject() });
+
+    expect(html).toContain("⭐");
+    expect(html).toContain("🌧️");
+    expect(html).toContain("+2");
+  });
 });

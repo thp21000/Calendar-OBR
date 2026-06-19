@@ -8,7 +8,7 @@ import type { CalendarDate, CalendarEvent, CalendarProject, InternalTime } from 
 import type React from "react";
 import { t } from "../../i18n/messages";
 import { EventIcon } from "../EventIcon";
-import type { PublicMonthSnapshot } from "../../obr/publicSnapshot";
+import type { PublicMonthMarkerSnapshot, PublicMonthSnapshot } from "../../obr/publicSnapshot";
 import type { LocaleCode } from "../../domain/types";
 
 const FALLBACK_EVENT_ICON = "◆";
@@ -32,6 +32,27 @@ type MonthGridCell = {
   onClick?: () => void;
 };
 
+type MonthGridMarker = {
+  id: string;
+  icon?: string;
+  label: string;
+  type: PublicMonthMarkerSnapshot["type"];
+};
+
+const visibleCellMarkers = (markers: MonthGridMarker[], locale: LocaleCode): Array<{ key: string; node: React.ReactNode }> => {
+  const visibleMarkers = markers.slice(0, 2).map((marker) => ({
+    key: marker.id,
+    node: marker.type === "note"
+      ? <span style={{ fontSize: 11, lineHeight: 1 }}>{marker.icon ?? "📝"}</span>
+      : <EventIcon icon={marker.icon || FALLBACK_EVENT_ICON} locale={locale} size={14} />
+  }));
+  const extraMarkers = markers.length > 2 ? markers.length - 2 : 0;
+  return [
+    ...visibleMarkers,
+    extraMarkers > 0 ? { key: "extra", node: <span style={{ fontSize: 10, lineHeight: 1, color: "#cbd5e1", opacity: 0.9 }}>+{extraMarkers}</span> } : undefined
+  ].filter(Boolean) as Array<{ key: string; node: React.ReactNode }>;
+};
+
 export const MonthGrid = ({ project, viewedTime, selectedDate, onSelectDate, mode = "gm", publicMonth, locale, selectedAbsoluteDay, onSelectPublicDay }: { project?: CalendarProject; viewedTime?: InternalTime; selectedDate?: CalendarDate | null; onSelectDate?: (date: CalendarDate) => void; mode?: "gm" | "player"; readonly?: boolean; publicMonth?: PublicMonthSnapshot; locale?: LocaleCode; selectedAbsoluteDay?: number | null; onSelectPublicDay?: (absoluteDay: number) => void; visibility?: unknown }) => {
   const publicLocale = locale ?? project?.locale ?? "en";
   let weekdays: string[] = [];
@@ -42,11 +63,12 @@ export const MonthGrid = ({ project, viewedTime, selectedDate, onSelectDate, mod
     weekdays = publicMonth.weekdays;
     leading = Array.from({ length: publicMonth.leadingEmptyDays }, (_, i) => i);
     cells = publicMonth.days.map((day) => {
-      const firstPublicEvent = day.events[0] ?? day.weatherEvents[0];
-      const firstMoonEvent = day.moonEvents[0];
-      const hasDayNotes = day.dayNotes.length > 0;
-      const markerCount = day.events.length + day.weatherEvents.length + day.moonEvents.length + (hasDayNotes ? 1 : 0);
-      const extraMarkers = markerCount > 2 ? markerCount - 2 : 0;
+      const markers = day.markers.map((marker) => ({
+        id: marker.id,
+        icon: marker.icon,
+        label: marker.label,
+        type: marker.type
+      }));
       return {
         key: String(day.absoluteDay),
         label: String(day.dayOfMonth),
@@ -54,12 +76,7 @@ export const MonthGrid = ({ project, viewedTime, selectedDate, onSelectDate, mod
         isToday: day.isToday,
         isSelected: day.absoluteDay === selectedAbsoluteDay,
         onClick: onSelectPublicDay ? () => onSelectPublicDay(day.absoluteDay) : undefined,
-        markers: [
-          firstPublicEvent ? { key: "event", node: <EventIcon icon={firstPublicEvent.icon || FALLBACK_EVENT_ICON} locale={publicLocale} size={14} /> } : undefined,
-          !firstPublicEvent && firstMoonEvent ? { key: "moon", node: <EventIcon icon={firstMoonEvent.icon || "🌕"} locale={publicLocale} size={14} /> } : undefined,
-          hasDayNotes ? { key: "notes", node: <span style={{ fontSize: 11, lineHeight: 1 }}>📝</span> } : undefined,
-          extraMarkers > 0 ? { key: "extra", node: <span style={{ fontSize: 10, lineHeight: 1, color: "#cbd5e1", opacity: 0.9 }}>+{extraMarkers}</span> } : undefined
-        ].filter(Boolean) as Array<{ key: string; node: React.ReactNode }>
+        markers: visibleCellMarkers(markers, publicLocale)
       };
     });
   } else if (project && viewedTime && onSelectDate) {
@@ -77,11 +94,12 @@ export const MonthGrid = ({ project, viewedTime, selectedDate, onSelectDate, mod
       const startingMoonEvents = getMoonEventsStartingOnDay(project, day.absoluteDay);
       const seasonsStarting = getSeasonsStartingOnDate(project, date);
       const seasonStart = seasonsStarting[0];
-      const firstEvent = events[0];
-      const firstMoonEvent = startingMoonEvents[0];
-      const icon = firstEvent?.icon || firstMoonEvent?.icon || FALLBACK_EVENT_ICON;
-      const markerCount = events.length + startingMoonEvents.length + (seasonStart ? 1 : 0) + (hasDayNotes ? 1 : 0);
-      const extraMarkers = markerCount > 2 ? markerCount - 2 : 0;
+      const markers: MonthGridMarker[] = [
+        ...events.map((event) => ({ id: `event:${event.id}`, icon: event.icon ?? FALLBACK_EVENT_ICON, label: event.name, type: "event" as const })),
+        ...startingMoonEvents.map((event) => ({ id: `moon:${event.id}`, icon: event.icon ?? "🌕", label: event.name, type: "moon" as const })),
+        ...(seasonStart ? [{ id: `season:${seasonStart.id}`, icon: seasonStart.icon, label: seasonStart.name, type: "season" as const }] : []),
+        ...(hasDayNotes ? [{ id: "notes", icon: "📝", label: t(project.locale, "month.hasNotes"), type: "note" as const }] : [])
+      ];
       return {
         key: String(day.absoluteDay),
         label: String(day.dayOfMonth),
@@ -89,13 +107,7 @@ export const MonthGrid = ({ project, viewedTime, selectedDate, onSelectDate, mod
         isToday: isActualCurrentDay,
         isSelected: isSelectedDay,
         onClick: () => onSelectDate(date),
-        markers: [
-          events.length > 0 ? { key: "event", node: <EventIcon icon={icon} locale={project.locale} size={14} /> } : undefined,
-          events.length === 0 && startingMoonEvents.length > 0 ? { key: "moon", node: <EventIcon icon={firstMoonEvent?.icon || "🌕"} locale={project.locale} size={14} /> } : undefined,
-          seasonStart ? { key: "season", node: <EventIcon icon={seasonStart.icon} locale={project.locale} size={14} /> } : undefined,
-          hasDayNotes ? { key: "notes", node: <span style={{ fontSize: 11, lineHeight: 1 }}>📝</span> } : undefined,
-          extraMarkers > 0 ? { key: "extra", node: <span style={{ fontSize: 10, lineHeight: 1, color: "#cbd5e1", opacity: 0.9 }}>+{extraMarkers}</span> } : undefined
-        ].filter(Boolean) as Array<{ key: string; node: React.ReactNode }>
+        markers: visibleCellMarkers(markers, project.locale)
       };
     });
   }
