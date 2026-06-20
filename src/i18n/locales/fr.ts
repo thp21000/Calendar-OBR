@@ -337,7 +337,7 @@ export const frMessages = {
   "time.plus2h": "+2 h",
   "time.longRest": "Pause longue +8 h",
   "time.quickActions": "Actions rapides",
-  "time.quickActionsShortcutsHelp": "Raccourcis MJ : Ctrl+Maj+1 à 9 pour les actions de temps, Ctrl+Maj+0 pour le biome, Ctrl+Maj+. pour les contextes.",
+  "time.quickActionsShortcutsHelp": "Raccourcis MJ : Maj+1 à 9 pour les actions de temps, Maj+0 pour le biome, Maj+. pour les contextes.",
   "today.context.title": "Contexte du jour",
   "globalSearch.title": "Recherche globale",
   "globalSearch.placeholder": "Rechercher dans les événements, lunes, notes…",

@@ -141,7 +141,7 @@ const useQuickActionKeyboardShortcuts = ({ enabled, handlers }: { enabled: boole
     if (!enabled) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!event.ctrlKey || !event.shiftKey || event.altKey || event.metaKey || event.repeat) return;
+      if (!event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
       if (isEditableShortcutTarget(event.target)) return;
 
       const shortcutHandler = getQuickActionShortcutHandler(event.code, handlers);
@@ -305,7 +305,6 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
   const quickActionsCard = (
     <SectionCard>
         <SectionHeader title={t(project.locale, "time.quickActions")} />
-        <div style={shortcutHelpStyle}>{t(project.locale, "time.quickActionsShortcutsHelp")}</div>
         <div style={quickActionsGridStyle}>
           {quickActions.map((action) => (
             <SecondaryButton
@@ -343,6 +342,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
             <span style={quickChangeLabelStyle}>🧭 {t(project.locale, "adventureContext.changeAction")}</span>
           </SecondaryButton>
         </div>
+        <div style={shortcutHelpStyle}>{t(project.locale, "time.quickActionsShortcutsHelp")}</div>
       </SectionCard>
     );
 
