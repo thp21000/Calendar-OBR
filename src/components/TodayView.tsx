@@ -120,18 +120,19 @@ const isEditableShortcutTarget = (target: EventTarget | null): boolean => {
 };
 
 const getQuickActionShortcutHandler = (code: string, handlers: QuickActionShortcutHandlers): (() => void) | undefined => {
+  // Les raccourcis actions rapides utilisent volontairement uniquement le pavé numérique.
   const shortcuts: Record<string, () => void> = {
-    Digit1: handlers.onMinus2Hours,
-    Digit2: handlers.onMinus1Hour,
-    Digit3: handlers.onMinus15Minutes,
-    Digit4: handlers.onMinus5Minutes,
-    Digit5: handlers.onLongRest,
-    Digit6: handlers.onPlus5Minutes,
-    Digit7: handlers.onPlus15Minutes,
-    Digit8: handlers.onPlus1Hour,
-    Digit9: handlers.onPlus2Hours,
-    Digit0: handlers.onOpenBiomeChange,
-    Period: handlers.onOpenAdventureContext
+    Numpad1: handlers.onMinus2Hours,
+    Numpad2: handlers.onMinus1Hour,
+    Numpad3: handlers.onMinus15Minutes,
+    Numpad4: handlers.onMinus5Minutes,
+    Numpad5: handlers.onLongRest,
+    Numpad6: handlers.onPlus5Minutes,
+    Numpad7: handlers.onPlus15Minutes,
+    Numpad8: handlers.onPlus1Hour,
+    Numpad9: handlers.onPlus2Hours,
+    Numpad0: handlers.onOpenBiomeChange,
+    NumpadDecimal: handlers.onOpenAdventureContext
   };
   return shortcuts[code];
 };
