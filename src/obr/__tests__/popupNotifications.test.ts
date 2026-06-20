@@ -63,14 +63,14 @@ describe("popupNotifications", () => {
   });
 
   it("estimates compact and long modal heights", () => {
-    expect(estimateNotificationModalHeight({ type: "event", audience: "gm", title: "Hi", body: "Short", date: "Today" })).toBe(260);
+    expect(estimateNotificationModalHeight({ type: "event", audience: "gm", title: "Hi", body: "Short", date: "Today" })).toBe(220);
     expect(estimateNotificationModalHeight({
       type: "event",
       audience: "gm",
       title: "Long",
       body: "x".repeat(650),
       date: "Today"
-    })).toBe(520);
+    })).toBe(460);
   });
 
   it("opens an OBR notification modal when OBR is available", async () => {
@@ -81,7 +81,7 @@ describe("popupNotifications", () => {
       id: expect.stringContaining("calendar-obr-notification-modal-notification-"),
       url: expect.stringContaining("view=notification"),
       width: 460,
-      height: 260
+      height: 220
     }));
   });
 

@@ -63,8 +63,8 @@ export const NotificationModalView = ({ project }: { project: CalendarProject })
   </main>;
 };
 
-const modalShellStyle: CSSProperties = { minHeight: "100vh", background: "#030712", color: "#e5e7eb", padding: 8, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center" };
-const panelStyle: CSSProperties = { width: "min(100%, 500px)", maxHeight: "calc(100vh - 24px)", overflowY: "auto", background: "#111827", border: "1px solid #374151", borderRadius: 12, boxShadow: "0 20px 60px rgba(0,0,0,.45)", padding: 14, boxSizing: "border-box" };
+const modalShellStyle: CSSProperties = { background: "transparent", color: "#e5e7eb", padding: 0, margin: 0, boxSizing: "border-box", width: "100%", overflow: "hidden" };
+const panelStyle: CSSProperties = { width: "100%", maxHeight: "min(460px, 100vh)", overflowY: "auto", background: "#111827", border: "1px solid #374151", borderRadius: 12, boxShadow: "0 20px 60px rgba(0,0,0,.45)", padding: 14, boxSizing: "border-box" };
 const headingRowStyle: CSSProperties = { display: "flex", alignItems: "center", gap: 12, marginBottom: 10 };
 const iconStyle: CSSProperties = { width: 44, height: 44, display: "grid", placeItems: "center", borderRadius: 12, background: "#1f2937", border: "1px solid #374151", fontSize: 26, flex: "0 0 auto" };
 const eyebrowStyle: CSSProperties = { color: "#93c5fd", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.7 };

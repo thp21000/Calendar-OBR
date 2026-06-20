@@ -3,3 +3,7 @@ html, body, #root { margin: 0; padding: 0; width: 100%; height: auto; min-height
 body { overflow-x: hidden; }
 main { overflow-x: hidden; background: transparent; }
 button:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 1px; }
+
+@media (max-width: 260px) {
+  .today-quick-change-grid { grid-template-columns: minmax(0, 1fr) !important; }
+}

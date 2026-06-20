@@ -71,6 +71,30 @@ const longRestButtonStyle: React.CSSProperties = {
   justifyContent: "center"
 };
 
+const quickChangeGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+  gap: 6,
+  width: "100%",
+  minWidth: 0,
+  marginBottom: 8
+};
+
+const quickChangeButtonStyle: React.CSSProperties = {
+  ...longRestButtonStyle,
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap"
+};
+
+const quickChangeLabelStyle: React.CSSProperties = {
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap"
+};
+
 export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotification }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; onReset: () => void; onOpenNotification?: (notification: CalendarNotification) => void; }) => {
   const dismissedStorageKey = `calendar-obr.notifications.dismissed.${project.id}`;
   const displayDate = absoluteDayToCalendarDate(project.currentTime, project.calendarSystem);
@@ -220,21 +244,23 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
           >
             🛌 {t(project.locale, "time.longRest")}
           </PrimaryButton>
+        </Toolbar>
+        <div className="today-quick-change-grid" style={quickChangeGridStyle}>
           <SecondaryButton
             type="button"
             onClick={() => setBiomePickerOpen(true)}
-            style={longRestButtonStyle}
+            style={quickChangeButtonStyle}
           >
-            🌐 {t(project.locale, "weatherBiome.changeAction")}
+            <span style={quickChangeLabelStyle}>🌐 {t(project.locale, "weatherBiome.changeAction")}</span>
           </SecondaryButton>
           <SecondaryButton
             type="button"
             onClick={() => setAdventureContextOpen(true)}
-            style={longRestButtonStyle}
+            style={quickChangeButtonStyle}
           >
-            🧭 {t(project.locale, "adventureContext.changeAction")}
+            <span style={quickChangeLabelStyle}>🧭 {t(project.locale, "adventureContext.changeAction")}</span>
           </SecondaryButton>
-        </Toolbar>
+        </div>
       </SectionCard>
     );
 
