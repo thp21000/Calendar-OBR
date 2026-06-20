@@ -337,6 +337,7 @@ export const enMessages = {
   "time.plus2h": "+2 h",
   "time.longRest": "Long rest +8 h",
   "time.quickActions": "Quick actions",
+  "time.quickActionsShortcutsHelp": "GM shortcuts: Ctrl+Shift+1 to 9 for time actions, Ctrl+Shift+0 for biome, Ctrl+Shift+. for contexts.",
   "today.context.title": "Today context",
   "globalSearch.title": "Global search",
   "globalSearch.placeholder": "Search events, moon events, day notes…",

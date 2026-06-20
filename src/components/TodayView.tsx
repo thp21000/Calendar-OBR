@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { addMinutes, absoluteDayToCalendarDate } from "../calendar/dateEngine";
 import { applyEventCompletionActions, getCompletedEventsBetween, getEventsForCurrentDay, getReminderEventsBetween, getTriggeredEventsBetween, updateCalendarEvent } from "../calendar/eventsLogic";
 import { formatDisplayDate } from "../calendar/formatDisplayDate";
@@ -93,6 +93,68 @@ const quickChangeLabelStyle: React.CSSProperties = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap"
+};
+
+const shortcutHelpStyle: React.CSSProperties = { fontSize: 11, color: "#9ca3af", margin: "-2px 0 8px", lineHeight: 1.35 };
+
+type QuickActionShortcutHandlers = {
+  onMinus2Hours: () => void;
+  onMinus1Hour: () => void;
+  onMinus15Minutes: () => void;
+  onMinus5Minutes: () => void;
+  onPlus5Minutes: () => void;
+  onPlus15Minutes: () => void;
+  onPlus1Hour: () => void;
+  onPlus2Hours: () => void;
+  onLongRest: () => void;
+  onOpenBiomeChange: () => void;
+  onOpenAdventureContext: () => void;
+};
+
+const isEditableShortcutTarget = (target: EventTarget | null): boolean => {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName.toLowerCase();
+  if (tagName === "input" || tagName === "textarea" || tagName === "select") return true;
+  if (target.isContentEditable) return true;
+  return Boolean(target.closest('[contenteditable="true"]'));
+};
+
+const getQuickActionShortcutHandler = (code: string, handlers: QuickActionShortcutHandlers): (() => void) | undefined => {
+  const shortcuts: Record<string, () => void> = {
+    Digit1: handlers.onMinus2Hours,
+    Digit2: handlers.onMinus1Hour,
+    Digit3: handlers.onMinus15Minutes,
+    Digit4: handlers.onMinus5Minutes,
+    Digit5: handlers.onLongRest,
+    Digit6: handlers.onPlus5Minutes,
+    Digit7: handlers.onPlus15Minutes,
+    Digit8: handlers.onPlus1Hour,
+    Digit9: handlers.onPlus2Hours,
+    Digit0: handlers.onOpenBiomeChange,
+    Period: handlers.onOpenAdventureContext
+  };
+  return shortcuts[code];
+};
+
+const useQuickActionKeyboardShortcuts = ({ enabled, handlers }: { enabled: boolean; handlers: QuickActionShortcutHandlers }) => {
+  useEffect(() => {
+    if (!enabled) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!event.ctrlKey || !event.shiftKey || event.altKey || event.metaKey || event.repeat) return;
+      if (isEditableShortcutTarget(event.target)) return;
+
+      const shortcutHandler = getQuickActionShortcutHandler(event.code, handlers);
+      if (!shortcutHandler) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      shortcutHandler();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [enabled, handlers]);
 };
 
 export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotification }: { project: CalendarProject; onProjectUpdate: (project: CalendarProject) => void; onReset: () => void; onOpenNotification?: (notification: CalendarNotification) => void; }) => {
@@ -221,9 +283,29 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
     onProjectUpdate(cleanManualPublicationsForActiveEvents(nextProject, nextActiveWeatherIds, nextActiveMoonIds));
   };
 
+  const openBiomeChange = () => setBiomePickerOpen(true);
+  const openAdventureContext = () => setAdventureContextOpen(true);
+  const applyLongRest = () => applyTimeDelta(480);
+  const shortcutHandlers: QuickActionShortcutHandlers = {
+    onMinus2Hours: () => applyTimeDelta(-120),
+    onMinus1Hour: () => applyTimeDelta(-60),
+    onMinus15Minutes: () => applyTimeDelta(-15),
+    onMinus5Minutes: () => applyTimeDelta(-5),
+    onPlus5Minutes: () => applyTimeDelta(5),
+    onPlus15Minutes: () => applyTimeDelta(15),
+    onPlus1Hour: () => applyTimeDelta(60),
+    onPlus2Hours: () => applyTimeDelta(120),
+    onLongRest: applyLongRest,
+    onOpenBiomeChange: openBiomeChange,
+    onOpenAdventureContext: openAdventureContext
+  };
+  const hasQuickActionBlockingPopup = Boolean(selectedEvent || selectedMoonEvent || selectedWeatherEvent || biomePickerOpen || adventureContextOpen);
+  useQuickActionKeyboardShortcuts({ enabled: !hasQuickActionBlockingPopup, handlers: shortcutHandlers });
+
   const quickActionsCard = (
     <SectionCard>
         <SectionHeader title={t(project.locale, "time.quickActions")} />
+        <div style={shortcutHelpStyle}>{t(project.locale, "time.quickActionsShortcutsHelp")}</div>
         <div style={quickActionsGridStyle}>
           {quickActions.map((action) => (
             <SecondaryButton
@@ -239,7 +321,7 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         <Toolbar>
           <PrimaryButton
             type="button"
-            onClick={() => applyTimeDelta(480)}
+            onClick={applyLongRest}
             style={longRestButtonStyle}
           >
             🛌 {t(project.locale, "time.longRest")}
@@ -248,14 +330,14 @@ export const TodayView = ({ project, onProjectUpdate, onReset, onOpenNotificatio
         <div className="today-quick-change-grid" style={quickChangeGridStyle}>
           <SecondaryButton
             type="button"
-            onClick={() => setBiomePickerOpen(true)}
+            onClick={openBiomeChange}
             style={quickChangeButtonStyle}
           >
             <span style={quickChangeLabelStyle}>🌐 {t(project.locale, "weatherBiome.changeAction")}</span>
           </SecondaryButton>
           <SecondaryButton
             type="button"
-            onClick={() => setAdventureContextOpen(true)}
+            onClick={openAdventureContext}
             style={quickChangeButtonStyle}
           >
             <span style={quickChangeLabelStyle}>🧭 {t(project.locale, "adventureContext.changeAction")}</span>
