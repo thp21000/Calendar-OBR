@@ -119,9 +119,23 @@ const isEditableShortcutTarget = (target: EventTarget | null): boolean => {
   return Boolean(target.closest('[contenteditable="true"]'));
 };
 
-const getQuickActionShortcutHandler = (code: string, handlers: QuickActionShortcutHandlers): (() => void) | undefined => {
+const DEBUG_QUICK_SHORTCUTS = false;
+
+const debugQuickShortcut = (event: KeyboardEvent): void => {
+  if (!DEBUG_QUICK_SHORTCUTS) return;
+  console.debug("[Calendar OBR] quick shortcut", {
+    code: event.code,
+    key: event.key,
+    shiftKey: event.shiftKey,
+    ctrlKey: event.ctrlKey,
+    altKey: event.altKey,
+    metaKey: event.metaKey
+  });
+};
+
+const getQuickActionShortcutHandler = (event: KeyboardEvent, handlers: QuickActionShortcutHandlers): (() => void) | undefined => {
   // Les raccourcis actions rapides utilisent volontairement uniquement le pavé numérique.
-  const shortcuts: Record<string, () => void> = {
+  const byCode: Record<string, () => void> = {
     Numpad1: handlers.onMinus2Hours,
     Numpad2: handlers.onMinus1Hour,
     Numpad3: handlers.onMinus15Minutes,
@@ -132,9 +146,27 @@ const getQuickActionShortcutHandler = (code: string, handlers: QuickActionShortc
     Numpad8: handlers.onPlus1Hour,
     Numpad9: handlers.onPlus2Hours,
     Numpad0: handlers.onOpenBiomeChange,
-    NumpadDecimal: handlers.onOpenAdventureContext
+    NumpadDecimal: handlers.onOpenAdventureContext,
+    NumpadComma: handlers.onOpenAdventureContext
   };
-  return shortcuts[code];
+  const exactNumpadHandler = byCode[event.code];
+  if (exactNumpadHandler) return exactNumpadHandler;
+  if (!event.shiftKey) return undefined;
+
+  const byShiftedNumpadNavigation: Record<string, () => void> = {
+    End: handlers.onMinus2Hours,
+    ArrowDown: handlers.onMinus1Hour,
+    PageDown: handlers.onMinus15Minutes,
+    ArrowLeft: handlers.onMinus5Minutes,
+    Clear: handlers.onLongRest,
+    ArrowRight: handlers.onPlus5Minutes,
+    Home: handlers.onPlus15Minutes,
+    ArrowUp: handlers.onPlus1Hour,
+    PageUp: handlers.onPlus2Hours,
+    Insert: handlers.onOpenBiomeChange,
+    Delete: handlers.onOpenAdventureContext
+  };
+  return byShiftedNumpadNavigation[event.code] ?? byShiftedNumpadNavigation[event.key];
 };
 
 const useQuickActionKeyboardShortcuts = ({ enabled, handlers }: { enabled: boolean; handlers: QuickActionShortcutHandlers }) => {
@@ -142,10 +174,11 @@ const useQuickActionKeyboardShortcuts = ({ enabled, handlers }: { enabled: boole
     if (!enabled) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
+      debugQuickShortcut(event);
       if (!event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
       if (isEditableShortcutTarget(event.target)) return;
 
-      const shortcutHandler = getQuickActionShortcutHandler(event.code, handlers);
+      const shortcutHandler = getQuickActionShortcutHandler(event, handlers);
       if (!shortcutHandler) return;
 
       event.preventDefault();
@@ -153,8 +186,8 @@ const useQuickActionKeyboardShortcuts = ({ enabled, handlers }: { enabled: boole
       shortcutHandler();
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [enabled, handlers]);
 };
 
