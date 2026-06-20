@@ -134,39 +134,21 @@ const debugQuickShortcut = (event: KeyboardEvent): void => {
 };
 
 const getQuickActionShortcutHandler = (event: KeyboardEvent, handlers: QuickActionShortcutHandlers): (() => void) | undefined => {
-  // Les raccourcis actions rapides utilisent volontairement uniquement le pavé numérique.
-  const byCode: Record<string, () => void> = {
-    Numpad1: handlers.onMinus2Hours,
-    Numpad2: handlers.onMinus1Hour,
-    Numpad3: handlers.onMinus15Minutes,
-    Numpad4: handlers.onMinus5Minutes,
-    Numpad5: handlers.onLongRest,
-    Numpad6: handlers.onPlus5Minutes,
-    Numpad7: handlers.onPlus15Minutes,
-    Numpad8: handlers.onPlus1Hour,
-    Numpad9: handlers.onPlus2Hours,
-    Numpad0: handlers.onOpenBiomeChange,
-    NumpadDecimal: handlers.onOpenAdventureContext,
-    NumpadComma: handlers.onOpenAdventureContext
-  };
-  const exactNumpadHandler = byCode[event.code];
-  if (exactNumpadHandler) return exactNumpadHandler;
-  if (!event.shiftKey) return undefined;
-
-  const byShiftedNumpadNavigation: Record<string, () => void> = {
-    End: handlers.onMinus2Hours,
-    ArrowDown: handlers.onMinus1Hour,
-    PageDown: handlers.onMinus15Minutes,
+  const shortcutsByCode: Record<string, () => void> = {
+    ArrowDown: handlers.onMinus15Minutes,
+    ArrowUp: handlers.onPlus15Minutes,
     ArrowLeft: handlers.onMinus5Minutes,
-    Clear: handlers.onLongRest,
     ArrowRight: handlers.onPlus5Minutes,
-    Home: handlers.onPlus15Minutes,
-    ArrowUp: handlers.onPlus1Hour,
+    Clear: handlers.onLongRest,
+    End: handlers.onOpenAdventureContext,
+    PageDown: handlers.onPlus1Hour,
+    Home: handlers.onOpenBiomeChange,
     PageUp: handlers.onPlus2Hours,
-    Insert: handlers.onOpenBiomeChange,
-    Delete: handlers.onOpenAdventureContext
+    Insert: handlers.onMinus2Hours,
+    Delete: handlers.onMinus1Hour
   };
-  return byShiftedNumpadNavigation[event.code] ?? byShiftedNumpadNavigation[event.key];
+  const shortcutsByKey: Record<string, () => void> = shortcutsByCode;
+  return shortcutsByCode[event.code] ?? shortcutsByKey[event.key];
 };
 
 const useQuickActionKeyboardShortcuts = ({ enabled, handlers }: { enabled: boolean; handlers: QuickActionShortcutHandlers }) => {
@@ -175,7 +157,7 @@ const useQuickActionKeyboardShortcuts = ({ enabled, handlers }: { enabled: boole
 
     const onKeyDown = (event: KeyboardEvent) => {
       debugQuickShortcut(event);
-      if (!event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
+      if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey || event.repeat) return;
       if (isEditableShortcutTarget(event.target)) return;
 
       const shortcutHandler = getQuickActionShortcutHandler(event, handlers);
