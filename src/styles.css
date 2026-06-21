@@ -4,6 +4,44 @@ body { overflow-x: hidden; }
 main { overflow-x: hidden; background: transparent; }
 button:focus-visible { outline: 2px solid #c4b5fd; outline-offset: 1px; }
 
+/* Scrollbars */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.55) rgba(15, 23, 42, 0.35);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.55) rgba(15, 23, 42, 0.35);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.25);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.55);
+  border: 2px solid rgba(15, 23, 42, 0.45);
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(203, 213, 225, 0.72);
+  border: 2px solid rgba(15, 23, 42, 0.45);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 @media (max-width: 260px) {
   .today-quick-change-grid { grid-template-columns: minmax(0, 1fr) !important; }
 }
